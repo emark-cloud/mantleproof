@@ -114,6 +114,16 @@ column human-verified. Cutover = `MANTLE_NETWORK=mantle` + fresh deploy, not new
 
 ---
 
+## Maintenance / deadlines
+
+- [x] **CI actions off Node 20** — done 2026-05-18. Bumped
+  `.github/workflows/ci.yml` to `actions/checkout@v6`, `pnpm/action-setup@v6`,
+  `actions/setup-node@v6`, `actions/setup-python@v6` (all Node-24 runtime),
+  ahead of GitHub's 2026-06-02 forced migration. Re-verify after the runner
+  default flips on 2026-06-02.
+
+---
+
 ## Decisions log (append-only)
 
 - 2026-05-18 — Path B chosen as default (deploy our own EIP-8004 registries). Confirm/flip on T1.
