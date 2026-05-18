@@ -9,7 +9,7 @@ pace). `[CP]` = on the critical path to **D = three demos green on Mantle mainne
 ## ★ Critical Path (do these first, in order)
 
 - [ ] **T0**  Scaffold monorepo `[CP]`
-- [ ] **T3**  Implement 7 contracts, Path B `[CP]`
+- [ ] **T3**  Implement 4 contracts, Path A (+ DecisionLog) `[CP]`
 - [ ] **T4**  Deploy + verify on Mantle Sepolia `[CP]`
 - [ ] **T6**  smoke-roundtrip green on Sepolia (post → getAudit → advance memoryRoot) `[CP]`
 - [ ] **T14** GeminiProvider working `[CP]`
@@ -22,7 +22,7 @@ pace). `[CP]` = on the critical path to **D = three demos green on Mantle mainne
 
 **Mainnet cutover gate (T25) — all must hold before any mainnet deploy:**
 (a) T6 green on Sepolia · (b) T20 run end-to-end on Sepolia vs a Sepolia test target ·
-(c) T19 precision acceptable · (d) Path A/B resolved · (e) `mantle_tokens.py` mainnet
+(c) T19 precision acceptable · (d) Path A/B resolved ✅ (Path A) · (e) `mantle_tokens.py` mainnet
 column human-verified. Cutover = `MANTLE_NETWORK=mantle` + fresh deploy, not new code.
 
 ---
@@ -34,18 +34,20 @@ column human-verified. Cutover = `MANTLE_NETWORK=mantle` + fresh deploy, not new
 - [ ] Confirm wallets funded: MNT on Mantle mainnet, MNT on Mantle Sepolia, USDC on Base
 - [ ] Railway project created · Vercel project created  *(accounts already held)*
 - [ ] (optional) `ANTHROPIC_API_KEY` / `ZAI_API_KEY` — gate only key-gated provider smoke tests
-- [ ] **T1** DoraHacks board post: does Mantle ship official ERC-8004 registries? (Path A vs B)
+- [x] **T1** RESOLVED 2026-05-18 — Mantle auto-issues each agent's ERC-8004 identity NFT (integrated hackathon feature). **Path A**: do NOT deploy own Identity Registry.
+- [ ] **T1b** Obtain Mantle's official ERC-8004 registry addresses — Identity (confirmed provided) + Reputation/Validation (confirm whether also provided) — for chainId 5000 and 5003; put in `.env` (`MANTLE_IDENTITY_REGISTRY`, `MANTLE_REPUTATION_REGISTRY`)
 
 ---
 
 ## Week 1 — Foundation & contracts
 
 - [ ] **T0**  Scaffold monorepo (root, contracts, engine, mcp-server, frontend, agents) `[CP]`
-- [ ] **T1**  Resolve Path A/B (DoraHacks) — async, default B
+- [x] **T1**  Path resolved → **Path A** (Mantle auto-issues ERC-8004 identity; no own registry)
+- [ ] **T1b** Get official ERC-8004 registry addresses (Identity ✓ provided; Reputation/Validation TBC) for 5000/5003
 - [ ] **T2**  Pin `mantle_tokens.py` per-network maps (5000 real addrs verified, 5003 mostly None)
-- [ ] **T3**  Implement 7 contracts + DecisionLog (Path B) `[CP]`
+- [ ] **T3**  Implement Path A contracts: MantleProofRegistry, MantleProofAgent (thin wrapper over official ERC-8004 identity + calls official Reputation Registry), MantleProofLicense, TreasurySplit, + DecisionLog `[CP]`
 - [ ] **T4**  Deploy + verify on Mantle Sepolia (confirm Routescan verify endpoint) `[CP]`
-- [ ] **T5**  Mint MantleProof agent iNFT (tokenId 1) on Sepolia
+- [ ] **T5**  Obtain MantleProof's Mantle-issued ERC-8004 identity tokenId; wire it into `MantleProofAgent` (no self-mint under Path A)
 - [ ] **T6**  smoke-roundtrip green on Sepolia `[CP]`
 - [ ] **T7**  Frontend wagmi reads registry (after T3 ABIs)
 
@@ -82,7 +84,7 @@ column human-verified. Cutover = `MANTLE_NETWORK=mantle` + fresh deploy, not new
 
 ## Week 5 — Demo agents + cache warmer
 
-- [ ] **T25** MAINNET cutover (gate passes) — deploy 7 + DecisionLog to mainnet, mint iNFT `[CP]`
+- [ ] **T25** MAINNET cutover (gate passes) — deploy 4 Path A contracts + DecisionLog to mainnet, wire Mantle-issued iNFT `[CP]`
 - [ ] **T26** Deployer-agent — Demo 1: payForAudit → finding → decline + redeploy `[CP]`
 - [ ] **T27** Trading-agent — Demo 2: getAudit → pause() backdoor → decline → decision-log tx `[CP]`
 - [ ] **T28** Yield-agent — Demo 3: getAudit → clean → LB addLiquidity → decision-log tx `[CP]`
@@ -108,7 +110,7 @@ column human-verified. Cutover = `MANTLE_NETWORK=mantle` + fresh deploy, not new
 
 ## Blocked / waiting
 
-- T1 — awaiting DoraHacks reply on Path A vs B (default B; T3 soft-blocked)
+- T1b — need official Mantle ERC-8004 registry addresses (Identity provided; Reputation/Validation TBC) for 5000/5003 before T3 wires `MantleProofAgent` / T5
 - Agni Finance source structure unverified (resources.md §13.5 — verify Week 2 or defer to Tier 2)
 - Mantle Sepolia verify apiURL (Routescan vs Mantlescan) — confirm Week 1
 
@@ -127,6 +129,7 @@ column human-verified. Cutover = `MANTLE_NETWORK=mantle` + fresh deploy, not new
 ## Decisions log (append-only)
 
 - 2026-05-18 — Path B chosen as default (deploy our own EIP-8004 registries). Confirm/flip on T1.
+- 2026-05-18 — **T1 RESOLVED → Path A.** Mantle auto-issues each agent's ERC-8004 identity NFT as an integrated hackathon feature; we do NOT deploy our own Identity Registry. `MantleProofAgent` becomes a thin wrapper over the official identity + calls the official Reputation Registry. Contracts: 7 → 4 (+DecisionLog). Supersedes the Path B default and the plan-file default.
 - 2026-05-18 — **GeminiProvider is the default LLM** (user holds Gemini key only). Claude/Zai interface-complete + key-gated.
 - 2026-05-18 — Testnet-first: develop on Mantle Sepolia (5003); mainnet (5000) for final deploy + all demo receipts.
 - 2026-05-18 — x402 settles USDC on Base (Coinbase facilitator doesn't support Mantle).

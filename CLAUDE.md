@@ -48,7 +48,7 @@ Full ASCII diagram: `docs/mantleproof.md` §2.
 | The 5 checks | `engine/mantleproof/checks/{usdy,meth,usde,dex,replay}_check.py` |
 | Tier 2 prompt + runner | `engine/mantleproof/tier2/{prompt,runner}.py` |
 | Hardhat dual-network config | `contracts/hardhat.config.ts` |
-| Contracts (Path B, 7 + DecisionLog) | `contracts/contracts/` |
+| Contracts (Path A: 4 + DecisionLog + MockUSDC) | `contracts/contracts/` |
 | MCP tools | `mcp-server/src/tools/` |
 | Frontend design tokens | `frontend/src/styles/globals.css`, `frontend/tailwind.config.ts` |
 | Demo agents | `agents/src/{deployer,trading,yield}-agent.ts` |
@@ -94,7 +94,7 @@ do not hide it.
   1. `smoke-roundtrip` green on Sepolia (post audit → `getAudit` → advance `memoryRoot`).
   2. Full `pipeline.py` run end-to-end on Sepolia against a Sepolia-deployed test target.
   3. Tier 2 precision acceptable on the ~20-contract validation set.
-  4. Path A/B resolved (DoraHacks).
+  4. Path A/B resolved ✅ (Path A — see Contract path).
   5. `mantle_tokens.py` mainnet column human-verified.
   Cutover is a config flip (`MANTLE_NETWORK=mantle`) + fresh deploy — **not new code**.
 - **Sepolia explorer is Routescan** (`5003.testnet.routescan.io`), NOT Mantlescan.
@@ -111,13 +111,26 @@ the source resolver reads mainnet target source via Mantlescan independent of th
 anchor chain. The mainnet column is a build-time, human-verified artifact (Week 1,
 ~20–30 min on Mantlescan + each protocol's site). Do not defer it.
 
-## Contract path
+## Contract path — **Path A** (decided 2026-05-18, T1 resolved)
 
-Default **Path B**: deploy our own EIP-8004 `IdentityRegistry` + `ReputationRegistry` +
-`ValidationRegistry`, plus `MantleProofRegistry`, `MantleProofAgent`,
-`MantleProofLicense`, `TreasurySplit` (+ `DecisionLog` for demos). Collapse to Path A
-(thin wrappers) only if Mantle confirms central registries (Day-1 DoraHacks question;
-soft-blocks contracts only).
+Mantle issues every participating agent's ERC-8004 identity NFT automatically as an
+integrated hackathon feature. **We do NOT deploy our own Identity Registry.** We deploy
+only **4** contracts and register/call into Mantle's official registries:
+
+- `MantleProofRegistry.sol` — append-only audit registry (our own).
+- `MantleProofAgent.sol` — **thin wrapper** around Mantle's official ERC-8004 identity:
+  tracks per-audit `memoryRoot`, `auditsPerformed`, reputation; calls Mantle's official
+  Reputation Registry on each audit.
+- `MantleProofLicense.sol` — pay-per-audit / subscription, 80/20 split.
+- `TreasurySplit.sol` — 20% treasury share.
+- plus `DecisionLog.sol` (demos) and `MockUSDC.sol` (tests).
+
+The official registry addresses (Identity confirmed Mantle-provided; Reputation/
+Validation + per-network addresses still to be obtained) come from env
+(`MANTLE_IDENTITY_REGISTRY`, `MANTLE_REPUTATION_REGISTRY`) and are passed to
+`MantleProofAgent` at deploy. `contracts/contracts/interfaces/IEIP8004.sol` holds the
+**external** interfaces we *consume* — not contracts we deploy. Path B (own registries)
+is abandoned; the planning-doc default is superseded by this.
 
 ## x402 cross-chain rule
 

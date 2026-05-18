@@ -1,5 +1,7 @@
 /**
- * Register MantleProof as agent tokenId 1 in the IdentityRegistry.
+ * Path A: Mantle auto-issues MantleProof's ERC-8004 identity NFT — we do NOT
+ * mint/register it ourselves. This script resolves the Mantle-issued tokenId
+ * (via MANTLE_IDENTITY_REGISTRY) and records it for MantleProofAgent wiring.
  * SCAFFOLD — implement in T5.
  */
 import hre from "hardhat";

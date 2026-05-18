@@ -1,34 +1,25 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.28;
 
-/// @title IEIP8004
-/// @notice Minimal EIP-8004 registry interfaces (Identity / Reputation / Validation).
-/// @dev SCAFFOLD: signatures only. Written to match the EIP-8004 draft so other
-///      Mantle teams can register against our deployment. See docs/resources.md §3.
+/// @title IEIP8004 — EXTERNAL interfaces we CONSUME (Path A)
+/// @notice Mantle issues every agent's ERC-8004 identity NFT automatically as an
+///         integrated hackathon feature. We do NOT deploy these registries — these
+///         are the interfaces of Mantle's *official* registries that
+///         `MantleProofAgent` calls into. Addresses are supplied at deploy time
+///         (env: MANTLE_IDENTITY_REGISTRY, MANTLE_REPUTATION_REGISTRY) and differ
+///         per network (5000 / 5003). See docs/resources.md §3, CLAUDE.md.
 interface IIdentityRegistry {
-    event AgentRegistered(uint256 indexed tokenId, address indexed owner, string tokenURI);
-
-    /// @notice Register an agent; mints an ERC-721 identity with URIStorage.
-    function registerAgent(string calldata tokenURI) external returns (uint256 tokenId);
-
+    /// @notice tokenURI of an agent's registration file (capabilities, endpoints).
     function agentURI(uint256 tokenId) external view returns (string memory);
+
+    /// @notice Owner of an agent identity tokenId.
+    function ownerOf(uint256 tokenId) external view returns (address);
 }
 
 interface IReputationRegistry {
-    event FeedbackPosted(
-        uint256 indexed subjectTokenId,
-        uint256 indexed authorTokenId,
-        int256 score,
-        string reason
-    );
-
-    function postFeedback(uint256 subjectTokenId, int256 score, string calldata reason) external;
+    /// @notice Post a feedback signal about an agent (called per audit).
+    function postFeedback(uint256 subjectTokenId, int256 score, string calldata reason)
+        external;
 
     function reputationOf(uint256 tokenId) external view returns (int256);
-}
-
-interface IValidationRegistry {
-    event WorkValidated(uint256 indexed tokenId, bytes32 indexed workHash, bool ok);
-
-    function recordValidation(uint256 tokenId, bytes32 workHash, bool ok) external;
 }

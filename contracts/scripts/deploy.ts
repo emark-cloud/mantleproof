@@ -1,9 +1,12 @@
 /**
- * Path B deploy: EIP-8004 registries + MantleProof contracts + DecisionLog.
+ * Path A deploy (T1 resolved): we do NOT deploy ERC-8004 registries — Mantle
+ * issues the identity NFT automatically. Deploy 4 contracts + DecisionLog and
+ * wire MantleProofAgent to Mantle's official registry addresses.
  * SCAFFOLD — orchestration skeleton only, implement in T3/T4.
  *
- * Order: IdentityRegistry -> ReputationRegistry -> ValidationRegistry
- *      -> MantleProofRegistry(oracleSigner) -> MantleProofAgent
+ * Order: MantleProofRegistry(oracleSigner)
+ *      -> MantleProofAgent(MANTLE_IDENTITY_REGISTRY, MANTLE_REPUTATION_REGISTRY,
+ *                          agentTokenId)            // addresses per-network, T1b
  *      -> MantleProofLicense -> TreasurySplit -> DecisionLog
  * Writes deployments/<network>.addresses.json (committed).
  */
