@@ -6,5 +6,5 @@
     "outDir": "dist",
     "types": ["node", "mocha"]
   },
-  "include": ["scripts", "test", "hardhat.config.ts"]
+  "include": ["scripts", "test", "config", "hardhat.config.ts"]
 }

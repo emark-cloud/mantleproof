@@ -125,12 +125,21 @@ only **4** contracts and register/call into Mantle's official registries:
 - `TreasurySplit.sol` — 20% treasury share.
 - plus `DecisionLog.sol` (demos) and `MockUSDC.sol` (tests).
 
-The official registry addresses (Identity confirmed Mantle-provided; Reputation/
-Validation + per-network addresses still to be obtained) come from env
-(`MANTLE_IDENTITY_REGISTRY`, `MANTLE_REPUTATION_REGISTRY`) and are passed to
-`MantleProofAgent` at deploy. `contracts/contracts/interfaces/IEIP8004.sol` holds the
-**external** interfaces we *consume* — not contracts we deploy. Path B (own registries)
-is abandoned; the planning-doc default is superseded by this.
+Official registry addresses are **resolved and verified live** (T1b, 2026-05-18) —
+canonical per-chain values in `contracts/config/registries.ts`, env
+(`MANTLE_IDENTITY_REGISTRY`/`MANTLE_REPUTATION_REGISTRY`) overrides only:
+
+| | Mantle mainnet 5000 | Mantle Sepolia 5003 |
+|---|---|---|
+| Identity Registry | `0x8004A169FB4a3325136EB29fA0ceB6D2e539a432` | `0x8004A818BFB912233c491871b3d84c89A494BD9e` |
+| Reputation Registry | `0x8004BAa17C55a88189AE136b182e5fdA19dE9b63` | `0x8004B663056A597Dffe9eCcC1965A193B7388713` |
+
+(Canonical deterministic deployments from `github.com/erc-8004/erc-8004-contracts`,
+confirmed via `eth_getCode` on each RPC. No Validation Registry — not needed.)
+`contracts/contracts/interfaces/IEIP8004.sol` holds the **external** interfaces we
+*consume* — not contracts we deploy. MantleProof's own ERC-8004 tokenId is assigned
+on hackathon registration (`MANTLEPROOF_AGENT_TOKEN_ID`, pending — T5). Path B (own
+registries) is abandoned; the planning-doc default is superseded by this.
 
 ## x402 cross-chain rule
 

@@ -35,7 +35,8 @@ column human-verified. Cutover = `MANTLE_NETWORK=mantle` + fresh deploy, not new
 - [ ] Railway project created · Vercel project created  *(accounts already held)*
 - [ ] (optional) `ANTHROPIC_API_KEY` / `ZAI_API_KEY` — gate only key-gated provider smoke tests
 - [x] **T1** RESOLVED 2026-05-18 — Mantle auto-issues each agent's ERC-8004 identity NFT (integrated hackathon feature). **Path A**: do NOT deploy own Identity Registry.
-- [ ] **T1b** Obtain Mantle's official ERC-8004 registry addresses — Identity (confirmed provided) + Reputation/Validation (confirm whether also provided) — for chainId 5000 and 5003; put in `.env` (`MANTLE_IDENTITY_REGISTRY`, `MANTLE_REPUTATION_REGISTRY`)
+- [x] **T1b** RESOLVED 2026-05-18 — official ERC-8004 registry addresses found + verified live (`eth_getCode`); in `contracts/config/registries.ts`. Identity+Reputation on 5000 & 5003 (no Validation needed).
+- [ ] **T5** still needs MantleProof's own Mantle-issued tokenId (assigned on hackathon registration) → `MANTLEPROOF_AGENT_TOKEN_ID`
 
 ---
 
@@ -43,7 +44,7 @@ column human-verified. Cutover = `MANTLE_NETWORK=mantle` + fresh deploy, not new
 
 - [ ] **T0**  Scaffold monorepo (root, contracts, engine, mcp-server, frontend, agents) `[CP]`
 - [x] **T1**  Path resolved → **Path A** (Mantle auto-issues ERC-8004 identity; no own registry)
-- [ ] **T1b** Get official ERC-8004 registry addresses (Identity ✓ provided; Reputation/Validation TBC) for 5000/5003
+- [x] **T1b** Official ERC-8004 registry addresses resolved + verified → `contracts/config/registries.ts`
 - [ ] **T2**  Pin `mantle_tokens.py` per-network maps (5000 real addrs verified, 5003 mostly None)
 - [ ] **T3**  Implement Path A contracts: MantleProofRegistry, MantleProofAgent (thin wrapper over official ERC-8004 identity + calls official Reputation Registry), MantleProofLicense, TreasurySplit, + DecisionLog `[CP]`
 - [ ] **T4**  Deploy + verify on Mantle Sepolia (confirm Routescan verify endpoint) `[CP]`
@@ -110,7 +111,7 @@ column human-verified. Cutover = `MANTLE_NETWORK=mantle` + fresh deploy, not new
 
 ## Blocked / waiting
 
-- T1b — need official Mantle ERC-8004 registry addresses (Identity provided; Reputation/Validation TBC) for 5000/5003 before T3 wires `MantleProofAgent` / T5
+- T5 — MantleProof's own Mantle-issued ERC-8004 tokenId not yet known (assigned on hackathon registration); registry addresses themselves are resolved (T1b done)
 - Agni Finance source structure unverified (resources.md §13.5 — verify Week 2 or defer to Tier 2)
 - Mantle Sepolia verify apiURL (Routescan vs Mantlescan) — confirm Week 1
 
@@ -130,6 +131,7 @@ column human-verified. Cutover = `MANTLE_NETWORK=mantle` + fresh deploy, not new
 
 - 2026-05-18 — Path B chosen as default (deploy our own EIP-8004 registries). Confirm/flip on T1.
 - 2026-05-18 — **T1 RESOLVED → Path A.** Mantle auto-issues each agent's ERC-8004 identity NFT as an integrated hackathon feature; we do NOT deploy our own Identity Registry. `MantleProofAgent` becomes a thin wrapper over the official identity + calls the official Reputation Registry. Contracts: 7 → 4 (+DecisionLog). Supersedes the Path B default and the plan-file default.
+- 2026-05-18 — **T1b RESOLVED.** Official ERC-8004 registries (canonical from github.com/erc-8004/erc-8004-contracts, verified live via eth_getCode): mainnet 5000 identity `0x8004A169…a432` / reputation `0x8004BAa1…9b63`; Sepolia 5003 identity `0x8004A818…BD9e` / reputation `0x8004B663…8713`. In `contracts/config/registries.ts`. No Validation Registry deployed (not needed).
 - 2026-05-18 — **GeminiProvider is the default LLM** (user holds Gemini key only). Claude/Zai interface-complete + key-gated.
 - 2026-05-18 — Testnet-first: develop on Mantle Sepolia (5003); mainnet (5000) for final deploy + all demo receipts.
 - 2026-05-18 — x402 settles USDC on Base (Coinbase facilitator doesn't support Mantle).

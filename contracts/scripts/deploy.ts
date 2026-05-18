@@ -5,12 +5,17 @@
  * SCAFFOLD — orchestration skeleton only, implement in T3/T4.
  *
  * Order: MantleProofRegistry(oracleSigner)
- *      -> MantleProofAgent(MANTLE_IDENTITY_REGISTRY, MANTLE_REPUTATION_REGISTRY,
- *                          agentTokenId)            // addresses per-network, T1b
+ *      -> MantleProofAgent(identityRegistry, reputationRegistry, agentTokenId)
+ *         // registries from config/registries.ts (verified canonical, per-chain;
+ *         // env MANTLE_IDENTITY_REGISTRY/MANTLE_REPUTATION_REGISTRY override).
+ *         // agentTokenId = MANTLEPROOF_AGENT_TOKEN_ID (Mantle-issued, T5).
  *      -> MantleProofLicense -> TreasurySplit -> DecisionLog
  * Writes deployments/<network>.addresses.json (committed).
  */
 import hre from "hardhat";
+import { registriesFor } from "../config/registries";
+
+void registriesFor; // TODO(T3/T4): wire into MantleProofAgent deploy.
 
 async function main(): Promise<void> {
   const net = hre.network.name; // mantleSepolia (dev) | mantle (post-cutover)
