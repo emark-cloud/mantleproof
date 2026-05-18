@@ -9,7 +9,7 @@ pace). `[CP]` = on the critical path to **D = three demos green on Mantle mainne
 ## ★ Critical Path (do these first, in order)
 
 - [ ] **T0**  Scaffold monorepo `[CP]`
-- [ ] **T3**  Implement 4 contracts, Path A (+ DecisionLog) `[CP]`
+- [x] **T3**  Path A contracts implemented + 14 Hardhat tests passing (CI runs them) `[CP]`
 - [ ] **T4**  Deploy + verify on Mantle Sepolia `[CP]`
 - [ ] **T6**  smoke-roundtrip green on Sepolia (post → getAudit → advance memoryRoot) `[CP]`
 - [ ] **T14** GeminiProvider working `[CP]`
@@ -46,7 +46,7 @@ column human-verified. Cutover = `MANTLE_NETWORK=mantle` + fresh deploy, not new
 - [x] **T1**  Path resolved → **Path A** (Mantle auto-issues ERC-8004 identity; no own registry)
 - [x] **T1b** Official ERC-8004 registry addresses resolved + verified → `contracts/config/registries.ts`
 - [ ] **T2**  Pin `mantle_tokens.py` per-network maps (5000 real addrs verified, 5003 mostly None)
-- [ ] **T3**  Implement Path A contracts: MantleProofRegistry, MantleProofAgent (thin wrapper over official ERC-8004 identity + calls official Reputation Registry), MantleProofLicense, TreasurySplit, + DecisionLog `[CP]`
+- [x] **T3**  Path A contracts implemented (MantleProofRegistry, MantleProofAgent wrapper, MantleProofLicense 80/20, TreasurySplit timelock, DecisionLog) + mocks + 14 tests green `[CP]`
 - [ ] **T4**  Deploy + verify on Mantle Sepolia (confirm Routescan verify endpoint) `[CP]`
 - [ ] **T5**  Obtain MantleProof's Mantle-issued ERC-8004 identity tokenId; wire it into `MantleProofAgent` (no self-mint under Path A)
 - [ ] **T6**  smoke-roundtrip green on Sepolia `[CP]`
@@ -137,3 +137,4 @@ column human-verified. Cutover = `MANTLE_NETWORK=mantle` + fresh deploy, not new
 - 2026-05-18 — x402 settles USDC on Base (Coinbase facilitator doesn't support Mantle).
 - 2026-05-18 — Keep spec's 7-week cadence as reference; build at own pace, no up-front scope cuts.
 - 2026-05-18 — pnpm workspaces for TS pkgs; `engine/` standalone Python.
+- 2026-05-18 — **T3 done.** Path A contracts + 14 Hardhat tests. License split settles native MNT on Mantle on-chain (x402/USDC-on-Base stays the separate Week-4 surface). Tooling: hardhat-toolbox transitive deps (ethers/chai/hardhat-ethers/network-helpers) added as direct contracts devDeps (pnpm strict isolation); contracts tsconfig includes typechain-types + relaxes `noUncheckedIndexedAccess` (this pkg only); CI compiles before typecheck and runs contract tests.
