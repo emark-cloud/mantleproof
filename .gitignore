@@ -1,0 +1,43 @@
+# --- Secrets ---
+.env
+.env.*
+!.env.example
+
+# --- Node / pnpm ---
+node_modules/
+dist/
+build/
+.pnpm-store/
+*.tsbuildinfo
+
+# --- Hardhat ---
+contracts/cache/
+contracts/artifacts/
+contracts/typechain-types/
+contracts/deployments/*.json
+!contracts/deployments/*.addresses.json
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+.coverage
+htmlcov/
+
+# --- Frontend ---
+frontend/.vite/
+frontend/dist/
+
+# --- Local tooling state ---
+.claude/
+
+# --- Editors / OS ---
+.DS_Store
+.idea/
+.vscode/
+*.swp

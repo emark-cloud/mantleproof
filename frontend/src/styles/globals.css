@@ -1,0 +1,68 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* docs/design.md §3–§5 — single source of truth for tokens. Dark only. */
+:root {
+  /* Surface */
+  --bg-canvas: #0a0a0b;
+  --bg-panel: #131316;
+  --bg-panel-hi: #1a1a1f;
+  --bg-input: #08080a;
+  --border-faint: #1f1f24;
+  --border-strong: #2a2a30;
+
+  /* Text */
+  --text-primary: #e8e8ea;
+  --text-secondary: #9a9aa0;
+  --text-muted: #5a5a60;
+  --text-disabled: #3a3a40;
+
+  /* Brand accent */
+  --accent: #00ffa3;
+  --accent-dim: #00b374;
+  --accent-glow: #00ffa340;
+
+  /* Severity */
+  --sev-high: #ff4d5e;
+  --sev-medium: #ffa940;
+  --sev-low: #ffd93d;
+  --sev-info: #6e7681;
+  --sev-clean: #3fb950;
+
+  /* Status dots */
+  --status-complete: #3fb950;
+  --status-pending: #d29922;
+  --status-running: #00ffa3;
+  --status-skipped: #5a5a60;
+  --status-failed: #f85149;
+
+  /* Honesty labels */
+  --label-verified: #00ffa3;
+  --label-computed: #58a6ff;
+  --label-estimated: #d29922;
+  --label-emulated: #bc8cff;
+  --label-labeled: #9a9aa0;
+
+  /* Type */
+  --font-mono: "JetBrains Mono", "Berkeley Mono", "IBM Plex Mono", ui-monospace, monospace;
+  --font-sans: "Inter", "Inter Tight", system-ui, -apple-system, sans-serif;
+  --leading-tight: 1.15;
+  --leading-normal: 1.35;
+  --leading-prose: 1.55;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--bg-canvas);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: var(--leading-normal);
+}

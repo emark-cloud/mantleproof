@@ -1,0 +1,24 @@
+{
+  "name": "mantleproof",
+  "version": "0.0.0",
+  "private": true,
+  "description": "On-chain audit oracle for Mantle's agentic economy",
+  "license": "MIT",
+  "packageManager": "pnpm@9.12.0",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "pnpm -r build",
+    "typecheck": "pnpm -r typecheck",
+    "lint": "pnpm -r lint",
+    "test": "pnpm -r test",
+    "contracts:compile": "pnpm --filter @mantleproof/contracts exec hardhat compile",
+    "contracts:deploy:sepolia": "pnpm --filter @mantleproof/contracts exec hardhat run scripts/deploy.ts --network mantleSepolia",
+    "contracts:deploy:mainnet": "pnpm --filter @mantleproof/contracts exec hardhat run scripts/deploy.ts --network mantle",
+    "frontend:dev": "pnpm --filter @mantleproof/frontend dev",
+    "mcp:build": "pnpm --filter mantleproof-mcp build",
+    "compose:up": "docker-compose up -d",
+    "compose:down": "docker-compose down"
+  }
+}

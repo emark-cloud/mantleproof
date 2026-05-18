@@ -1,0 +1,6 @@
+packages:
+  - contracts
+  - frontend
+  - mcp-server
+  - agents
+# NOTE: engine/ is a standalone Python package, intentionally NOT a workspace member.

@@ -1,0 +1,5 @@
+{
+  "_comment": "~20 hand-picked REAL Mantle MAINNET (chainId 5000) addresses for Tier 1/Tier 2 validation (T12/T19). Populate in Week 2. These are mainnet contracts even though the engine develops on Sepolia.",
+  "chain_id": 5000,
+  "targets": []
+}

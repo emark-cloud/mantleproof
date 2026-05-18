@@ -1,0 +1,26 @@
+{
+  "name": "mantleproof-mcp",
+  "version": "0.0.0",
+  "description": "MCP server for the MantleProof audit oracle",
+  "license": "MIT",
+  "type": "module",
+  "bin": {
+    "mantleproof-mcp": "./build/index.js"
+  },
+  "files": ["build"],
+  "scripts": {
+    "build": "tsc && chmod 755 build/index.js",
+    "typecheck": "tsc --noEmit",
+    "lint": "tsc --noEmit",
+    "test": "echo \"no tests yet (scaffold)\" && exit 0",
+    "start": "node build/index.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.4",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.0",
+    "@types/node": "^22.9.0"
+  }
+}
