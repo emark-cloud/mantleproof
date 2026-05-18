@@ -18,8 +18,10 @@ jobs:
           node-version: 20
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm -r typecheck
+      # Compile first: typecheck depends on generated typechain-types.
       - run: pnpm --filter @mantleproof/contracts exec hardhat compile
+      - run: pnpm -r typecheck
+      - run: pnpm --filter @mantleproof/contracts test
 
   python:
     runs-on: ubuntu-latest

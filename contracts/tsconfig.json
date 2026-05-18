@@ -4,7 +4,11 @@
     "module": "CommonJS",
     "moduleResolution": "node",
     "outDir": "dist",
-    "types": ["node", "mocha"]
+    "types": ["node", "mocha"],
+    // Hardhat fixtures use `const [a, b] = await ethers.getSigners()`; the base
+    // noUncheckedIndexedAccess fights that idiom. Relaxed for this test/script
+    // package only — every other workspace keeps the strict base setting.
+    "noUncheckedIndexedAccess": false
   },
-  "include": ["scripts", "test", "config", "hardhat.config.ts"]
+  "include": ["scripts", "test", "config", "typechain-types", "hardhat.config.ts"]
 }
