@@ -59,7 +59,7 @@ column human-verified. Cutover = `MANTLE_NETWORK=mantle` + fresh deploy, not new
 - [ ] **T10** 5 check modules + 2 fixtures each:
   - [x] `usdy_check` (rebase snapshot→HIGH, non-RWA oracle→MED, USDY≠mUSD 1:1→MED, unguarded blocklist transfer→LOW) + pos/neg fixtures, 3 tests
   - [x] `meth_check` (balanceOf/totalSupply proportion→HIGH, no exchange-rate→MED, cmETH conflation→MED, Validator-Queue assumption→LOW) + pos/neg fixtures, 3 tests
-  - [ ] `usde_check` (sUSDe cooldown, 1:1 assumption, depeg)
+  - [x] `usde_check` (sUSDe redeem w/o cooldown→HIGH, USDe/sUSDe 1:1→MED, USDe collateral w/o oracle→LOW) + pos/neg fixtures, 3 tests
   - [ ] `dex_check` — **Merchant Moe Liquidity Book v2.2 primary** (bins, ERC-1155, variable fee) + **Uniswap V3 secondary**; Agni verify-or-defer
   - [ ] `replay_check` (hardcoded chainId=1, missing chainId in domain sep, 2300 gas)
 - [ ] **T11** Postgres models + alembic migrations (Audit, Contract, AgentQuery, DeployEvent)
