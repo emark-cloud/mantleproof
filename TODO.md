@@ -125,7 +125,14 @@ fresh deploy, no new code). No mainnet tx has been performed.
   resolved (T1b done). `MantleProofAgent.agentTokenId` is `immutable` — the tokenId MUST be
   correct at deploy time (no setter; a wrong value = full Agent+License re-deploy and
   `ownerOf(0)` reverts → bricked License 80/20 split). Unblock = obtain the real tokenId →
-  set `MANTLEPROOF_AGENT_TOKEN_ID`.
+  set `MANTLEPROOF_AGENT_TOKEN_ID`. **Mechanism RESOLVED 2026-05-19:** the canonical Mantle
+  ERC-8004 Identity Registry (`IdentityRegistryUpgradeable`, NFT "AgentIdentity/AGENT", ERC-1967
+  proxy → impl `0x7274e8…9c02`) has **permissionless `register()`** — identities are NOT
+  pre-minted; our wallet `0x2a30…605B6A` owns 0 on both 5000 & 5003. Self-register via
+  `contracts/scripts/register-identity.ts` (idempotent; signer = identity owner = license-split
+  recipient; per-chain; explicit `CONFIRM_MAINNET_REGISTER=1` gate for 5000). Remaining action
+  (builder): fund the wallet, run it on Sepolia (rehearsal) then `--network mantle`, paste the
+  printed tokenId into `.env`.
 - **T25 — deployer not funded on mainnet.** `0x2a30…605B6A` = 0.0 MNT on Mantle 5000
   (verified 2026-05-19); fund ~1–2 MNT (≈0.4 MNT exec gas @ 50 gwei + Mantle L1 data fee)
   before any cutover deploy.
@@ -190,3 +197,22 @@ fresh deploy, no new code). No mainnet tx has been performed.
   *conditions* remain ✅; T25 is operationally blocked on T5 + deployer mainnet funding.
   Per CLAUDE.md ("never deploy to Mantle mainnet outside the cutover gate") and the
   irreversibility of a canonical mainnet deploy, **no mainnet transaction was performed**.
+- 2026-05-19 — **T5 unblock mechanism resolved + `register-identity.ts` added (no tx run).**
+  Inspected the canonical ERC-8004 Identity Registry on Mantle via Etherscan V2: it's an
+  ERC-1967 proxy (`0x8004A169…a432` mainnet / `0x8004A818…BD9e` Sepolia) → verified impl
+  `IdentityRegistryUpgradeable` `0x7274e874ca62410a93bd8bf61c69d8045e399c02` (NFT
+  "AgentIdentity/AGENT"). The "hackathon issues every agent an ERC-8004 identity" =
+  Mantle deployed the canonical registry; identities are **self-minted, not pre-issued** —
+  it has permissionless `register()` / `register(string agentURI)` / `register(string,tuple[])`
+  → `uint256 agentId`, emits `Registered(agentId,agentURI,owner)`; no allowlist. Confirmed
+  read-only that `0x2a30…605B6A` owns **0** identities on both 5000 & 5003 (nothing
+  pre-minted). Whoever calls `register()` becomes `ownerOf(tokenId)` and thus the
+  MantleProofLicense 80/20 recipient. Added `contracts/scripts/register-identity.ts`
+  (Hardhat, typecheck-clean): idempotent (recovers an existing tokenId from the mint
+  `Transfer(0x0→owner)` log instead of double-minting), signer = identity owner, captures
+  the tokenId from the `Registered`/`Transfer` event + verifies `ownerOf`, prints the exact
+  `.env` line, per-chain warning, and **refuses chainId 5000 without
+  `CONFIRM_MAINNET_REGISTER=1`** (the tokenId binds immutably into `MantleProofAgent`).
+  agentURI optional (mutable later via `setAgentURI`; bare `register()` fine). No tx was
+  broadcast — the script is builder-run (Sepolia rehearsal → mainnet), same script + human
+  trigger pattern as the live harnesses.
