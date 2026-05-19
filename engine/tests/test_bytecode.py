@@ -68,3 +68,28 @@ def test_match_patterns_runs_registered():
 def test_register_rejects_duplicates():
     with pytest.raises(ValueError):
         P.register("hardcoded_chainid_1", P.hardcoded_chainid)
+
+
+def test_check_modules_register_address_patterns():
+    """T10: importing the check modules registers their protocol-address
+    bytecode patterns into the T8 registry (idempotently)."""
+    import mantleproof.checks.dex_check  # noqa: F401
+    import mantleproof.checks.meth_check  # noqa: F401
+    import mantleproof.checks.usde_check  # noqa: F401
+    import mantleproof.checks.usdy_check  # noqa: F401
+
+    ids = set(P.registered_ids())
+    assert {
+        "usdy_address_v1",
+        "musd_address_v1",
+        "meth_l2_address_v1",
+        "cmeth_address_v1",
+        "usde_address_v1",
+        "susde_address_v1",
+        "moe_address_v1",
+    } <= ids
+    # idempotent: re-registering the same id is a silent no-op, not a raise
+    from mantleproof.checks._common import register_address_pattern
+
+    register_address_pattern("usdy_address_v1", "0x" + "ab" * 20)
+    assert P.registered_ids().count("usdy_address_v1") == 1
