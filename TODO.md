@@ -60,7 +60,7 @@ column human-verified. Cutover = `MANTLE_NETWORK=mantle` + fresh deploy, not new
   - [x] `usdy_check` (rebase snapshot→HIGH, non-RWA oracle→MED, USDY≠mUSD 1:1→MED, unguarded blocklist transfer→LOW) + pos/neg fixtures, 3 tests
   - [x] `meth_check` (balanceOf/totalSupply proportion→HIGH, no exchange-rate→MED, cmETH conflation→MED, Validator-Queue assumption→LOW) + pos/neg fixtures, 3 tests
   - [x] `usde_check` (sUSDe redeem w/o cooldown→HIGH, USDe/sUSDe 1:1→MED, USDe collateral w/o oracle→LOW) + pos/neg fixtures, 3 tests
-  - [ ] `dex_check` — **Merchant Moe Liquidity Book v2.2 primary** (bins, ERC-1155, variable fee) + **Uniswap V3 secondary**; Agni verify-or-defer
+  - [x] `dex_check` — LB: no bin-id validation→HIGH, static fee→MED, V3-style feeGrowth on LB→MED; V3: mint w/o slippage/deadline→MED. Agni deferred to Tier 2 (source unverified, §13.4). 4 fixtures (lb/v3 ±) + 5 tests
   - [ ] `replay_check` (hardcoded chainId=1, missing chainId in domain sep, 2300 gas)
 - [ ] **T11** Postgres models + alembic migrations (Audit, Contract, AgentQuery, DeployEvent)
 - [ ] **T12** Tier 1 validation vs ~20 real mainnet targets (`fixtures/real_targets.json`)
