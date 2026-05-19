@@ -7,17 +7,34 @@ provider-agnostic — never rely on Anthropic tool-use structured output
 
 from __future__ import annotations
 
-from typing import Protocol
+from typing import Protocol, runtime_checkable
 
 from mantleproof.settings import get_settings
 
 
+class ProviderError(RuntimeError):
+    """Provider misconfiguration (e.g. missing API key) or transport failure.
+    Never includes the key value."""
+
+
+@runtime_checkable
 class LLMProvider(Protocol):
     name: str
 
     def reason(self, prompt: str, system: str) -> str:
-        """Return the model's raw text response."""
+        """Return the model's raw text response (provider-agnostic — callers
+        and the hallucination guard parse text, never structured tool-use)."""
         ...
+
+
+def require_key(key: str | None, provider: str, env_var: str) -> str:
+    """Return the key or raise a clear, value-safe ProviderError."""
+    if not key:
+        raise ProviderError(
+            f"{provider} provider selected but {env_var} is not set "
+            f"(see docs/setup-checklist.md)."
+        )
+    return key
 
 
 def get_provider() -> LLMProvider:
