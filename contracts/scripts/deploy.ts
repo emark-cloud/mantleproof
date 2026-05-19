@@ -76,8 +76,11 @@ async function main(): Promise<void> {
     chainId,
     network: network.name,
     deployedAt: new Date().toISOString(),
+    owner,
     oracleSigner,
     agentTokenId: agentTokenId.toString(),
+    auditPriceWei: auditPrice.toString(),
+    subPriceWei: subPrice.toString(),
     officialIdentityRegistry: identity,
     officialReputationRegistry: reputation,
     contracts: {

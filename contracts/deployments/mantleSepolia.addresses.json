@@ -1,0 +1,16 @@
+{
+  "chainId": 5003,
+  "network": "mantleSepolia",
+  "deployedAt": "2026-05-19T07:48:01.948Z",
+  "oracleSigner": "0x2a3080AA52DE07702dd30b81cC97C3527e605B6A",
+  "agentTokenId": "0",
+  "officialIdentityRegistry": "0x8004A818BFB912233c491871b3d84c89A494BD9e",
+  "officialReputationRegistry": "0x8004B663056A597Dffe9eCcC1965A193B7388713",
+  "contracts": {
+    "MantleProofRegistry": "0x261a74A97542856F81E05f9CE771FfE0B02BD982",
+    "MantleProofAgent": "0x60E97c83Dd184D3B0812Ce25430e9D6930eD63aE",
+    "TreasurySplit": "0xdE3698A3bC8c8A62eeE4F99143d4E3E8E7009aE5",
+    "MantleProofLicense": "0x53459fb149CB1772ea389ACE325501DA2B28E437",
+    "DecisionLog": "0x906390B3594384bE83F3465cFeDf8661f4d1a410"
+  }
+}

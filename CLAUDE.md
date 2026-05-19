@@ -97,9 +97,11 @@ do not hide it.
   4. Path A/B resolved ✅ (Path A — see Contract path).
   5. `mantle_tokens.py` mainnet column human-verified.
   Cutover is a config flip (`MANTLE_NETWORK=mantle`) + fresh deploy — **not new code**.
-- **Sepolia explorer is Routescan** (`5003.testnet.routescan.io`), NOT Mantlescan.
-  Mainnet verify uses Mantlescan (`api.mantlescan.xyz`). Confirm the exact Sepolia
-  verify apiURL in Week 1 — do not assume a `mantlescan.xyz` Sepolia endpoint exists.
+- **Contract verification uses Etherscan API V2** (mandatory since 2026 — the old
+  per-explorer V1 endpoints are shut down). One free `etherscan.io` key
+  (`ETHERSCAN_API_KEY`), chainId-routed via `https://api.etherscan.io/v2/api`,
+  covers Mantle 5000 + Sepolia 5003. Same key + endpoint powers the T9 source
+  resolver. The legacy `MANTLESCAN_API_KEY` is unused.
 
 ## Per-network token addresses
 

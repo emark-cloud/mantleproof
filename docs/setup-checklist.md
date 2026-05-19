@@ -11,14 +11,15 @@ on 2026-05-18.
 
 ## To obtain 🔲
 
-### Mantlescan API key — gates T2 (token pin), T9 (source resolver), T4 (verify)
-1. Go to https://mantlescan.xyz/ → register → API Keys → create.
-2. Etherscan-compatible model; free tier covers hackathon rate limits.
-3. Put in `.env` as `MANTLESCAN_API_KEY`.
-4. **Sepolia caveat:** the testnet explorer is **Routescan**
-   (`https://5003.testnet.routescan.io/`), not Mantlescan. Confirm the exact
-   `hardhat verify` apiURL for chainId 5003 in Week 1 and record it in
-   `contracts/hardhat.config.ts`.
+### Etherscan API V2 key — gates T9 (source resolver) + T4 (verify)
+1. Go to https://etherscan.io/ → register → https://etherscan.io/myapikey → Add.
+2. **Etherscan API V2**: one key, chainId-routed via
+   `https://api.etherscan.io/v2/api`, covers Mantle mainnet (5000) AND Mantle
+   Sepolia (5003) — plus 60+ other chains. Free tier covers hackathon scale.
+3. Put in `.env` as `ETHERSCAN_API_KEY`.
+4. The old per-explorer V1 API (`api.mantlescan.xyz/api`) was **shut down**
+   in 2026 — a standalone Mantlescan key no longer works for verify or the
+   source resolver. `MANTLESCAN_API_KEY` is legacy/unused; leave it blank.
 
 ### Pinata JWT — gates T20 (IPFS pin of full audit reports)
 1. https://www.pinata.cloud/ → free account → API Keys → new key with `pinFileToIPFS`/`pinJSONToIPFS` scopes.

@@ -31,8 +31,10 @@ class Settings(BaseSettings):
     # --- Keys / signer ---
     oracle_signer_private_key: str = ""
 
-    # --- Explorer ---
-    mantlescan_api_key: str = ""
+    # --- Explorer (Etherscan API V2 — one etherscan.io key, chainId-routed,
+    #     covers Mantle 5000 + 5003. V1 mantlescan endpoints are shut down) ---
+    etherscan_api_key: str = ""
+    mantlescan_api_key: str = ""  # legacy V1 — kept for back-compat, unused by V2
 
     # --- LLM (Gemini is DEFAULT) ---
     audit_llm_provider: Literal["gemini", "claude", "zai"] = "gemini"

@@ -31,27 +31,26 @@ const config: HardhatUserConfig = {
       accounts,
     },
   },
+  // Etherscan API V2 (mandatory since 2026 — V1 per-explorer endpoints are
+  // shut down). ONE etherscan.io key, routed by chainId via the unified
+  // endpoint; covers Mantle 5000 + Sepolia 5003. Get a free key at
+  // https://etherscan.io/myapikey (see docs/setup-checklist.md).
   etherscan: {
-    apiKey: {
-      mantle: process.env.MANTLESCAN_API_KEY ?? "",
-      mantleSepolia: process.env.MANTLESCAN_API_KEY ?? "",
-    },
+    apiKey: process.env.ETHERSCAN_API_KEY ?? "",
     customChains: [
       {
         network: "mantle",
         chainId: 5000,
         urls: {
-          apiURL: "https://api.mantlescan.xyz/api",
+          apiURL: "https://api.etherscan.io/v2/api",
           browserURL: "https://mantlescan.xyz",
         },
       },
       {
-        // Confirmed 2026-05-19 (docs.mantlescan.xyz): one Mantlescan API key
-        // works for mainnet + Sepolia; Sepolia API base is api-sepolia.
         network: "mantleSepolia",
         chainId: 5003,
         urls: {
-          apiURL: "https://api-sepolia.mantlescan.xyz/api",
+          apiURL: "https://api.etherscan.io/v2/api",
           browserURL: "https://sepolia.mantlescan.xyz",
         },
       },

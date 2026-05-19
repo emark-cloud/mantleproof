@@ -12,9 +12,10 @@ from mantleproof.source.mantlescan import (
 ADDR = "0x5bE26527e817998A7206475496fDE1E68957c5A6"
 
 
-def test_api_base_per_chain():
-    assert api_base(5000) == "https://api.mantlescan.xyz/api"
-    assert api_base(5003) == "https://api-sepolia.mantlescan.xyz/api"
+def test_api_base_is_v2_unified():
+    # Etherscan API V2: one endpoint, chainId is a query param.
+    assert api_base(5000) == "https://api.etherscan.io/v2/api"
+    assert api_base(5003) == "https://api.etherscan.io/v2/api"
     with pytest.raises(KeyError):
         api_base(1)
 

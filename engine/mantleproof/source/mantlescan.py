@@ -1,13 +1,14 @@
-"""Verified-source resolver (Etherscan-compatible).
+"""Verified-source resolver (Etherscan API V2).
 
-Mantle mainnet (5000) uses Mantlescan; Mantle Sepolia (5003) uses Routescan.
-The audit engine resolves the source of *mainnet* targets even while running
-on Sepolia (CLAUDE.md) — base URL follows the requested chainId, not the
+Etherscan V2 is mandatory since 2026 — the old per-explorer V1 endpoints
+(api.mantlescan.xyz/api) are shut down. One etherscan.io key works across all
+chains via the unified endpoint, routed by a ``chainid`` query param. The
+audit engine resolves the source of *mainnet* targets even while running on
+Sepolia (CLAUDE.md) — chainid follows the requested target chain, not the
 engine's MANTLE_NETWORK.
 
 `parse_getsourcecode` is a pure, unit-tested function (no network/key). Live
-HTTP needs MANTLESCAN_API_KEY (gated on T1-setup; raises a clear error if
-missing) and is kept thin around the parser.
+HTTP needs ETHERSCAN_API_KEY (raises a clear error if missing).
 """
 
 from __future__ import annotations
@@ -19,18 +20,15 @@ import httpx
 
 from mantleproof.settings import get_settings
 
-# Etherscan-compatible API bases per chain. Confirmed 2026-05-19 via
-# docs.mantlescan.xyz: one Mantlescan API key works across mainnet AND Sepolia.
-_API_BASE: dict[int, str] = {
-    5000: "https://api.mantlescan.xyz/api",
-    5003: "https://api-sepolia.mantlescan.xyz/api",
-}
+# Etherscan API V2 unified endpoint. chainid is a query param (see _get).
+ETHERSCAN_V2_URL = "https://api.etherscan.io/v2/api"
+_SUPPORTED_CHAINS = {5000, 5003}
 
 
 def api_base(chain_id: int) -> str:
-    if chain_id not in _API_BASE:
-        raise KeyError(f"No explorer API base for chainId {chain_id}")
-    return _API_BASE[chain_id]
+    if chain_id not in _SUPPORTED_CHAINS:
+        raise KeyError(f"Unsupported chainId {chain_id}")
+    return ETHERSCAN_V2_URL
 
 
 @dataclass(slots=True)
@@ -99,21 +97,28 @@ def parse_getsourcecode(address: str, payload: dict) -> ContractSource | None:
 
 
 class MantlescanClient:
-    """Thin Etherscan-compatible client. `chain_id` selects the explorer."""
+    """Thin Etherscan API V2 client. `chain_id` routes via the chainid param."""
 
     def __init__(self, chain_id: int, *, timeout: float = 20.0) -> None:
+        if chain_id not in _SUPPORTED_CHAINS:
+            raise KeyError(f"Unsupported chainId {chain_id}")
         self.chain_id = chain_id
         self._timeout = timeout
-        self._key = get_settings().mantlescan_api_key
+        self._key = get_settings().etherscan_api_key
 
     def _get(self, params: dict[str, str]) -> dict:
         if not self._key:
             raise RuntimeError(
-                "MANTLESCAN_API_KEY not set — required for live source resolution "
-                "(see docs/setup-checklist.md). Parser is usable without a key."
+                "ETHERSCAN_API_KEY not set — required for live source resolution "
+                "(Etherscan API V2, see docs/setup-checklist.md). The parser is "
+                "usable without a key."
             )
-        params = {**params, "apikey": self._key}
-        resp = httpx.get(api_base(self.chain_id), params=params, timeout=self._timeout)
+        params = {
+            **params,
+            "chainid": str(self.chain_id),
+            "apikey": self._key,
+        }
+        resp = httpx.get(ETHERSCAN_V2_URL, params=params, timeout=self._timeout)
         resp.raise_for_status()
         return resp.json()
 
