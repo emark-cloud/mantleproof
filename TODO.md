@@ -45,7 +45,7 @@ column human-verified. Cutover = `MANTLE_NETWORK=mantle` + fresh deploy, not new
 - [ ] **T0**  Scaffold monorepo (root, contracts, engine, mcp-server, frontend, agents) `[CP]`
 - [x] **T1**  Path resolved → **Path A** (Mantle auto-issues ERC-8004 identity; no own registry)
 - [x] **T1b** Official ERC-8004 registry addresses resolved + verified → `contracts/config/registries.ts`
-- [ ] **T2**  Pin `mantle_tokens.py` per-network maps (5000 real addrs verified, 5003 mostly None)
+- [x] **T2**  `mantle_tokens.py` pinned — 8 mainnet addrs from official docs, all verified on-chain (symbol/name/decimals + bytecode) 2026-05-19; 5003 None by design; +TOKEN_DECIMALS/IMPL, 3 tests
 - [x] **T3**  Path A contracts implemented (MantleProofRegistry, MantleProofAgent wrapper, MantleProofLicense 80/20, TreasurySplit timelock, DecisionLog) + mocks + 14 tests green `[CP]`
 - [ ] **T4**  Deploy + verify on Mantle Sepolia (confirm Routescan verify endpoint) `[CP]`
 - [ ] **T5**  Obtain MantleProof's Mantle-issued ERC-8004 identity tokenId; wire it into `MantleProofAgent` (no self-mint under Path A)
@@ -54,8 +54,8 @@ column human-verified. Cutover = `MANTLE_NETWORK=mantle` + fresh deploy, not new
 
 ## Week 2 — Audit engine, Tier 1
 
-- [ ] **T8**  Bytecode disasm (pyevmasm) + named pattern registry
-- [ ] **T9**  Mantlescan source resolver (verification API client)
+- [x] **T8**  Bytecode disasm (pyevmasm) + pattern registry — disasm/iter_pushes/find_address_constants/find_selectors/pushes_value/has_opcode + registry + chainId heuristic; 7 tests
+- [x] **T9**  Source resolver — Etherscan-compatible client (per-chain base URLs, proxy follow, double-brace standard-json parser); pure parser unit-tested (5 tests); live call gated on MANTLESCAN_API_KEY
 - [ ] **T10** 5 check modules + 2 fixtures each:
   - [ ] `usdy_check` (rebase snapshot, blocklist hook, oracle, USDY≠mUSD 1:1)
   - [ ] `meth_check` (L1/L2 distinction, exchange-rate not balance, cmETH conflation, Liquidity Buffer)
@@ -137,4 +137,5 @@ column human-verified. Cutover = `MANTLE_NETWORK=mantle` + fresh deploy, not new
 - 2026-05-18 — x402 settles USDC on Base (Coinbase facilitator doesn't support Mantle).
 - 2026-05-18 — Keep spec's 7-week cadence as reference; build at own pace, no up-front scope cuts.
 - 2026-05-18 — pnpm workspaces for TS pkgs; `engine/` standalone Python.
+- 2026-05-19 — **T2/T8/T9 done.** 8 Mantle-mainnet token addresses pinned (official docs + on-chain symbol/name/decimals verification; USDe/sUSDe are 18-dec ERC-20 despite OFT sharedDecimals=6; USDT0=6). Bytecode utils + pattern registry and Etherscan-compatible source resolver implemented; engine suite 17 pass / 12 skip, ruff clean. Sepolia explorer API base for T9 still to be confirmed Week 1 (same open item as hardhat verify).
 - 2026-05-18 — **T3 done.** Path A contracts + 14 Hardhat tests. License split settles native MNT on Mantle on-chain (x402/USDC-on-Base stays the separate Week-4 surface). Tooling: hardhat-toolbox transitive deps (ethers/chai/hardhat-ethers/network-helpers) added as direct contracts devDeps (pnpm strict isolation); contracts tsconfig includes typechain-types + relaxes `noUncheckedIndexedAccess` (this pkg only); CI compiles before typecheck and runs contract tests.
