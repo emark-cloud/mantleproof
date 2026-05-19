@@ -17,7 +17,7 @@ pace). `[CP]` = on the critical path to **D = three demos green on Mantle mainne
 - [x] **T18** Hallucination guard ✅ — pure/provider-agnostic verify+mask+one-tier label-drop; per-kind corpus scoping (bytecode trusted only for long hex/addr); JSON→findings parser (no tool-use); 14 tests pin the invariant `[CP]`
 - [x] **T19** Tier 2 precision pass ✅ — live full-path harness (run_tier2→parse→guard) vs verified-protocol set: 9/9 resolved, T1 0/9, T2 18 conservative source-cited findings, **no FP storm**, guard correctly wired into live path; gate cond (c) met `[CP]`
 - [x] **T20** pipeline.py end-to-end ✅ — `run_audit` Tier1→Tier2→guard→assemble→keccak rootHash→IPFS→anchor; pure core + injectable seams, 10 tests (88-gate). **Live Sepolia run independently verified**: `DecisionLog` audit, rootHash `0x28415e30…f574`, IPFS `bafkrei…zov4`, tx `0xeca296b3…01bdc`, keccak(IPFS)==on-chain, oracle-signed, memoryRoot compounded (auditsPerformed→3). **Gate (b) SATISFIED ✅** `[CP]`
-- [ ] **T25** MAINNET cutover — gate ✅ but **operationally BLOCKED** on T5 (tokenId) + deployer mainnet funding (see pre-flight 2026-05-19, decisions log) `[CP]`
+- [ ] **T25** MAINNET cutover — **READY ✅** (gate met + T5 resolved 2026-05-19 tokenId=96 + deployer funded 3.95 MNT on 5000); awaiting user "start T25" `[CP]`
 - [ ] **T26/T27/T28** three demo agents on mainnet  →  **DELIVERABLE D** `[CP]`
 
 **Mainnet cutover gate (T25) — all must hold before any mainnet deploy:**
@@ -26,13 +26,13 @@ tx `0xeca296b3…01bdc`, keccak(IPFS)==on-chain rootHash, oracle-signed) ·
 (c) T19 precision acceptable ✅ · (d) Path A/B resolved ✅ (Path A) · (e) `mantle_tokens.py` mainnet
 column human-verified ✅ (T(e) 2026-05-19 — 8 addrs + 2 proxy impls re-verified on-chain @chainId 5000
 + official docs; 1 naming defect found & fixed: `METH_L1_STAKING`→`METH_L1_TOKEN`).
-**ALL FIVE GATE CONDITIONS MET ✅** — but T25 is **operationally blocked** by two
-external prerequisites surfaced in the 2026-05-19 pre-flight (NOT code; see decisions log):
-(B1) deployer `0x2a30…605B6A` holds **0.0 MNT on Mantle mainnet 5000** (fund ~1–2 MNT);
-(B2) **T5 unresolved** — `MANTLEPROOF_AGENT_TOKEN_ID` unset and `MantleProofAgent.agentTokenId`
-is `immutable` (a wrong value = full Agent+License re-deploy + bricked License/identity reads).
-**Decision: pause T25 until T5 resolves**, then ONE clean cutover deploy (still config-flip +
-fresh deploy, no new code). No mainnet tx has been performed.
+**ALL FIVE GATE CONDITIONS MET ✅** and both 2026-05-19 pre-flight operational blockers
+now **RESOLVED**: (B1) deployer `0x2a30…605B6A` funded — **3.95 MNT on Mantle mainnet 5000**
+(verified 2026-05-19); (B2) **T5 RESOLVED** — `MANTLEPROOF_AGENT_TOKEN_ID=96` (mainnet
+ERC-8004 identity self-registered to `0x2a30…605B6A`, tx `0x3d810ca4…ea2a` block 95547770,
+independently verified `ownerOf(96)==signer`, `balanceOf=1`, no duplicate) and set in `.env`.
+**T25 is READY** — single config-flip `MANTLE_NETWORK=mantle` + fresh deploy, no new code.
+Awaiting user "start T25".
 
 ---
 
@@ -40,12 +40,12 @@ fresh deploy, no new code). No mainnet tx has been performed.
 
 - [ ] **Etherscan API V2 key** (etherscan.io/myapikey) → `.env` `ETHERSCAN_API_KEY` — gates T9-live + T4-verify (V1 mantlescan key is dead)
 - [x] **Pinata JWT** → `.env` `PINATA_JWT` ✅ — set; T20 live Sepolia pin+anchor succeeded & independently verified (cutover-gate (b) ✅)
-- [ ] Confirm wallets funded: MNT on Mantle mainnet, MNT on Mantle Sepolia, USDC on Base — ⚠ verified 2026-05-19: deployer/oracle `0x2a30…605B6A` = **0.0 MNT on mainnet 5000** (blocks T25; Sepolia was funded)
+- [x] Confirm wallets funded: MNT on Mantle mainnet ✅ **3.95 MNT** (verified 2026-05-19 post-funding), MNT on Mantle Sepolia ✅ (1946 MNT), USDC on Base ☐ (Week 4)
 - [ ] Railway project created · Vercel project created  *(accounts already held)*
 - [ ] (optional) `ANTHROPIC_API_KEY` / `ZAI_API_KEY` — gate only key-gated provider smoke tests
 - [x] **T1** RESOLVED 2026-05-18 — Mantle auto-issues each agent's ERC-8004 identity NFT (integrated hackathon feature). **Path A**: do NOT deploy own Identity Registry.
 - [x] **T1b** RESOLVED 2026-05-18 — official ERC-8004 registry addresses found + verified live (`eth_getCode`); in `contracts/config/registries.ts`. Identity+Reputation on 5000 & 5003 (no Validation needed).
-- [ ] **T5** still needs MantleProof's own Mantle-issued tokenId (assigned on hackathon registration) → `MANTLEPROOF_AGENT_TOKEN_ID`
+- [x] **T5 RESOLVED 2026-05-19** — self-registered MantleProof's ERC-8004 identity on Mantle mainnet via canonical `IdentityRegistryUpgradeable`: **tokenId=96** owned by `0x2a30…605B6A` (tx `0x3d810ca4…ea2a` block 95547770, independently verified); `MANTLEPROOF_AGENT_TOKEN_ID=96` set in `.env`. (Sepolia rehearsal: tokenId=48, tx `0x9e9e214f…0ca92`.)
 
 ---
 
@@ -57,7 +57,7 @@ fresh deploy, no new code). No mainnet tx has been performed.
 - [x] **T2**  `mantle_tokens.py` pinned — 8 mainnet addrs from official docs, all verified on-chain (symbol/name/decimals + bytecode) 2026-05-19; 5003 None by design; +TOKEN_DECIMALS/IMPL, 3 tests
 - [x] **T3**  Path A contracts implemented (MantleProofRegistry, MantleProofAgent wrapper, MantleProofLicense 80/20, TreasurySplit timelock, DecisionLog) + mocks + 14 tests green `[CP]`
 - [x] **T4**  Sepolia deploy + verify ✅ (Registry 0x261a74…, Agent 0x60E97c…, Treasury 0xdE3698…, License 0x53459f…, DecisionLog 0x906390… — all source-verified, Etherscan V2) `[CP]`
-- [ ] **T5**  Obtain MantleProof's Mantle-issued ERC-8004 identity tokenId; wire it into `MantleProofAgent` (no self-mint under Path A)
+- [x] **T5** ✅ Self-registered against Mantle's canonical ERC-8004 Identity Registry (permissionless `register()`): **mainnet tokenId=96** (tx `0x3d810ca4…ea2a`, block 95547770; `MANTLEPROOF_AGENT_TOKEN_ID=96` in `.env`). Wires into `MantleProofAgent` at T25 deploy. Sepolia rehearsal: tokenId=48.
 - [x] **T6**  smoke-roundtrip GREEN ✅ (tx 0x449c394d… on Sepolia) — **Week-1 gate passed** `[CP]`
 - [ ] **T7**  Frontend wagmi reads registry (after T3 ABIs)
 
@@ -94,7 +94,7 @@ fresh deploy, no new code). No mainnet tx has been performed.
 
 ## Week 5 — Demo agents + cache warmer
 
-- [ ] **T25** MAINNET cutover (gate passes) — deploy 4 Path A contracts + DecisionLog to mainnet, wire Mantle-issued iNFT — **HELD: blocked on T5 tokenId (immutable) + deployer mainnet MNT funding** (pre-flight 2026-05-19) `[CP]`
+- [ ] **T25** MAINNET cutover (gate passes) — deploy 4 Path A contracts + DecisionLog to mainnet, wire Mantle-issued iNFT (tokenId=96) — **READY** (T5 ✅, deployer funded ✅; awaiting user "start T25") `[CP]`
 - [ ] **T26** Deployer-agent — Demo 1: payForAudit → finding → decline + redeploy `[CP]`
 - [ ] **T27** Trading-agent — Demo 2: getAudit → pause() backdoor → decline → decision-log tx `[CP]`
 - [ ] **T28** Yield-agent — Demo 3: getAudit → clean → LB addLiquidity → decision-log tx `[CP]`
@@ -120,22 +120,13 @@ fresh deploy, no new code). No mainnet tx has been performed.
 
 ## Blocked / waiting
 
-- **T5 — BLOCKS T25 (critical path).** MantleProof's own Mantle-issued ERC-8004 tokenId
-  not yet known (assigned on hackathon registration); registry addresses themselves are
-  resolved (T1b done). `MantleProofAgent.agentTokenId` is `immutable` — the tokenId MUST be
-  correct at deploy time (no setter; a wrong value = full Agent+License re-deploy and
-  `ownerOf(0)` reverts → bricked License 80/20 split). Unblock = obtain the real tokenId →
-  set `MANTLEPROOF_AGENT_TOKEN_ID`. **Mechanism RESOLVED 2026-05-19:** the canonical Mantle
-  ERC-8004 Identity Registry (`IdentityRegistryUpgradeable`, NFT "AgentIdentity/AGENT", ERC-1967
-  proxy → impl `0x7274e8…9c02`) has **permissionless `register()`** — identities are NOT
-  pre-minted; our wallet `0x2a30…605B6A` owns 0 on both 5000 & 5003. Self-register via
-  `contracts/scripts/register-identity.ts` (idempotent; signer = identity owner = license-split
-  recipient; per-chain; explicit `CONFIRM_MAINNET_REGISTER=1` gate for 5000). Remaining action
-  (builder): fund the wallet, run it on Sepolia (rehearsal) then `--network mantle`, paste the
-  printed tokenId into `.env`.
-- **T25 — deployer not funded on mainnet.** `0x2a30…605B6A` = 0.0 MNT on Mantle 5000
-  (verified 2026-05-19); fund ~1–2 MNT (≈0.4 MNT exec gas @ 50 gwei + Mantle L1 data fee)
-  before any cutover deploy.
+- ~~T5 — BLOCKS T25~~ **RESOLVED 2026-05-19**: MantleProof's ERC-8004 identity
+  self-registered against Mantle's canonical `IdentityRegistryUpgradeable` (tx
+  `0x3d810ca4…ea2a` block 95547770; **tokenId=96** owned by `0x2a30…605B6A`; independently
+  verified `ownerOf(96)==signer`, `balanceOf=1`, no duplicate; `MANTLEPROOF_AGENT_TOKEN_ID=96`
+  set in `.env`). Sepolia rehearsal: tokenId=48 (tx `0x9e9e214f…0ca92`).
+- ~~T25 — deployer not funded on mainnet~~ **RESOLVED 2026-05-19**: `0x2a30…605B6A` funded
+  to **3.95 MNT on Mantle 5000** (covers register + cutover deploy comfortably).
 - Agni Finance source structure unverified (resources.md §13.5 — verify Week 2 or defer to Tier 2)
 - ~~Mantle Sepolia verify apiURL~~ RESOLVED 2026-05-19: `https://api-sepolia.mantlescan.xyz/api` (one Mantlescan key covers mainnet + Sepolia)
 
@@ -216,3 +207,26 @@ fresh deploy, no new code). No mainnet tx has been performed.
   agentURI optional (mutable later via `setAgentURI`; bare `register()` fine). No tx was
   broadcast — the script is builder-run (Sepolia rehearsal → mainnet), same script + human
   trigger pattern as the live harnesses.
+- 2026-05-19 — **T5 RESOLVED ✅ — MantleProof's mainnet ERC-8004 identity minted; both T25
+  operational blockers cleared; T25 READY for cutover.** Builder funded `0x2a30…605B6A`
+  to **3.95 MNT on Mantle mainnet 5000** (verified live; clears Blocker B1). Ran
+  `register-identity.ts` Sepolia-first per the approved flow:
+  **(rehearsal)** `--network mantleSepolia` → bare `register()`, tx
+  `0x9e9e214f541a453ce76b6e6c2ecae52c6911cbdb8bbd6733003f5859d830ca92` (block 38840487),
+  tokenId=**48** (throwaway, chainId 5003); the script's event parsing, `ownerOf`
+  sanity-check, per-chain warning, and bare-register path all behaved correctly.
+  **(mainnet)** with explicit user "GO" + `CONFIRM_MAINNET_REGISTER=1` (the script's
+  hard-coded mainnet opt-in gate fired then accepted) + bare `register()` (URI deferred —
+  mutable via `setAgentURI` post-T25/W4 once MCP+x402 endpoints exist) →
+  `--network mantle`, tx `0x3d810ca493ab9fcb35a3b39196df28a2991af3d49b73c7eda811417e96f1ea2a`
+  (block 95547770), **tokenId=96** on chainId 5000. **Independently verified** by a
+  separate off-script web3 reader (not the harness): tx status **1**, `tx.from == signer`,
+  `registry.ownerOf(96) == 0x2a30…605B6A`, `balanceOf(signer) == 1` (no duplicate),
+  `tokenURI(96) = ""` (as expected, bare register), NFT `AgentIdentity/AGENT` — the
+  identity exists on Mantle mainnet, owned by MantleProof's canonical signer, with no
+  collisions. Set `MANTLEPROOF_AGENT_TOKEN_ID=96` in repo-root `.env` (gitignored, not
+  committed). Clears Blocker B2. **Cutover state: all 5 gate conditions ✅ + both pre-flight
+  operational blockers ✅ — T25 is now operationally READY** (single config-flip
+  `MANTLE_NETWORK=mantle` + fresh deploy of 4 Path A contracts + DecisionLog, no new
+  code). Per the established pattern, T25 will NOT be initiated without explicit user
+  "start T25" — the next mainnet write is the deploy itself.
