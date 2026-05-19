@@ -20,53 +20,59 @@ from mantleproof.checks.base import CheckResult, HonestyLabel, Severity
 
 CHECK_ID = "replay_check_v1"
 
-_SIGN_SURFACE = (
-    "domainseparator",
-    "domain_separator",
-    "_domainseparatorv4",
-    "eip712domain",
-    "domaintypehash",
-    "ecrecover",
-    "permit(",
-    "_hashtypeddata",
-)
-_DOMAIN_CONSTRUCT = (
-    "domainseparator",
-    "domain_separator",
-    "_domainseparatorv4",
-    "eip712domain",
-    "domaintypehash",
-)
+# A *genuine* EIP712Domain typehash string — must carry the canonical fields
+# (name + verifyingContract), so a bare/empty `EIP712Domain()` reference or an
+# unrelated `permit(`/`DOMAIN_SEPARATOR()` view on a correct OZ token does NOT
+# qualify. This is what makes a contract a self-rolled EIP-712 signer.
+_TYPEHASH = re.compile(r"eip712domain\s*\(\s*([^)]*?)\)")
+_DIGEST_1901 = ('"\\x19\\x01"', 'hex"1901"', "1901")
 _CHAINID_BOUND = ("block.chainid", "chainid()")
-_EIP712_TYPEHASH = re.compile(r"eip712domain\s*\(([^)]*)\)")
 _GAS_2300 = re.compile(r"\b2300\b")
 
 
-def run(source: str | None, bytecode: bytes, chain_id: int) -> list[CheckResult]:
+def _domain_fields(low: str) -> str | None:
+    """Return the field list of a real EIP712Domain typehash, else None."""
+    for m in _TYPEHASH.finditer(low):
+        fields = m.group(1)
+        if "name" in fields and "verifyingcontract" in fields:
+            return fields
+    return None
+
+
+def run(
+    source: str | None,
+    bytecode: bytes,
+    chain_id: int,
+    *,
+    address: str | None = None,
+) -> list[CheckResult]:
     low = norm(source)
-    if source is None or not has(low, *_SIGN_SURFACE):
-        return []  # no signing surface → no replay risk
+    if source is None:
+        return []
+    fields = _domain_fields(low)
+    self_signs = "ecrecover" in low and any(d in low for d in _DIGEST_1901)
+    if fields is None and not self_signs:
+        return []  # not a self-rolled EIP-712 signer → no Tier-1 replay risk
 
     findings: list[CheckResult] = []
     ev = {"surface": "eip712"}
+    reads_chainid = has(low, *_CHAINID_BOUND)
 
-    if has(low, *_DOMAIN_CONSTRUCT) and not has(low, *_CHAINID_BOUND):
+    if fields is not None and "chainid" in fields and not reads_chainid:
         findings.append(
             CheckResult(
                 CHECK_ID,
                 Severity.HIGH,
                 HonestyLabel.ESTIMATED,
-                "EIP-712 domain separator never reads block.chainid. The chain "
-                "id is hardcoded or cached with no fork guard — signatures "
-                "replay across chains (classic forked-mainnet copy-paste).",
+                "EIP-712 domain models chainId but never reads block.chainid — "
+                "the chain id is hardcoded/copied (classic forked-mainnet "
+                "chainId=1). Signatures replay across chains.",
                 {**ev, "matched_pattern": "no_block_chainid"},
-                "Bind the domain separator to block.chainid and rebuild it "
+                "Encode block.chainid into the domain separator and rebuild it "
                 "when the chain id changes (OZ EIP712 pattern).",
             )
         )
-
-    m = _EIP712_TYPEHASH.search(low)
-    if m and "chainid" not in m.group(1):
+    elif fields is not None and "chainid" not in fields:
         findings.append(
             CheckResult(
                 CHECK_ID,

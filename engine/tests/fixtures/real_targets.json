@@ -1,5 +1,76 @@
 {
-  "_comment": "~20 hand-picked REAL Mantle MAINNET (chainId 5000) addresses for Tier 1/Tier 2 validation (T12/T19). Populate in Week 2. These are mainnet contracts even though the engine develops on Sepolia.",
+  "_comment": "Real Mantle MAINNET (chainId 5000) Tier-1/Tier-2 validation targets (T12/T19). Seeded from the T2 human+on-chain-verified token map so provenance is inherited, not re-typed. Extend with further hand-picked verified contracts (DEX routers/pairs, vaults) as they are verified \u2014 the validate_tier1 harness re-confirms each address resolves to verified source on Etherscan V2 at run time.",
   "chain_id": 5000,
-  "targets": []
+  "targets": [
+    {
+      "address": "0x5bE26527e817998A7206475496fDE1E68957c5A6",
+      "symbol": "USDY",
+      "label": "Ondo USDY (RWA, rebasing)",
+      "kind": "token",
+      "provenance": "mantle_tokens.py (T2: official protocol docs + on-chain symbol/name/decimals + bytecode, human-verified 2026-05-19)"
+    },
+    {
+      "address": "0xab575258d37EaA5C8956EfABe71F4eE8F6397cF3",
+      "symbol": "mUSD",
+      "label": "Mantle mUSD",
+      "kind": "token",
+      "provenance": "mantle_tokens.py (T2: official protocol docs + on-chain symbol/name/decimals + bytecode, human-verified 2026-05-19)"
+    },
+    {
+      "address": "0xcDA86A272531e8640cD7F1a92c01839911B90bb0",
+      "symbol": "mETH_L2",
+      "label": "Mantle mETH (bridged L2)",
+      "kind": "token",
+      "provenance": "mantle_tokens.py (T2: official protocol docs + on-chain symbol/name/decimals + bytecode, human-verified 2026-05-19)"
+    },
+    {
+      "address": "0xE6829d9a7eE3040e1276Fa75293Bde931859e8fA",
+      "symbol": "cmETH",
+      "label": "Mantle cmETH (restaked)",
+      "kind": "token",
+      "provenance": "mantle_tokens.py (T2: official protocol docs + on-chain symbol/name/decimals + bytecode, human-verified 2026-05-19)"
+    },
+    {
+      "address": "0x5d3a1Ff2b6BAb83b63cd9AD0787074081a52ef34",
+      "symbol": "USDe",
+      "label": "Ethena USDe",
+      "kind": "token",
+      "provenance": "mantle_tokens.py (T2: official protocol docs + on-chain symbol/name/decimals + bytecode, human-verified 2026-05-19)"
+    },
+    {
+      "address": "0x211Cc4DD073734dA055fbF44a2b4667d5E5fE5d2",
+      "symbol": "sUSDe",
+      "label": "Ethena sUSDe (cooldown)",
+      "kind": "token",
+      "provenance": "mantle_tokens.py (T2: official protocol docs + on-chain symbol/name/decimals + bytecode, human-verified 2026-05-19)"
+    },
+    {
+      "address": "0x779Ded0c9e1022225f8E0630b35a9b54bE713736",
+      "symbol": "USDT0",
+      "label": "USDT0",
+      "kind": "token",
+      "provenance": "mantle_tokens.py (T2: official protocol docs + on-chain symbol/name/decimals + bytecode, human-verified 2026-05-19)"
+    },
+    {
+      "address": "0x4515A45337F461A11Ff0FE8aBF3c606AE5dC00c9",
+      "symbol": "MOE",
+      "label": "Merchant Moe MOE token",
+      "kind": "token",
+      "provenance": "mantle_tokens.py (T2: official protocol docs + on-chain symbol/name/decimals + bytecode, human-verified 2026-05-19)"
+    },
+    {
+      "address": "0x3b355A7A25E75A320f631F9736afB3Dcc9F3Ef66",
+      "symbol": "USDY_impl",
+      "label": "USDY proxy implementation",
+      "kind": "implementation",
+      "provenance": "mantle_tokens.py (T2: official protocol docs + on-chain symbol/name/decimals + bytecode, human-verified 2026-05-19)"
+    },
+    {
+      "address": "0x907D8399d13cee098cef486a8427933aac7e6271",
+      "symbol": "mUSD_impl",
+      "label": "mUSD proxy implementation",
+      "kind": "implementation",
+      "provenance": "mantle_tokens.py (T2: official protocol docs + on-chain symbol/name/decimals + bytecode, human-verified 2026-05-19)"
+    }
+  ]
 }

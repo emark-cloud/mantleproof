@@ -94,6 +94,29 @@ def referenced(
     return bool(ev), ev
 
 
+def is_self_target(address: str | None, *pinned: str | None) -> bool:
+    """True when the audited address *is* one of these pinned protocol
+    contracts. A protocol's own token cannot "misuse" that protocol, so its
+    misuse checks must not fire on it (T12 precision: no self-audit FPs)."""
+    if not address:
+        return False
+    a = address.lower()
+    return any(p and p.lower() == a for p in pinned)
+
+
+def calls_into(low: str, *names: str) -> bool:
+    """True when the contract makes an external member call on a handle whose
+    identifier contains one of `names` — i.e. it is an *integrator* of the
+    protocol, not merely a contract that mentions it or is shaped like an
+    ERC20. ``usdy.balanceOf(...)`` matches; a token's own
+    ``function balanceOf(...)`` definition does not.
+    """
+    return any(
+        re.search(rf"\b\w*{re.escape(n.lower())}\w*\s*\.\s*[a-z_]\w*\s*\(", low)
+        for n in names
+    )
+
+
 def register_address_pattern(pattern_id: str, address: str | None) -> None:
     """Idempotently register a named 'protocol address embedded in bytecode'
     bytecode pattern (the T8 registry expects check modules to do this in T10).

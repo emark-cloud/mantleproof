@@ -20,19 +20,24 @@ from __future__ import annotations
 import re
 
 from mantleproof.checks._common import (
+    calls_into,
     has,
+    is_self_target,
     norm,
     referenced,
     register_address_pattern,
     word,
 )
 from mantleproof.checks.base import CheckResult, HonestyLabel, Severity
-from mantleproof.config.mantle_tokens import TOKENS
+from mantleproof.config.mantle_tokens import TOKEN_IMPL, TOKENS
 
 CHECK_ID = "usdy_check_v1"
 
 _USDY = TOKENS[5000]["USDY"]
 _MUSD = TOKENS[5000]["mUSD"]
+# A protocol token's *proxy implementation* is still the protocol itself —
+# guard those addresses too (T12: mUSD impl 0x907D… self-audit FP).
+_SELF = (_USDY, _MUSD, TOKEN_IMPL.get("USDY"), TOKEN_IMPL.get("mUSD"))
 register_address_pattern("usdy_address_v1", _USDY)
 register_address_pattern("musd_address_v1", _MUSD)
 
@@ -58,12 +63,23 @@ def _snapshot_to_storage(low: str) -> str | None:
     return sorted(hit)[0] if hit else None
 
 
-def run(source: str | None, bytecode: bytes, chain_id: int) -> list[CheckResult]:
+def run(
+    source: str | None,
+    bytecode: bytes,
+    chain_id: int,
+    *,
+    address: str | None = None,
+) -> list[CheckResult]:
+    # A protocol's own token cannot misuse the protocol (T12: no self-audit FP).
+    if is_self_target(address, *_SELF):
+        return []
     low = norm(source)
     relevant, ev = referenced(
         low, bytecode, symbols=("USDY", "mUSD", "rUSDY"), addresses=(_USDY, _MUSD)
     )
-    if not relevant:
+    # Misuse findings require evidence the contract *integrates* USDY/mUSD
+    # (an external call on a usdy/musd handle), not merely ERC20-shaped source.
+    if not relevant or (source is not None and not calls_into(low, "usdy", "musd", "rusdy")):
         return []
     if source is None:
         return [

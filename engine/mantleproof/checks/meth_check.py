@@ -20,7 +20,9 @@ from __future__ import annotations
 import re
 
 from mantleproof.checks._common import (
+    calls_into,
     has,
+    is_self_target,
     norm,
     referenced,
     register_address_pattern,
@@ -54,9 +56,20 @@ _CONFLATE = re.compile(
     r"\b(?:cmeth\w*\s*=\s*meth\w*|meth\w*\s*=\s*cmeth\w*|"
     r"cmeth\w*\s*==\s*meth\w*|meth\w*\s*==\s*cmeth\w*)(?!\s*\()",
 )
+# A balanceOf call on an external mETH handle (`meth.balanceOf(`), NOT the
+# contract's own `function balanceOf` — the latter is true of every ERC20.
+_METH_BAL_CALL = re.compile(r"\bc?meth\w*\s*\.\s*balanceof\s*\(", re.I)
 
 
-def run(source: str | None, bytecode: bytes, chain_id: int) -> list[CheckResult]:
+def run(
+    source: str | None,
+    bytecode: bytes,
+    chain_id: int,
+    *,
+    address: str | None = None,
+) -> list[CheckResult]:
+    if is_self_target(address, _METH, _CMETH):
+        return []
     low = norm(source)
     relevant, ev = referenced(
         low,
@@ -64,7 +77,7 @@ def run(source: str | None, bytecode: bytes, chain_id: int) -> list[CheckResult]
         symbols=("mETH", "cmETH"),
         addresses=(_METH, _CMETH, METH_L1_STAKING),
     )
-    if not relevant:
+    if not relevant or (source is not None and not calls_into(low, "meth", "cmeth")):
         return []
     if source is None:
         return [
@@ -81,7 +94,7 @@ def run(source: str | None, bytecode: bytes, chain_id: int) -> list[CheckResult]
     findings: list[CheckResult] = []
     rate_aware = has(low, *_RATE_SIGNALS)
 
-    if "balanceof" in low and "totalsupply" in low and not rate_aware:
+    if _METH_BAL_CALL.search(low) and "totalsupply" in low and not rate_aware:
         findings.append(
             CheckResult(
                 CHECK_ID,

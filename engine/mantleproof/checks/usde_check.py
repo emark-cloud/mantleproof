@@ -17,7 +17,9 @@ from __future__ import annotations
 import re
 
 from mantleproof.checks._common import (
+    calls_into,
     has,
+    is_self_target,
     norm,
     referenced,
     register_address_pattern,
@@ -42,12 +44,20 @@ _PAR = re.compile(
 )
 
 
-def run(source: str | None, bytecode: bytes, chain_id: int) -> list[CheckResult]:
+def run(
+    source: str | None,
+    bytecode: bytes,
+    chain_id: int,
+    *,
+    address: str | None = None,
+) -> list[CheckResult]:
+    if is_self_target(address, _USDE, _SUSDE):
+        return []
     low = norm(source)
     relevant, ev = referenced(
         low, bytecode, symbols=("USDe", "sUSDe"), addresses=(_USDE, _SUSDE)
     )
-    if not relevant:
+    if not relevant or (source is not None and not calls_into(low, "usde", "susde")):
         return []
     if source is None:
         return [

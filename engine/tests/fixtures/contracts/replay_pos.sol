@@ -1,16 +1,25 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.28;
 
-// POSITIVE: EIP-712 domain separator built once with a typehash that omits
-// chainId and never reads block.chainid; also a hardcoded 2300 gas refund.
+// POSITIVE: the canonical forked-mainnet replay bug — the EIP712Domain
+// typehash models `uint256 chainId`, but the domain separator is built once
+// in the constructor with a HARDCODED chain id (1) and block.chainid is never
+// read. Also a hardcoded 2300 gas refund.
 contract ReplayPos {
-    bytes32 public constant EIP712DOMAIN_TYPEHASH =
-        keccak256("EIP712Domain(string name,string version,address verifyingContract)");
+    bytes32 public constant EIP712DOMAIN_TYPEHASH = keccak256(
+        "EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"
+    );
     bytes32 public DOMAIN_SEPARATOR;
 
     constructor() {
         DOMAIN_SEPARATOR = keccak256(
-            abi.encode(EIP712DOMAIN_TYPEHASH, keccak256("App"), keccak256("1"), address(this))
+            abi.encode(
+                EIP712DOMAIN_TYPEHASH,
+                keccak256("App"),
+                keccak256("1"),
+                uint256(1), // hardcoded mainnet chainId — copy-pasted, never block.chainid
+                address(this)
+            )
         );
     }
 

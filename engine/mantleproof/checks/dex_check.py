@@ -22,9 +22,10 @@ Tier 1 is heuristic → findings ship ``ESTIMATED``.
 from __future__ import annotations
 
 from mantleproof.checks._common import (
+    calls_into,
     has,
+    is_self_target,
     norm,
-    referenced,
     register_address_pattern,
 )
 from mantleproof.checks.base import CheckResult, HonestyLabel, Severity
@@ -65,9 +66,20 @@ _V3_FEEGROWTH = ("feegrowth", "feegrowthglobal", "feegrowthinside", "tickcumulat
 _V3_SLIPPAGE = ("amount0min", "amount1min", "sqrtpricelimit", "deadline", "slippage")
 
 
-def run(source: str | None, bytecode: bytes, chain_id: int) -> list[CheckResult]:
+def run(
+    source: str | None,
+    bytecode: bytes,
+    chain_id: int,
+    *,
+    address: str | None = None,
+) -> list[CheckResult]:
+    # The MOE governance token is not an LB integrator (T12: no self-audit FP).
+    if is_self_target(address, _MOE):
+        return []
     low = norm(source)
-    lb = has(low, *_LB_NAMES) or referenced(low, bytecode, symbols=("MOE",), addresses=(_MOE,))[0]
+    # Holding/naming MOE is not "integrates Liquidity Book" — require actual LB
+    # interface usage. Misuse findings further require an LB/NPM handle call.
+    lb = has(low, *_LB_NAMES)
     v3 = has(low, *_V3_NAMES)
     if not (lb or v3):
         return []
@@ -85,7 +97,9 @@ def run(source: str | None, bytecode: bytes, chain_id: int) -> list[CheckResult]
 
     findings: list[CheckResult] = []
 
-    if lb:
+    if lb and (
+        calls_into(low, "lbpair", "lbrouter", "lbfactory") or "deposittobins" in low
+    ):
         ev = {"engine": "merchant_moe_lb"}
         if has(low, *_LP_VERBS) and not has(low, *_BIN_GUARDS):
             findings.append(
@@ -130,7 +144,9 @@ def run(source: str | None, bytecode: bytes, chain_id: int) -> list[CheckResult]
                 )
             )
 
-    if v3:
+    if v3 and calls_into(
+        low, "npm", "positionmanager", "uniswapv3pool", "swaprouter", "pool"
+    ):
         ev = {"engine": "uniswap_v3"}
         if has(low, "mint", "addliquidity", "increaseliquidity") and not has(
             low, *_V3_SLIPPAGE
