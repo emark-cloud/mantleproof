@@ -17,7 +17,7 @@ pace). `[CP]` = on the critical path to **D = three demos green on Mantle mainne
 - [x] **T18** Hallucination guard ✅ — pure/provider-agnostic verify+mask+one-tier label-drop; per-kind corpus scoping (bytecode trusted only for long hex/addr); JSON→findings parser (no tool-use); 14 tests pin the invariant `[CP]`
 - [x] **T19** Tier 2 precision pass ✅ — live full-path harness (run_tier2→parse→guard) vs verified-protocol set: 9/9 resolved, T1 0/9, T2 18 conservative source-cited findings, **no FP storm**, guard correctly wired into live path; gate cond (c) met `[CP]`
 - [x] **T20** pipeline.py end-to-end ✅ — `run_audit` Tier1→Tier2→guard→assemble→keccak rootHash→IPFS→anchor; pure core + injectable seams, 10 tests (88-gate). **Live Sepolia run independently verified**: `DecisionLog` audit, rootHash `0x28415e30…f574`, IPFS `bafkrei…zov4`, tx `0xeca296b3…01bdc`, keccak(IPFS)==on-chain, oracle-signed, memoryRoot compounded (auditsPerformed→3). **Gate (b) SATISFIED ✅** `[CP]`
-- [ ] **T25** MAINNET cutover (gate must pass — see below) `[CP]`
+- [ ] **T25** MAINNET cutover — gate ✅ but **operationally BLOCKED** on T5 (tokenId) + deployer mainnet funding (see pre-flight 2026-05-19, decisions log) `[CP]`
 - [ ] **T26/T27/T28** three demo agents on mainnet  →  **DELIVERABLE D** `[CP]`
 
 **Mainnet cutover gate (T25) — all must hold before any mainnet deploy:**
@@ -26,7 +26,13 @@ tx `0xeca296b3…01bdc`, keccak(IPFS)==on-chain rootHash, oracle-signed) ·
 (c) T19 precision acceptable ✅ · (d) Path A/B resolved ✅ (Path A) · (e) `mantle_tokens.py` mainnet
 column human-verified ✅ (T(e) 2026-05-19 — 8 addrs + 2 proxy impls re-verified on-chain @chainId 5000
 + official docs; 1 naming defect found & fixed: `METH_L1_STAKING`→`METH_L1_TOKEN`).
-**ALL FIVE GATE CONDITIONS MET ✅ — T25 mainnet cutover is unblocked** (config flip `MANTLE_NETWORK=mantle` + fresh deploy, not new code).
+**ALL FIVE GATE CONDITIONS MET ✅** — but T25 is **operationally blocked** by two
+external prerequisites surfaced in the 2026-05-19 pre-flight (NOT code; see decisions log):
+(B1) deployer `0x2a30…605B6A` holds **0.0 MNT on Mantle mainnet 5000** (fund ~1–2 MNT);
+(B2) **T5 unresolved** — `MANTLEPROOF_AGENT_TOKEN_ID` unset and `MantleProofAgent.agentTokenId`
+is `immutable` (a wrong value = full Agent+License re-deploy + bricked License/identity reads).
+**Decision: pause T25 until T5 resolves**, then ONE clean cutover deploy (still config-flip +
+fresh deploy, no new code). No mainnet tx has been performed.
 
 ---
 
@@ -34,7 +40,7 @@ column human-verified ✅ (T(e) 2026-05-19 — 8 addrs + 2 proxy impls re-verifi
 
 - [ ] **Etherscan API V2 key** (etherscan.io/myapikey) → `.env` `ETHERSCAN_API_KEY` — gates T9-live + T4-verify (V1 mantlescan key is dead)
 - [x] **Pinata JWT** → `.env` `PINATA_JWT` ✅ — set; T20 live Sepolia pin+anchor succeeded & independently verified (cutover-gate (b) ✅)
-- [ ] Confirm wallets funded: MNT on Mantle mainnet, MNT on Mantle Sepolia, USDC on Base
+- [ ] Confirm wallets funded: MNT on Mantle mainnet, MNT on Mantle Sepolia, USDC on Base — ⚠ verified 2026-05-19: deployer/oracle `0x2a30…605B6A` = **0.0 MNT on mainnet 5000** (blocks T25; Sepolia was funded)
 - [ ] Railway project created · Vercel project created  *(accounts already held)*
 - [ ] (optional) `ANTHROPIC_API_KEY` / `ZAI_API_KEY` — gate only key-gated provider smoke tests
 - [x] **T1** RESOLVED 2026-05-18 — Mantle auto-issues each agent's ERC-8004 identity NFT (integrated hackathon feature). **Path A**: do NOT deploy own Identity Registry.
@@ -88,7 +94,7 @@ column human-verified ✅ (T(e) 2026-05-19 — 8 addrs + 2 proxy impls re-verifi
 
 ## Week 5 — Demo agents + cache warmer
 
-- [ ] **T25** MAINNET cutover (gate passes) — deploy 4 Path A contracts + DecisionLog to mainnet, wire Mantle-issued iNFT `[CP]`
+- [ ] **T25** MAINNET cutover (gate passes) — deploy 4 Path A contracts + DecisionLog to mainnet, wire Mantle-issued iNFT — **HELD: blocked on T5 tokenId (immutable) + deployer mainnet MNT funding** (pre-flight 2026-05-19) `[CP]`
 - [ ] **T26** Deployer-agent — Demo 1: payForAudit → finding → decline + redeploy `[CP]`
 - [ ] **T27** Trading-agent — Demo 2: getAudit → pause() backdoor → decline → decision-log tx `[CP]`
 - [ ] **T28** Yield-agent — Demo 3: getAudit → clean → LB addLiquidity → decision-log tx `[CP]`
@@ -114,7 +120,15 @@ column human-verified ✅ (T(e) 2026-05-19 — 8 addrs + 2 proxy impls re-verifi
 
 ## Blocked / waiting
 
-- T5 — MantleProof's own Mantle-issued ERC-8004 tokenId not yet known (assigned on hackathon registration); registry addresses themselves are resolved (T1b done)
+- **T5 — BLOCKS T25 (critical path).** MantleProof's own Mantle-issued ERC-8004 tokenId
+  not yet known (assigned on hackathon registration); registry addresses themselves are
+  resolved (T1b done). `MantleProofAgent.agentTokenId` is `immutable` — the tokenId MUST be
+  correct at deploy time (no setter; a wrong value = full Agent+License re-deploy and
+  `ownerOf(0)` reverts → bricked License 80/20 split). Unblock = obtain the real tokenId →
+  set `MANTLEPROOF_AGENT_TOKEN_ID`.
+- **T25 — deployer not funded on mainnet.** `0x2a30…605B6A` = 0.0 MNT on Mantle 5000
+  (verified 2026-05-19); fund ~1–2 MNT (≈0.4 MNT exec gas @ 50 gwei + Mantle L1 data fee)
+  before any cutover deploy.
 - Agni Finance source structure unverified (resources.md §13.5 — verify Week 2 or defer to Tier 2)
 - ~~Mantle Sepolia verify apiURL~~ RESOLVED 2026-05-19: `https://api-sepolia.mantlescan.xyz/api` (one Mantlescan key covers mainnet + Sepolia)
 
@@ -153,3 +167,26 @@ column human-verified ✅ (T(e) 2026-05-19 — 8 addrs + 2 proxy impls re-verifi
 - 2026-05-19 — **T20 done (engineering; cutover-gate (b) live-proven to rootHash, terminal step blocked on `PINATA_JWT`).** Implemented the orchestration: `mantleproof/pipeline.py` — pure network-free core `build_report` (assemble canonical report → `compute_root_hash` = `Web3.keccak` of sorted-key compact JSON; preimage excludes `root_hash`/`ipfs_cid`/`anchor_tx`, added after) + `_overall_severity` rollup, and `run_audit` wiring resolve→Tier-1→(Tier-2→`parse_findings`→`apply_guard`)→assemble→IPFS→anchor with **every network seam injectable** (`source`/`bytecode`/`provider`/`pin`/`anchor`/`do_anchor`/`now`) so the full path is offline-testable — same pure-test + live-harness split as T12/T19. `persistence/ipfs.py` Pinata `pinJSONToIPFS` (pure `_pin_payload`; **refuses to pin/anchor without `PINATA_JWT`** — never anchor a rootHash whose JSON nobody can fetch, CLAUDE.md). `persistence/anchor.py` web3 oracle-signed `submitAudit` (embedded minimal ABI — engine stays decoupled from `contracts/`; pure `severity_to_uint8` = Solidity Info/Low/Med/High 0–3; registry advances agent memoryRoot internally; oracle-signer is the only writer). Added `MANTLEPROOF_REGISTRY_ADDRESS` setting. Replaced the skipped scaffold test with **10 pure tests** (tier-1 offline, clean contract, deterministic+content-sensitive rootHash, keccak-of-preimage, tier-2 grounded no-mask, **tier-2 guard masks `$`+addr and drops ESTIMATED→EMULATED once**, malformed-LLM→0 findings, unverified-source degrade, severity-uint8, pin payload). **Engine gate: 88 passed (last skip gone), ruff + mypy clean (67 files).** Built `scripts/run_pipeline_sepolia.py` (2-phase live harness so a missing terminal cred can't mask the rest) + `validation/pipeline_sepolia_report.md`. **Live Sepolia run (2026-05-19):** target = our deployed `DecisionLog` `0x9063…a410` (source **verified on Etherscan V2 chainid 5003**) → **phase 1 OK fully live**: Tier-1 + **live Gemini Tier-2** (provider=gemini, 2 findings, severity medium) + guard (masked 0 / drops 0) + canonical rootHash `0xb77da68dcfbecd1214344bb54a19861d2fa79041039d47fa3e841ddbb4ed8f5c`. **Phase 2 BLOCKED**: `PINATA_JWT` unset → pipeline correctly fails loudly rather than anchoring an unfetchable rootHash. **Honest status: cutover-gate (b) is live-proven up to rootHash; the terminal IPFS-pin + on-chain anchor are blocked on `PINATA_JWT`** (an external setup credential the builder must supply — already an open setup-checklist item), **NOT marked ✅** until a real Sepolia receipt exists. Rerunning the harness once `PINATA_JWT` is set (and the Sepolia oracle is funded) completes (b) with **no code change**. Did NOT relax the IPFS/guard invariants, did NOT fake a receipt. Cutover gate: (a)✅ (c)✅ (d)✅ · (b) blocked-on-creds · (e) `mantle_tokens.py` mainnet column ☐. **Action required from builder: obtain `PINATA_JWT` (Pinata) → `.env`, then rerun `engine/scripts/run_pipeline_sepolia.py`.**
 - 2026-05-19 — **T20 COMPLETE — cutover-gate (b) SATISFIED ✅ (real, independently-verified Sepolia receipt).** Builder supplied `PINATA_JWT`; reran the live harness. First run exposed a harness reporting defect (not a pipeline bug): the original **two-phase** design ran `run_audit` *twice* (a do_anchor=False proof run, then the real anchored run), so a fresh Gemini call + timestamp made phase-1's printed rootHash/severity diverge from what actually anchored — unacceptable for a trust artifact whose report must headline the on-chain rootHash. **Fixed:** rewrote `scripts/run_pipeline_sepolia.py` to a **single** `run_audit` call (one Gemini call); a `pin` wrapper captures the assembled report — which already carries its `root_hash` — *before* the network pin, so a missing terminal cred still records the live rootHash and the pipeline still fails loudly (never anchors an unfetchable rootHash). ruff/mypy/88-test gate unchanged. **Live Sepolia run (DecisionLog `0x9063…a410`, source verified on Etherscan V2 5003):** single run → tier=2, provider=gemini, 1 finding, severity `low`, guard masked 0; rootHash `0x28415e3069d563a42f68ea1f631602364e23ea742900ea4d11c5c72389c0f574`, IPFS `ipfs://bafkreiaccoixvbxfwjjpqvrlcwtd5bkkcjasyrvjnt7ryrgr5heu75zov4`, Sepolia `submitAudit` tx `0xeca296b3605c321ecbbec7250d0ce29a8c9b7486e563dbfb639cc19cafd01bdc`. **Independently re-verified by a separate off-pipeline web3/httpx reader** (not trusting the harness print): tx status 1 (block 38837152); `registry.getAudit(target)` rootHash + severity (1=Low) + ipfsCID all == the run; **submitter == the oracle signer** `0x2a30…605B6A` (only-writer invariant upheld); `MantleProofAgent.auditsPerformed` advanced 2→**3** (T6 smoke + 2 T20 runs); `memoryRoot` `0xab90…0e40` = compounded `keccak256(prev, rootHash)` (correctly ≠ rootHash — confirmed against `MantleProofAgent.updateMemoryRoot`, compounding-chain by design, not a bug); and **keccak256 of the pinned IPFS-JSON canonical preimage == pinned `root_hash` == on-chain rootHash** → the audit is independently verifiable end-to-end. Did NOT relax the IPFS/guard invariants, did NOT fake a receipt. **Cutover gate: (a)✅ (b)✅ (c)✅ (d)✅ — only (e) `mantle_tokens.py` mainnet column human-verification remains before T25 mainnet cutover.**
 - 2026-05-19 — **T(e) done — cutover-gate (e) SATISFIED ✅; ALL FIVE gate conditions now met.** Independently re-verified the `mantle_tokens.py` chainId-5000 column two ways. **(1) On-chain (Mantle mainnet RPC, chainId 5000 confirmed):** all 8 tokens — USDY/mUSD/mETH_L2/cmETH/USDe/sUSDe/USDT0/MOE — return the expected `symbol()`/`name()`/`decimals()` with contract bytecode (USDT0=6 dec, rest 18; USDe/sUSDe `decimals()`=18 despite OFT sharedDecimals=6, confirming the docstring note); USDY & mUSD **EIP-1967 implementation storage slots == the pinned `TOKEN_IMPL`** addresses (`0x3b35…Ef66`, `0x907D…6271`). **(2) Official docs:** Ethena key-addresses page lists Mantle USDe `0x5d3a…ef34` / sUSDe `0x211C…e5d2` — **exact match** (resolves the search-engine red herring that surfaced the *Ethereum-canonical* `0x4c9e…`/`0x9d39…`, which are a different chain and correctly NOT used in the 5000 column); Ondo/Mantlescan confirm USDY + impl; Mantle + Merchant Moe + USDT0 docs confirm the rest. **All 8 addresses + both proxy impls correct — zero address changes.** Found & fixed **one real naming defect** (exactly what this gate exists to catch): `METH_L1_STAKING = 0xd5F7…ADfa` is the **Ethereum-L1 mETH ERC-20 token** (Etherscan "Mantle: mETH Token", symbol mETH; Mantle docs/Uniswap concur), NOT a staking contract — the address is correct for its real purpose (flagging L1↔L2 mETH conflation against the L2 token) but the name/comment were misleading and a latent trap. Renamed `METH_L1_STAKING`→`METH_L1_TOKEN` + pattern id `meth_l1_staking_v1`→`meth_l1_token_v1` in `mantle_tokens.py` + `meth_check.py` (the only refs; no test/fixture/serialized dependency), corrected the comment, and rewrote the module docstring to record this T(e) re-verification. Engine gate green: ruff + mypy (67 files) + **88 passed**. No address/data change to the verified column; pure clarity/correctness fix. **Cutover gate now (a)✅ (b)✅ (c)✅ (d)✅ (e)✅ — T25 mainnet cutover is fully unblocked (config flip `MANTLE_NETWORK=mantle` + fresh deploy, no new code).**
+- 2026-05-19 — **T25 pre-flight — DEPLOY HELD, NO mainnet tx performed.** All five
+  cutover-gate conditions are met, but the pre-flight surfaced two independent hard
+  operational blockers (neither code-fixable): **(B1)** the deployer
+  `0x2a3080AA52DE07702dd30b81cC97C3527e605B6A` (= the oracle signer; single shared key)
+  holds **0.0 MNT on Mantle mainnet chainId 5000** — verified live against `rpc.mantle.xyz`;
+  the deploy cannot broadcast (~0.4 MNT execution gas @ the current 50 gwei for ~8M gas,
+  **plus** Mantle's L1 data fee for ~6 contract deploys — fund ~1–2 MNT). **(B2)**
+  `MANTLEPROOF_AGENT_TOKEN_ID` (T5) is unset; `contracts/scripts/deploy.ts` silently
+  defaults it to `0` (warn-only, then proceeds) but `MantleProofAgent.sol` declares
+  `uint256 public immutable agentTokenId` — **set once in the constructor, no setter**. A
+  wrong tokenId on the canonical mainnet record is correctable only by re-deploying
+  `MantleProofAgent` → re-wiring `registry.setAgent`/`agent.setAuditor` → re-deploying
+  `MantleProofLicense` (its constructor binds the agent address); and
+  `identityRegistry.ownerOf(0)`/`reputationOf(0)`/`agentURI(0)` will revert (ERC-721
+  nonexistent token) → the **License 80/20 split + identity reads are bricked**. So a
+  `tokenId=0` mainnet deploy is a known-broken canonical stack, not "provisional".
+  **Decision (user): pause T25 until T5 resolves** — obtain MantleProof's real
+  Mantle-issued ERC-8004 tokenId (hackathon registration), set
+  `MANTLEPROOF_AGENT_TOKEN_ID`, fund the deployer on mainnet, then do ONE clean canonical
+  cutover deploy (still config-flip + fresh deploy, no new code). The five gate
+  *conditions* remain ✅; T25 is operationally blocked on T5 + deployer mainnet funding.
+  Per CLAUDE.md ("never deploy to Mantle mainnet outside the cutover gate") and the
+  irreversibility of a canonical mainnet deploy, **no mainnet transaction was performed**.
