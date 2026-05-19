@@ -58,7 +58,7 @@ column human-verified. Cutover = `MANTLE_NETWORK=mantle` + fresh deploy, not new
 - [x] **T9**  Source resolver — Etherscan **API V2** client (unified endpoint, chainid-routed, proxy follow, double-brace standard-json parser); pure parser unit-tested (5 tests); live call gated on `ETHERSCAN_API_KEY`
 - [ ] **T10** 5 check modules + 2 fixtures each:
   - [x] `usdy_check` (rebase snapshot→HIGH, non-RWA oracle→MED, USDY≠mUSD 1:1→MED, unguarded blocklist transfer→LOW) + pos/neg fixtures, 3 tests
-  - [ ] `meth_check` (L1/L2 distinction, exchange-rate not balance, cmETH conflation, Liquidity Buffer)
+  - [x] `meth_check` (balanceOf/totalSupply proportion→HIGH, no exchange-rate→MED, cmETH conflation→MED, Validator-Queue assumption→LOW) + pos/neg fixtures, 3 tests
   - [ ] `usde_check` (sUSDe cooldown, 1:1 assumption, depeg)
   - [ ] `dex_check` — **Merchant Moe Liquidity Book v2.2 primary** (bins, ERC-1155, variable fee) + **Uniswap V3 secondary**; Agni verify-or-defer
   - [ ] `replay_check` (hardcoded chainId=1, missing chainId in domain sep, 2300 gas)
