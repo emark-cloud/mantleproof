@@ -1,32 +1,38 @@
 #!/usr/bin/env python3
 """T20 — live end-to-end pipeline run on Mantle Sepolia (cutover-gate cond. b).
 
-Runs the REAL pipeline (`mantleproof.pipeline.run_audit`) against a contract
-deployed on Mantle Sepolia, with every network seam live:
+Runs the REAL pipeline (`mantleproof.pipeline.run_audit`) **once** against a
+contract deployed on Mantle Sepolia, every network seam live:
 
   resolve verified source (Etherscan V2, chainid 5003)
     -> live Sepolia bytecode (eth_getCode)
     -> Tier-1 union
     -> Tier-2 (live Gemini) -> hallucination guard -> canonical rootHash
     -> pin report JSON to IPFS (Pinata)
-    -> submitAudit on the Sepolia MantleProofRegistry (advances memoryRoot)
+    -> submitAudit on the Sepolia MantleProofRegistry (compounds memoryRoot)
 
-Target + registry address are read from
+It is a **single** pipeline run so the reported rootHash/severity/findings are
+exactly what gets pinned to IPFS and anchored on-chain — the audit is a trust
+artifact, the report must headline the rootHash that is actually on-chain.
+
+A `pin` wrapper captures the assembled report (which already carries its
+`root_hash`) *before* the network pin, so if a terminal credential is missing
+the live proof up to rootHash is still recorded — the pipeline correctly
+refuses to anchor a rootHash whose JSON nobody can fetch (CLAUDE.md), it does
+not fake one.
+
+Target + registry address come from
 contracts/deployments/mantleSepolia.addresses.json (argv overrides the target).
 If the target's source is not verified on Etherscan-V2-5003, the harness falls
-back to the local contracts/ source for that contract — it is our own deployed
-code, so feeding our own source is honest for this dev-only harness.
-
-It runs in two phases so a missing terminal credential cannot hide the live
-proof of the rest:
-  phase 1 — assemble + live Tier1/Gemini/guard/rootHash (no terminal creds)
-  phase 2 — real IPFS pin + on-chain anchor (needs PINATA_JWT + funded oracle)
-Phase 2 failing on a missing credential is reported as BLOCKED, not faked — we
-never anchor a rootHash whose JSON nobody can fetch (CLAUDE.md).
+back to the local contracts/ source for that contract — our own deployed code,
+honest for this dev-only harness.
 
     cd engine && python -u scripts/run_pipeline_sepolia.py [targetAddress]
 
-Dev/validation script, not part of the importable package.
+Independent verification of the resulting receipt: fetch the IPFS JSON, drop
+the root_hash/ipfs_*/anchor_tx keys, keccak256 the canonical form, and confirm
+it equals registry.getAudit(target).rootHash. Dev/validation script, not
+part of the importable package.
 """
 
 from __future__ import annotations
@@ -96,117 +102,124 @@ def main() -> int:
         print("ERROR: no source for target (live unverified + no local file).")
         return 2
 
-    # --- phase 1: live Tier1 + Gemini Tier-2 + guard + rootHash (no terminal creds) ---
+    # --- single live pipeline run: Tier1 -> Gemini Tier2 -> guard -> rootHash
+    #     -> IPFS pin -> Sepolia anchor. The pin wrapper captures the assembled
+    #     report (root_hash already set) before the network call, so a missing
+    #     terminal credential still leaves the live rootHash proof. ------------
     captured: dict = {}
 
-    def _capture_pin(report: dict) -> str:
-        captured["report"] = report
-        return "PHASE1_NO_PIN"
+    def _pin(report: dict) -> str:
+        captured["report"] = report  # has root_hash; pre-network
+        from mantleproof.persistence.ipfs import pin_json
 
-    print("\n[phase 1] live source/bytecode/Tier-1/Gemini-Tier-2/guard/rootHash …",
-          flush=True)
-    try:
-        p1 = run_audit(
-            target, tier=2, chain_id=CHAIN_ID, source=source,
-            contract_name=contract_name, pin=_capture_pin, do_anchor=False,
-        )
-    except Exception as e:  # noqa: BLE001
-        print(f"[phase 1] FAILED: {type(e).__name__}: {e}", flush=True)
-        traceback.print_exc()
-        _write_report(target, registry_addr, None, f"phase1: {e}", None)
-        return 1
-    g = p1.get("hallucination_guard", {})
-    print(
-        f"[phase 1] OK  tier={p1['tier']} provider={p1.get('provider','')} "
-        f"findings={p1['summary']['total']} severity={p1['severity']} "
-        f"masked={g.get('masked_count',0)} label_drops={g.get('label_drops',0)}\n"
-        f"          rootHash={p1['root_hash']}",
-        flush=True,
-    )
-
-    # --- phase 2: real IPFS pin + on-chain anchor (needs PINATA_JWT + funded oracle) ---
-    print("\n[phase 2] real IPFS pin + Sepolia anchor …", flush=True)
+        return pin_json(report)
 
     def _anchor(t, sev, root_hash, cid):  # noqa: ANN001 — bind the registry addr
         return anchor_audit(t, sev, root_hash, cid, registry_address=registry_addr)
 
+    print("\n[run] live source/bytecode/Tier-1/Gemini-Tier-2/guard/rootHash"
+          " -> IPFS pin -> Sepolia anchor …", flush=True)
     blocked: str | None = None
     final = None
     try:
         final = run_audit(
             target, tier=2, chain_id=CHAIN_ID, source=source,
-            contract_name=contract_name, anchor=_anchor, do_anchor=True,
-        )
-        print(
-            f"[phase 2] OK  ipfs={final.get('ipfs_uri')}  "
-            f"anchor_tx={final.get('anchor_tx')}",
-            flush=True,
+            contract_name=contract_name, pin=_pin, anchor=_anchor, do_anchor=True,
         )
     except RuntimeError as e:
         blocked = str(e)
-        print(f"[phase 2] BLOCKED (credential, not a code gap): {e}", flush=True)
     except Exception as e:  # noqa: BLE001
         blocked = f"{type(e).__name__}: {e}"
-        print(f"[phase 2] FAILED: {e}", flush=True)
         traceback.print_exc()
 
-    _write_report(target, registry_addr, p1, blocked, final)
-    return 0 if final is not None else (3 if blocked else 1)
+    rep = final or captured.get("report")
+    if rep is None:
+        print(f"[run] FAILED before rootHash: {blocked}", flush=True)
+        _write_report(target, registry_addr, None, blocked or "unknown")
+        return 1
+
+    g = rep.get("hallucination_guard", {})
+    print(
+        f"[run] tier={rep['tier']} provider={rep.get('provider','')} "
+        f"findings={rep['summary']['total']} severity={rep['severity']} "
+        f"masked={g.get('masked_count',0)} label_drops={g.get('label_drops',0)}\n"
+        f"      rootHash={rep['root_hash']}",
+        flush=True,
+    )
+    if final is not None:
+        print(
+            f"[run] ANCHORED  ipfs={final.get('ipfs_uri')}\n"
+            f"      anchor_tx={final.get('anchor_tx')}",
+            flush=True,
+        )
+    else:
+        print(f"[run] BLOCKED (credential, not a code gap): {blocked}", flush=True)
+
+    _write_report(target, registry_addr, rep, blocked)
+    return 0 if final is not None else 3
 
 
-def _write_report(target, registry, p1, blocked, final) -> None:  # noqa: ANN001
+def _write_report(target, registry, rep, blocked) -> None:  # noqa: ANN001
     lines = [
         "# Pipeline end-to-end on Mantle Sepolia (T20 · cutover-gate cond. b)",
         "",
         f"- Target: `{target}` · Registry: `{registry}` · Chain: Sepolia {CHAIN_ID}",
-        "- Pipeline: resolve source → bytecode → Tier-1 → live Gemini Tier-2 →",
-        "  hallucination guard → canonical rootHash → IPFS pin → on-chain anchor.",
-        "",
-        "## Phase 1 — live source/bytecode/Tier-1/Gemini-Tier-2/guard/rootHash",
+        "- **Single live pipeline run** (one Gemini call): resolve source →",
+        "  bytecode → Tier-1 → live Gemini Tier-2 → hallucination guard →",
+        "  canonical rootHash → IPFS pin → on-chain anchor. The values below are",
+        "  exactly what is pinned to IPFS and anchored on-chain.",
         "",
     ]
-    if p1:
-        g = p1.get("hallucination_guard", {})
+    if rep is None:
+        lines += ["## Result", "", f"- **FAILED before rootHash:** `{blocked}`", ""]
+        REPORT.parent.mkdir(parents=True, exist_ok=True)
+        REPORT.write_text("\n".join(lines) + "\n")
+        print(f"\n[report] {REPORT}", flush=True)
+        return
+
+    g = rep.get("hallucination_guard", {})
+    lines += [
+        "## Live engine result",
+        "",
+        f"- tier={rep['tier']} · provider=`{rep.get('provider','')}` · "
+        f"findings={rep['summary']['total']} · severity=`{rep['severity']}`",
+        f"- Hallucination guard: masked={g.get('masked_count',0)} "
+        f"label_drops={g.get('label_drops',0)} — \"{g.get('public_note','')}\"",
+        f"- Canonical rootHash: `{rep['root_hash']}` "
+        "(keccak256 of the canonical report JSON, root_hash/ipfs_*/anchor_tx "
+        "keys excluded from the preimage).",
+        "",
+        "## Terminal steps — IPFS pin + on-chain anchor",
+        "",
+    ]
+    if blocked is None:
         lines += [
-            f"- **OK.** tier={p1['tier']} provider=`{p1.get('provider','')}` "
-            f"findings={p1['summary']['total']} severity=`{p1['severity']}`",
-            f"- Hallucination guard: masked={g.get('masked_count',0)} "
-            f"label_drops={g.get('label_drops',0)} — "
-            f"\"{g.get('public_note','')}\"",
-            f"- Canonical rootHash: `{p1['root_hash']}` "
-            "(keccak256 of the canonical report JSON).",
-            "- This proves the **entire reasoning pipeline runs live end-to-end "
-            "on a real Sepolia-deployed target** — the only steps after this are "
-            "the two terminal I/O calls below.",
+            "- **OK — full end-to-end, independently-verifiable receipt.**",
+            f"- IPFS: `{rep.get('ipfs_uri')}`",
+            f"- Sepolia `submitAudit` tx: `0x{rep.get('anchor_tx')}`",
+            "- Verify independently: fetch the IPFS JSON, drop the "
+            "`root_hash`/`ipfs_*`/`anchor_tx` keys, keccak256 the canonical "
+            "form → equals `registry.getAudit(target).rootHash` above, "
+            "submitted by the oracle signer. memoryRoot compounds "
+            "`keccak256(prev, rootHash)` per audit (MantleProofAgent).",
+            "",
+            "**Mainnet-cutover-gate condition (b): SATISFIED ✅** — the real "
+            "pipeline ran end-to-end on Sepolia and produced an "
+            "independently-verifiable on-chain + IPFS receipt.",
         ]
     else:
-        lines.append("- **FAILED** before rootHash (see Phase 2 note).")
-    lines += ["", "## Phase 2 — IPFS pin + on-chain anchor", ""]
-    if final is not None:
-        lines += [
-            "- **OK — full end-to-end receipt.**",
-            f"- IPFS: `{final.get('ipfs_uri')}`",
-            f"- Sepolia anchor tx: `{final.get('anchor_tx')}`",
-            "",
-            "**Mainnet-cutover-gate condition (b): SATISFIED.**",
-        ]
-    elif blocked:
         lines += [
             f"- **BLOCKED on a setup credential, not a code gap:** `{blocked}`",
-            "- `PINATA_JWT` (TODO.md setup-checklist, *gates T20 IPFS pin*) is "
-            "not configured. The pipeline **correctly refuses to anchor a "
-            "rootHash whose JSON nobody can fetch** (CLAUDE.md invariant) — it "
-            "fails loudly here rather than anchoring an unresolvable record.",
-            "- Phase 1 proves all engine logic is live-correct on Sepolia. The "
-            "remaining gap is a credential the builder must supply; rerunning "
-            "this script with `PINATA_JWT` set completes condition (b) with a "
-            "real Sepolia receipt — **no code change needed**.",
+            "- The pipeline **correctly refuses to anchor a rootHash whose JSON "
+            "nobody can fetch** (CLAUDE.md) — it fails loudly rather than "
+            "anchoring an unresolvable record. The rootHash above is the live "
+            "value from this same single run; rerunning with the credential "
+            "set completes condition (b) with a real receipt — **no code "
+            "change needed**.",
             "",
             "**Mainnet-cutover-gate condition (b): live up to rootHash proven; "
-            "terminal pin+anchor BLOCKED on `PINATA_JWT`.**",
+            "terminal pin+anchor BLOCKED on the missing credential.**",
         ]
-    else:
-        lines.append("- Not reached.")
     REPORT.parent.mkdir(parents=True, exist_ok=True)
     REPORT.write_text("\n".join(lines) + "\n")
     print(f"\n[report] {REPORT}", flush=True)

@@ -152,45 +152,43 @@ Tier-2 → hallucination guard → canonical rootHash → IPFS pin → on-chain 
 
 ```bash
 cd engine && python -u scripts/run_pipeline_sepolia.py [targetAddress]
-# needs ETHERSCAN + GEMINI keys; phase 2 also needs PINATA_JWT + a funded
-# ORACLE_SIGNER on Sepolia. Target/registry come from
+# needs ETHERSCAN + GEMINI + PINATA_JWT keys and a funded ORACLE_SIGNER on
+# Sepolia. Target/registry come from
 # contracts/deployments/mantleSepolia.addresses.json (argv overrides target).
 ```
 
-The harness runs in **two phases** so a missing terminal credential cannot mask
-the live proof of everything else:
-
-1. **Phase 1** — live source/bytecode/Tier-1/Gemini-Tier-2/guard/rootHash, no
-   terminal credentials. Proves the entire reasoning pipeline is live-correct
-   on a real Sepolia contract.
-2. **Phase 2** — real Pinata IPFS pin + `submitAudit` on the Sepolia registry
-   (advances the agent memoryRoot). Needs `PINATA_JWT` + a funded oracle signer.
-
-The pure orchestration (assemble, rootHash, severity rollup, guard wiring) is
+The harness does a **single** `run_audit` so the reported
+rootHash/severity/findings are exactly what is pinned to IPFS and anchored
+on-chain — the audit is a trust artifact, the report must headline the
+rootHash that is actually on-chain. A `pin` wrapper captures the assembled
+report (which already carries its `root_hash`) before the network call, so if a
+terminal credential is missing the live proof up to rootHash is still recorded
+and the pipeline fails loudly rather than anchoring an unfetchable record. The
+pure orchestration (assemble, rootHash, severity rollup, guard wiring) is
 exhaustively unit-tested offline in `tests/test_pipeline.py` (88-test engine
-gate); this harness is the *live* counterpart, the same pure-test + live-harness
+gate); this harness is the *live* counterpart, same pure-test + live-harness
 split as T12/T19.
 
-## Result (run 2026-05-19 → `pipeline_sepolia_report.md`)
+## Result (run 2026-05-19 → `pipeline_sepolia_report.md`) — SATISFIED ✅
 
 Target = our Sepolia `DecisionLog` `0x9063…a410` (source **verified on
 Etherscan V2 chainid 5003**), registry `0x261a…D982`.
 
-- **Phase 1 — OK, fully live.** tier=2, provider=`gemini`, 2 findings,
-  severity `medium`, guard masked 0 / label-drops 0, canonical rootHash
-  `0xb77da68dcfbecd1214344bb54a19861d2fa79041039d47fa3e841ddbb4ed8f5c`. The
-  whole reasoning pipeline runs live end-to-end on a real Sepolia-deployed
-  target — only the two terminal I/O calls remain.
-- **Phase 2 — BLOCKED on a setup credential, not a code gap.** `PINATA_JWT`
-  (TODO.md setup-checklist, *gates T20 IPFS pin*) is unset, so the pipeline
-  **correctly refuses to anchor a rootHash whose JSON nobody can fetch**
-  (CLAUDE.md invariant) — it fails loudly rather than anchoring an
-  unresolvable record. Rerunning with `PINATA_JWT` set (and a funded Sepolia
-  oracle) completes condition (b) with a real on-chain receipt — **no code
-  change needed**.
+- **Full end-to-end, OK.** Single live run: tier=2, provider=`gemini`,
+  1 finding, severity `low`, guard masked 0 / label-drops 0, canonical
+  rootHash `0x28415e30…f574`, IPFS
+  `ipfs://bafkreiaccoixvbxfwjjpqvrlcwtd5bkkcjasyrvjnt7ryrgr5heu75zov4`,
+  Sepolia `submitAudit` tx `0xeca296b3…01bdc`.
+- **Independently verified** by an off-pipeline web3/httpx reader: tx status 1
+  (block 38837152); `getAudit(target)` rootHash + severity (1=Low) + ipfsCID
+  all match the run; submitter == the oracle signer (only-writer invariant
+  upheld); `auditsPerformed` advanced to 3; `memoryRoot` compounds
+  `keccak256(prev, rootHash)` (correctly ≠ rootHash); and **keccak256 of the
+  pinned IPFS JSON canonical preimage == pinned `root_hash` == on-chain
+  rootHash** — the audit is independently verifiable end-to-end.
 
-**Status: cutover-gate (b) is live-proven up to rootHash; the terminal
-IPFS-pin + on-chain anchor are blocked on `PINATA_JWT`** — an external
-credential the builder must supply, already an open setup-checklist item. Not
-marked ✅ until a real Sepolia receipt exists; the engineering for (b) is
-complete and CI-green.
+**Status: mainnet-cutover-gate condition (b) SATISFIED ✅** — the real pipeline
+ran end-to-end on Sepolia and produced an independently-verified on-chain +
+IPFS receipt, with no relaxation of the IPFS/guard invariants. (Gemini is
+non-deterministic, so findings/severity vary per run; each audit is a distinct
+append-only event and the report always headlines the anchored values.)
