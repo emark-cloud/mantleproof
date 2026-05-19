@@ -17,7 +17,7 @@ pace). `[CP]` = on the critical path to **D = three demos green on Mantle mainne
 - [x] **T18** Hallucination guard ✅ — pure/provider-agnostic verify+mask+one-tier label-drop; per-kind corpus scoping (bytecode trusted only for long hex/addr); JSON→findings parser (no tool-use); 14 tests pin the invariant `[CP]`
 - [x] **T19** Tier 2 precision pass ✅ — live full-path harness (run_tier2→parse→guard) vs verified-protocol set: 9/9 resolved, T1 0/9, T2 18 conservative source-cited findings, **no FP storm**, guard correctly wired into live path; gate cond (c) met `[CP]`
 - [x] **T20** pipeline.py end-to-end ✅ — `run_audit` Tier1→Tier2→guard→assemble→keccak rootHash→IPFS→anchor; pure core + injectable seams, 10 tests (88-gate). **Live Sepolia run independently verified**: `DecisionLog` audit, rootHash `0x28415e30…f574`, IPFS `bafkrei…zov4`, tx `0xeca296b3…01bdc`, keccak(IPFS)==on-chain, oracle-signed, memoryRoot compounded (auditsPerformed→3). **Gate (b) SATISFIED ✅** `[CP]`
-- [ ] **T25** MAINNET cutover — **READY ✅** (gate met + T5 resolved 2026-05-19 tokenId=96 + deployer funded 3.95 MNT on 5000); awaiting user "start T25" `[CP]`
+- [x] **T25** MAINNET cutover ✅ — 5 Path A contracts deployed + Etherscan V2 verified on Mantle mainnet 5000 (2026-05-19); post-deploy state-readback (16/16 wiring checks) independently confirms `oracleSigner=0x9f17…638a` (fresh, distinct from deployer — pre-flight caught identical-key SPOF), `agent.agentTokenId=96`, `identity.ownerOf(96)==deployer`, `agent.agentOwner()==deployer` (License 80/20 recipient resolves), bidirectional `registry↔agent` wiring; deployer 3.94→3.16 MNT spent (0.78 MNT) `[CP]`
 - [ ] **T26/T27/T28** three demo agents on mainnet  →  **DELIVERABLE D** `[CP]`
 
 **Mainnet cutover gate (T25) — all must hold before any mainnet deploy:**
@@ -31,8 +31,17 @@ now **RESOLVED**: (B1) deployer `0x2a30…605B6A` funded — **3.95 MNT on Mantl
 (verified 2026-05-19); (B2) **T5 RESOLVED** — `MANTLEPROOF_AGENT_TOKEN_ID=96` (mainnet
 ERC-8004 identity self-registered to `0x2a30…605B6A`, tx `0x3d810ca4…ea2a` block 95547770,
 independently verified `ownerOf(96)==signer`, `balanceOf=1`, no duplicate) and set in `.env`.
-**T25 is READY** — single config-flip `MANTLE_NETWORK=mantle` + fresh deploy, no new code.
-Awaiting user "start T25".
+**T25 COMPLETE 2026-05-19** ✅ — config-flip + fresh mainnet deploy executed.
+Pre-flight surfaced an SPOF (`DEPLOYER_PRIVATE_KEY == ORACLE_SIGNER_PRIVATE_KEY` in `.env`
+while `oracleSigner` is `immutable` on `MantleProofRegistry.sol:16`); generated a fresh
+oracle key in-process (address `0x9f17…638a`, key never printed; `.env` chmod 600 and
+gitignored) before signing. Post-deploy on-chain readback: 16/16 wiring checks pass.
+Mainnet contracts (chainId 5000, all verified on Mantlescan via Etherscan V2):
+  Registry  0x60E97c83Dd184D3B0812Ce25430e9D6930eD63aE
+  Agent     0x966A385A7C56794E1Bb40C9F0f73cCDaA0724503
+  Treasury  0x53459fb149CB1772ea389ACE325501DA2B28E437
+  License   0x906390B3594384bE83F3465cFeDf8661f4d1a410
+  Decision  0x1823359f0a5bB8b2af71a55200B08ECcCedFec6f
 
 ---
 
@@ -94,7 +103,7 @@ Awaiting user "start T25".
 
 ## Week 5 — Demo agents + cache warmer
 
-- [ ] **T25** MAINNET cutover (gate passes) — deploy 4 Path A contracts + DecisionLog to mainnet, wire Mantle-issued iNFT (tokenId=96) — **READY** (T5 ✅, deployer funded ✅; awaiting user "start T25") `[CP]`
+- [x] **T25** MAINNET cutover ✅ (2026-05-19) — 5 Path A contracts deployed + Etherscan V2 verified on chainId 5000; oracle-signer rotated to fresh distinct key `0x9f17…638a` pre-deploy (caught + fixed an SPOF where deployer key == oracle key while `oracleSigner` is immutable); post-deploy state-readback 16/16 — `agent.agentTokenId=96`, `identity.ownerOf(96)==deployer`, `agent.agentOwner()==deployer`, `registry.agent↔agent.auditor` bidirectional; gas spent 0.78 MNT, 3.16 MNT remaining. Addrs in `contracts/deployments/mantle.addresses.json`. `[CP]`
 - [ ] **T26** Deployer-agent — Demo 1: payForAudit → finding → decline + redeploy `[CP]`
 - [ ] **T27** Trading-agent — Demo 2: getAudit → pause() backdoor → decline → decision-log tx `[CP]`
 - [ ] **T28** Yield-agent — Demo 3: getAudit → clean → LB addLiquidity → decision-log tx `[CP]`
@@ -230,3 +239,44 @@ Awaiting user "start T25".
   `MANTLE_NETWORK=mantle` + fresh deploy of 4 Path A contracts + DecisionLog, no new
   code). Per the established pattern, T25 will NOT be initiated without explicit user
   "start T25" — the next mainnet write is the deploy itself.
+- 2026-05-19 — **T25 DONE — MantleProof is live on Mantle mainnet.** User authorized
+  "start T25"; pre-flight (`scripts/_preflight-t25.ts`, read-only) caught a real SPOF
+  before any tx: `DEPLOYER_PRIVATE_KEY` and `ORACLE_SIGNER_PRIVATE_KEY` in `.env` were
+  byte-identical, while `MantleProofRegistry.sol:16` declares `address public immutable
+  oracleSigner;` (no setter — same shape as `agentTokenId`). Baking that in would mean
+  compromising the deployer hot wallet = compromising the audit-attestation key with no
+  on-chain rotation, contradicting CLAUDE.md's "oracle-signer is the only writer to
+  `submitAudit`. Public read, signed write." credibility property. Surfaced the choice
+  to the user; user opted to fix pre-deploy. Generated a fresh secp256k1 key in-process
+  via `eth_account.Account.create()`, wrote it directly to `.env` (regex-replace), printed
+  ONLY the public address `0x9f17b625902B0d35a02fd790aF45cf95e9F4638a` — the private key
+  never appeared in any tool output (one earlier disclosed key was burned and discarded).
+  `.env` permissions tightened to `0600` and gitignored confirmed. Re-ran pre-flight:
+  `oracleDistinct: true`, deployer 3.94 MNT, `identity.ownerOf(96)==deployer`, no prior
+  `deployments/mantle.addresses.json` — clean. **Deploy** (`scripts/deploy.ts --network
+  mantle`): 5 contracts mined on chainId 5000:
+    `MantleProofRegistry` `0x60E97c83Dd184D3B0812Ce25430e9D6930eD63aE`
+    `MantleProofAgent`    `0x966A385A7C56794E1Bb40C9F0f73cCDaA0724503` (identity, reputation, tokenId=96, owner)
+    `TreasurySplit`       `0x53459fb149CB1772ea389ACE325501DA2B28E437`
+    `MantleProofLicense`  `0x906390B3594384bE83F3465cFeDf8661f4d1a410` (auditPrice 0.5 MNT, subPrice 5 MNT)
+    `DecisionLog`         `0x1823359f0a5bB8b2af71a55200B08ECcCedFec6f`
+  with bidirectional `registry.setAgent(agent)` + `agent.setAuditor(registry)`. **Post-deploy
+  state-readback** (`scripts/_postdeploy-t25.ts`, independent of the deploy script's
+  console.table — same T20-style discipline): 16/16 wiring checks pass on-chain —
+  `registry.oracleSigner==0x9f17…638a` (fresh, distinct), `registry.agent==Agent`,
+  `agent.auditor==Registry` (bidirectional), `agent.identityRegistry==0x8004A169…a432`,
+  `agent.reputationRegistry==0x8004BAa1…9b63` (both = official 5000 canonical),
+  `agent.agentTokenId==96`, `identity.ownerOf(96)==deployer`, **`agent.agentOwner()==
+  deployer`** (the License's 80/20 recipient resolves — proves the immutability concern
+  from B2 truly cleared), `license.{agent,treasury,auditPrice,subscriptionPrice}` correct,
+  all four contract owners == deployer. (Surfaced one ABI guess defect in the postdeploy
+  reader during execution — `subPrice()`/`ownerOf()` → real names `subscriptionPrice()`/
+  `agentOwner()` — fixed and reverified; the underlying on-chain state was always right.)
+  **Etherscan API V2 verification** (chainid 5000, single `ETHERSCAN_API_KEY`): all 5
+  contracts publicly verified on `mantlescan.xyz/address/<addr>#code`. Gas: 3.94 → 3.16
+  MNT (**0.78 MNT spent**) — healthy buffer for T26/T27/T28. Did NOT run mainnet
+  smoke-roundtrip (avoid polluting the canonical registry with a non-real first attestation
+  — first mainnet `submitAudit` will come from a real demo target in T26). Did NOT weaken
+  the hallucination guard / honesty labels; did NOT broadcast a smoke audit pre-T26.
+  **MantleProof is now operationally live on Mantle mainnet 5000.** Critical path
+  remaining: T26/T27/T28 demo agents → DELIVERABLE D.

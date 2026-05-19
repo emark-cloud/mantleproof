@@ -1,0 +1,19 @@
+{
+  "chainId": 5000,
+  "network": "mantle",
+  "deployedAt": "2026-05-19T21:40:26.850Z",
+  "owner": "0x2a3080AA52DE07702dd30b81cC97C3527e605B6A",
+  "oracleSigner": "0x9f17b625902B0d35a02fd790aF45cf95e9F4638a",
+  "agentTokenId": "96",
+  "auditPriceWei": "500000000000000000",
+  "subPriceWei": "5000000000000000000",
+  "officialIdentityRegistry": "0x8004A169FB4a3325136EB29fA0ceB6D2e539a432",
+  "officialReputationRegistry": "0x8004BAa17C55a88189AE136b182e5fdA19dE9b63",
+  "contracts": {
+    "MantleProofRegistry": "0x60E97c83Dd184D3B0812Ce25430e9D6930eD63aE",
+    "MantleProofAgent": "0x966A385A7C56794E1Bb40C9F0f73cCDaA0724503",
+    "TreasurySplit": "0x53459fb149CB1772ea389ACE325501DA2B28E437",
+    "MantleProofLicense": "0x906390B3594384bE83F3465cFeDf8661f4d1a410",
+    "DecisionLog": "0x1823359f0a5bB8b2af71a55200B08ECcCedFec6f"
+  }
+}
