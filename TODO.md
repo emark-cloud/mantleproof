@@ -10,7 +10,7 @@ pace). `[CP]` = on the critical path to **D = three demos green on Mantle mainne
 
 - [ ] **T0**  Scaffold monorepo `[CP]`
 - [x] **T3**  Path A contracts implemented + 14 Hardhat tests passing (CI runs them) `[CP]`
-- [~] **T4**  Deployed on Sepolia ✅ (5 contracts, 2026-05-19); verify ⏳ pending `ETHERSCAN_API_KEY` (V2) `[CP]`
+- [x] **T4**  Sepolia ✅ — 5 contracts deployed + all verified on sepolia.mantlescan.xyz (Etherscan V2) `[CP]`
 - [x] **T6**  smoke-roundtrip GREEN on Sepolia ✅ — submitAudit→getAudit→memoryRoot 0→1 (Week-1 gate passed) `[CP]`
 - [ ] **T14** GeminiProvider working `[CP]`
 - [ ] **T17** Tier 2 prompt + runner `[CP]`
@@ -47,7 +47,7 @@ column human-verified. Cutover = `MANTLE_NETWORK=mantle` + fresh deploy, not new
 - [x] **T1b** Official ERC-8004 registry addresses resolved + verified → `contracts/config/registries.ts`
 - [x] **T2**  `mantle_tokens.py` pinned — 8 mainnet addrs from official docs, all verified on-chain (symbol/name/decimals + bytecode) 2026-05-19; 5003 None by design; +TOKEN_DECIMALS/IMPL, 3 tests
 - [x] **T3**  Path A contracts implemented (MantleProofRegistry, MantleProofAgent wrapper, MantleProofLicense 80/20, TreasurySplit timelock, DecisionLog) + mocks + 14 tests green `[CP]`
-- [~] **T4**  Deploy ✅ Sepolia (MantleProofRegistry 0x261a74…, Agent 0x60E97c…, Treasury 0xdE3698…, License 0x53459f…, DecisionLog 0x906390…); verify ⏳ needs `ETHERSCAN_API_KEY` (Etherscan V2) `[CP]`
+- [x] **T4**  Sepolia deploy + verify ✅ (Registry 0x261a74…, Agent 0x60E97c…, Treasury 0xdE3698…, License 0x53459f…, DecisionLog 0x906390… — all source-verified, Etherscan V2) `[CP]`
 - [ ] **T5**  Obtain MantleProof's Mantle-issued ERC-8004 identity tokenId; wire it into `MantleProofAgent` (no self-mint under Path A)
 - [x] **T6**  smoke-roundtrip GREEN ✅ (tx 0x449c394d… on Sepolia) — **Week-1 gate passed** `[CP]`
 - [ ] **T7**  Frontend wagmi reads registry (after T3 ABIs)
@@ -137,6 +137,7 @@ column human-verified. Cutover = `MANTLE_NETWORK=mantle` + fresh deploy, not new
 - 2026-05-18 — x402 settles USDC on Base (Coinbase facilitator doesn't support Mantle).
 - 2026-05-18 — Keep spec's 7-week cadence as reference; build at own pace, no up-front scope cuts.
 - 2026-05-18 — pnpm workspaces for TS pkgs; `engine/` standalone Python.
+- 2026-05-19 — **T4 fully done** — all 5 Sepolia contracts source-verified on sepolia.mantlescan.xyz via Etherscan API V2 (ETHERSCAN_API_KEY).
 - 2026-05-19 — **T4 deploy + T6 gate ✅ on Mantle Sepolia.** 5 Path A contracts live; smoke-roundtrip green (submitAudit→getAudit→memoryRoot advanced). Week-1 gate passed. Verify deferred → Etherscan V1 shut down; **migrated explorer integration (hardhat verify + T9 resolver) to Etherscan API V2** (single etherscan.io key `ETHERSCAN_API_KEY`, chainId-routed, covers 5000+5003). `MANTLESCAN_API_KEY` now legacy/unused. Re-run verify once the V2 key is in `.env`.
 - 2026-05-19 — **T2/T8/T9 done.** 8 Mantle-mainnet token addresses pinned (official docs + on-chain symbol/name/decimals verification; USDe/sUSDe are 18-dec ERC-20 despite OFT sharedDecimals=6; USDT0=6). Bytecode utils + pattern registry and Etherscan-compatible source resolver implemented; engine suite 17 pass / 12 skip, ruff clean. Sepolia explorer API base for T9 still to be confirmed Week 1 (same open item as hardhat verify).
 - 2026-05-18 — **T3 done.** Path A contracts + 14 Hardhat tests. License split settles native MNT on Mantle on-chain (x402/USDC-on-Base stays the separate Week-4 surface). Tooling: hardhat-toolbox transitive deps (ethers/chai/hardhat-ethers/network-helpers) added as direct contracts devDeps (pnpm strict isolation); contracts tsconfig includes typechain-types + relaxes `noUncheckedIndexedAccess` (this pkg only); CI compiles before typecheck and runs contract tests.
