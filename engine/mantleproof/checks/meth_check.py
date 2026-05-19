@@ -29,7 +29,7 @@ from mantleproof.checks._common import (
     word,
 )
 from mantleproof.checks.base import CheckResult, HonestyLabel, Severity
-from mantleproof.config.mantle_tokens import METH_L1_STAKING, TOKENS
+from mantleproof.config.mantle_tokens import METH_L1_TOKEN, TOKENS
 
 CHECK_ID = "meth_check_v1"
 
@@ -37,7 +37,7 @@ _METH = TOKENS[5000]["mETH_L2"]
 _CMETH = TOKENS[5000]["cmETH"]
 register_address_pattern("meth_l2_address_v1", _METH)
 register_address_pattern("cmeth_address_v1", _CMETH)
-register_address_pattern("meth_l1_staking_v1", METH_L1_STAKING)
+register_address_pattern("meth_l1_token_v1", METH_L1_TOKEN)
 
 # Any signal that the contract is rate-aware (then balance accounting is OK).
 _RATE_SIGNALS = (
@@ -75,7 +75,7 @@ def run(
         low,
         bytecode,
         symbols=("mETH", "cmETH"),
-        addresses=(_METH, _CMETH, METH_L1_STAKING),
+        addresses=(_METH, _CMETH, METH_L1_TOKEN),
     )
     if not relevant or (source is not None and not calls_into(low, "meth", "cmeth")):
         return []

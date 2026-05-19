@@ -5,14 +5,27 @@ REAL mainnet protocol contracts even while the engine/our contracts run on
 Sepolia — the source resolver reads mainnet target source independent of the
 anchor chain.
 
-The 5000 column is a build-time, human-verified artifact (T2, resolved
-2026-05-19). Every address below was sourced from the protocol's official docs
-AND independently verified on-chain via eth_call: `symbol()`, `name()`,
-`decimals()` returned the expected values and each address has contract
-bytecode. Sources: Ondo (docs.ondo.finance/addresses), Mantle mETH
-(docs.mantle.xyz/meth), Ethena (docs.ethena.fi/solution-design/key-addresses),
-USDT0 (docs.usdt0.to). 5003 (Sepolia) is intentionally None — these protocol
-tokens are mainnet-only; testnet audit targets are still resolved against 5000.
+The 5000 column is a build-time, human-verified artifact. Re-verified for the
+mainnet-cutover gate condition (e) on 2026-05-19 (T(e)) two independent ways:
+
+  1. On-chain against the Mantle mainnet RPC (chainId 5000 confirmed):
+     `symbol()`, `name()`, `decimals()` returned the expected values, each
+     address has contract bytecode, and the USDY/mUSD EIP-1967 implementation
+     storage slots equal the pinned `TOKEN_IMPL` addresses.
+  2. Against each protocol's official docs: Ondo (docs.ondo.finance/addresses),
+     Mantle mETH (docs.mantle.xyz/meth), Ethena
+     (docs.ethena.fi/solution-design/key-addresses — the Mantle column lists
+     USDe `0x5d3a…ef34` / sUSDe `0x211C…e5d2`; the Ethereum-canonical
+     `0x4c9e…`/`0x9d39…` are a DIFFERENT chain and intentionally not used
+     here), USDT0 (docs.usdt0.to), Merchant Moe (docs.merchantmoe.com).
+
+All eight 5000 addresses + both proxy impls verified correct. The only defect
+found was a naming bug, now fixed: the pinned L1 mETH address is the Ethereum
+mETH *token*, not a "staking" contract — renamed `METH_L1_STAKING`
+→ `METH_L1_TOKEN` (address unchanged; it is correct for its purpose).
+
+5003 (Sepolia) is intentionally None — these protocol tokens are mainnet-only;
+testnet audit targets are still resolved against 5000.
 """
 
 from __future__ import annotations
@@ -62,9 +75,10 @@ TOKEN_IMPL: dict[str, str] = {
     "mUSD": "0x907D8399d13cee098cef486a8427933aac7e6271",
 }
 
-# mETH canonical staking is on Ethereum L1 (docs/resources.md §2.2), not Mantle.
-# Pin so meth_check can flag L1/L2 conflation.
-METH_L1_STAKING = "0xd5F7838F5C461fefF7FE49ea5ebaF7728bB0ADfa"
+# The canonical mETH ERC-20 *token* on Ethereum L1 (Etherscan "Mantle: mETH
+# Token", symbol mETH; docs.mantle.xyz/meth). NOT the L1 LSP staking contract.
+# Pinned so meth_check can flag L1/L2 mETH conflation vs the L2 mETH_L2 token.
+METH_L1_TOKEN = "0xd5F7838F5C461fefF7FE49ea5ebaF7728bB0ADfa"
 
 
 def tokens_for(chain_id: int) -> dict[str, str | None]:
