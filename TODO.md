@@ -47,7 +47,7 @@ column human-verified. Cutover = `MANTLE_NETWORK=mantle` + fresh deploy, not new
 - [x] **T1b** Official ERC-8004 registry addresses resolved + verified → `contracts/config/registries.ts`
 - [x] **T2**  `mantle_tokens.py` pinned — 8 mainnet addrs from official docs, all verified on-chain (symbol/name/decimals + bytecode) 2026-05-19; 5003 None by design; +TOKEN_DECIMALS/IMPL, 3 tests
 - [x] **T3**  Path A contracts implemented (MantleProofRegistry, MantleProofAgent wrapper, MantleProofLicense 80/20, TreasurySplit timelock, DecisionLog) + mocks + 14 tests green `[CP]`
-- [ ] **T4**  Deploy + verify on Mantle Sepolia (confirm Routescan verify endpoint) `[CP]`
+- [ ] **T4**  Deploy + verify on Mantle Sepolia (verify endpoint confirmed: api-sepolia.mantlescan.xyz) `[CP]`
 - [ ] **T5**  Obtain MantleProof's Mantle-issued ERC-8004 identity tokenId; wire it into `MantleProofAgent` (no self-mint under Path A)
 - [ ] **T6**  smoke-roundtrip green on Sepolia `[CP]`
 - [ ] **T7**  Frontend wagmi reads registry (after T3 ABIs)
@@ -113,7 +113,7 @@ column human-verified. Cutover = `MANTLE_NETWORK=mantle` + fresh deploy, not new
 
 - T5 — MantleProof's own Mantle-issued ERC-8004 tokenId not yet known (assigned on hackathon registration); registry addresses themselves are resolved (T1b done)
 - Agni Finance source structure unverified (resources.md §13.5 — verify Week 2 or defer to Tier 2)
-- Mantle Sepolia verify apiURL (Routescan vs Mantlescan) — confirm Week 1
+- ~~Mantle Sepolia verify apiURL~~ RESOLVED 2026-05-19: `https://api-sepolia.mantlescan.xyz/api` (one Mantlescan key covers mainnet + Sepolia)
 
 ---
 

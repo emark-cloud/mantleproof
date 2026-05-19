@@ -13,8 +13,8 @@ ADDR = "0x5bE26527e817998A7206475496fDE1E68957c5A6"
 
 
 def test_api_base_per_chain():
-    assert "mantlescan.xyz" in api_base(5000)
-    assert "5003" in api_base(5003)
+    assert api_base(5000) == "https://api.mantlescan.xyz/api"
+    assert api_base(5003) == "https://api-sepolia.mantlescan.xyz/api"
     with pytest.raises(KeyError):
         api_base(1)
 

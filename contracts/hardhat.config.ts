@@ -46,9 +46,8 @@ const config: HardhatUserConfig = {
         },
       },
       {
-        // NOTE: testnet explorer is Routescan, not Mantlescan.
-        // Confirm this apiURL in Week 1 (T4). Routescan alt:
-        // https://api.routescan.io/v2/network/testnet/evm/5003/etherscan
+        // Confirmed 2026-05-19 (docs.mantlescan.xyz): one Mantlescan API key
+        // works for mainnet + Sepolia; Sepolia API base is api-sepolia.
         network: "mantleSepolia",
         chainId: 5003,
         urls: {

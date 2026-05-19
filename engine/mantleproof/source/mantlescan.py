@@ -19,12 +19,11 @@ import httpx
 
 from mantleproof.settings import get_settings
 
-# Etherscan-compatible API bases per chain. Sepolia/Routescan path may need
-# confirming in Week 1 (mirrors the hardhat.config customChains note); override
-# with env MANTLESCAN_API_BASE_5003 if it differs.
+# Etherscan-compatible API bases per chain. Confirmed 2026-05-19 via
+# docs.mantlescan.xyz: one Mantlescan API key works across mainnet AND Sepolia.
 _API_BASE: dict[int, str] = {
     5000: "https://api.mantlescan.xyz/api",
-    5003: "https://api.routescan.io/v2/network/testnet/evm/5003/etherscan/api",
+    5003: "https://api-sepolia.mantlescan.xyz/api",
 }
 
 
