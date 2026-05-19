@@ -31,6 +31,10 @@ class Settings(BaseSettings):
     # --- Keys / signer ---
     oracle_signer_private_key: str = ""
 
+    # --- On-chain anchor (engine stays decoupled from the contracts/ layout:
+    #     the registry address is read from .env, not contracts/deployments/) ---
+    mantleproof_registry_address: str = ""
+
     # --- Explorer (Etherscan API V2 — one etherscan.io key, chainId-routed,
     #     covers Mantle 5000 + 5003. V1 mantlescan endpoints are shut down) ---
     etherscan_api_key: str = ""

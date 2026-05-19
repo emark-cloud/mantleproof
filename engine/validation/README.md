@@ -138,3 +138,59 @@ Tier-2 raw **18** (1–3 per contract) · **guard masked 0 · label drops 0**.
 **Verdict: precision acceptable for mainnet-cutover-gate condition (c)** — no
 false-positive storm, the credibility core is correctly wired into and behaves
 correctly on the live pipeline path, with scope stated honestly.
+
+---
+
+# T20 — pipeline end-to-end on Sepolia (mainnet-cutover-gate condition b)
+
+**Goal (CLAUDE.md cutover gate (b)):** run the real `pipeline.run_audit`
+end-to-end on Mantle Sepolia against a Sepolia-deployed target, every network
+seam live: verified-source resolve → Sepolia bytecode → Tier-1 → live Gemini
+Tier-2 → hallucination guard → canonical rootHash → IPFS pin → on-chain anchor.
+
+## How to run
+
+```bash
+cd engine && python -u scripts/run_pipeline_sepolia.py [targetAddress]
+# needs ETHERSCAN + GEMINI keys; phase 2 also needs PINATA_JWT + a funded
+# ORACLE_SIGNER on Sepolia. Target/registry come from
+# contracts/deployments/mantleSepolia.addresses.json (argv overrides target).
+```
+
+The harness runs in **two phases** so a missing terminal credential cannot mask
+the live proof of everything else:
+
+1. **Phase 1** — live source/bytecode/Tier-1/Gemini-Tier-2/guard/rootHash, no
+   terminal credentials. Proves the entire reasoning pipeline is live-correct
+   on a real Sepolia contract.
+2. **Phase 2** — real Pinata IPFS pin + `submitAudit` on the Sepolia registry
+   (advances the agent memoryRoot). Needs `PINATA_JWT` + a funded oracle signer.
+
+The pure orchestration (assemble, rootHash, severity rollup, guard wiring) is
+exhaustively unit-tested offline in `tests/test_pipeline.py` (88-test engine
+gate); this harness is the *live* counterpart, the same pure-test + live-harness
+split as T12/T19.
+
+## Result (run 2026-05-19 → `pipeline_sepolia_report.md`)
+
+Target = our Sepolia `DecisionLog` `0x9063…a410` (source **verified on
+Etherscan V2 chainid 5003**), registry `0x261a…D982`.
+
+- **Phase 1 — OK, fully live.** tier=2, provider=`gemini`, 2 findings,
+  severity `medium`, guard masked 0 / label-drops 0, canonical rootHash
+  `0xb77da68dcfbecd1214344bb54a19861d2fa79041039d47fa3e841ddbb4ed8f5c`. The
+  whole reasoning pipeline runs live end-to-end on a real Sepolia-deployed
+  target — only the two terminal I/O calls remain.
+- **Phase 2 — BLOCKED on a setup credential, not a code gap.** `PINATA_JWT`
+  (TODO.md setup-checklist, *gates T20 IPFS pin*) is unset, so the pipeline
+  **correctly refuses to anchor a rootHash whose JSON nobody can fetch**
+  (CLAUDE.md invariant) — it fails loudly rather than anchoring an
+  unresolvable record. Rerunning with `PINATA_JWT` set (and a funded Sepolia
+  oracle) completes condition (b) with a real on-chain receipt — **no code
+  change needed**.
+
+**Status: cutover-gate (b) is live-proven up to rootHash; the terminal
+IPFS-pin + on-chain anchor are blocked on `PINATA_JWT`** — an external
+credential the builder must supply, already an open setup-checklist item. Not
+marked ✅ until a real Sepolia receipt exists; the engineering for (b) is
+complete and CI-green.
