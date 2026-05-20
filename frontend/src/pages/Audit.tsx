@@ -35,7 +35,7 @@ export default function Audit() {
   return (
     <div className="min-h-screen flex flex-col">
       <nav className="border-b border-border-strong bg-panel px-4 py-2">
-        <Link to="/" className="font-mono text-[11px] text-text-secondary hover:text-accent">
+        <Link to="/app" className="font-mono text-[11px] text-text-secondary hover:text-accent">
           ← dashboard
         </Link>
       </nav>

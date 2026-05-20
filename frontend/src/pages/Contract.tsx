@@ -23,6 +23,7 @@ import { Address } from "../components/primitives/Address";
 import { SeverityBadge, type Severity } from "../components/primitives/SeverityBadge";
 import { Timestamp } from "../components/primitives/Timestamp";
 import { HonestyLabel } from "../components/primitives/HonestyLabel";
+import { Tip } from "../components/primitives/Tip";
 import { FindingCard } from "../components/panels/FindingCard";
 import {
   AuditHistoryRow,
@@ -42,7 +43,7 @@ export default function Contract() {
   return (
     <div className="min-h-screen flex flex-col">
       <nav className="border-b border-border-strong bg-panel px-4 py-2">
-        <Link to="/" className="font-mono text-[11px] text-text-secondary hover:text-accent">
+        <Link to="/app" className="font-mono text-[11px] text-text-secondary hover:text-accent">
           ← back to dashboard
         </Link>
       </nav>
@@ -137,30 +138,47 @@ function AuditedView({
             [audit permalink ↗]
           </Link>
           <span className="ml-auto">
-            tier {report?.tier ?? "?"} · provider {report?.provider ?? "—"}
+            <Tip
+              text="Tier 1 = heuristic + bytecode pattern checks (5 Mantle-specific modules). Tier 2 = LLM reasoning on top of Tier 1's union, with verified source + skill briefs + a hallucination guard."
+            >
+              tier {report?.tier ?? "?"}
+            </Tip>{" "}
+            · provider {report?.provider ?? "—"}
           </span>
         </div>
         <div className="mt-3 flex items-center gap-2 font-mono text-[11px]">
           {integrityOk && (
-            <span className="text-sev-clean">
-              <StatusDot status="complete" size={6} /> integrity ✓ recomputed keccak == on-chain rootHash
-            </span>
+            <Tip
+              text="keccak256 of the IPFS-pinned canonical report == on-chain rootHash. ✓ means the report you're reading is byte-for-byte what was anchored."
+              underline={false}
+            >
+              <span className="text-sev-clean inline-flex items-center gap-1">
+                <StatusDot status="complete" size={6} /> integrity ✓ recomputed keccak == on-chain rootHash
+              </span>
+            </Tip>
           )}
           {integrityFailed && (
-            <span className="text-sev-high">
-              <StatusDot status="failed" size={6} /> integrity ✗ MISMATCH — IPFS content may have been
-              tampered with
-            </span>
+            <Tip
+              text="keccak256 of the IPFS report DOES NOT match the on-chain rootHash. The IPFS content may have been altered after anchoring; do not trust the report body."
+              underline={false}
+            >
+              <span className="text-sev-high inline-flex items-center gap-1">
+                <StatusDot status="failed" size={6} /> integrity ✗ MISMATCH — IPFS content may have been
+                tampered with
+              </span>
+            </Tip>
           )}
           {integrity.match === null && (
-            <span className="text-text-muted">
+            <span className="text-text-muted inline-flex items-center gap-1">
               <StatusDot status="pending" size={6} /> IPFS gateway not reachable ({ipfs_error ?? "unknown"})
             </span>
           )}
         </div>
         {report?.hallucination_guard?.public_note && (
           <div className="mt-2 font-mono text-[11px] text-text-secondary">
-            {report.hallucination_guard.public_note}
+            <Tip text="Every $ / % / hex / address claim in the Tier-2 output was regex-extracted and verified against source line / bytecode offset / Tier-1 findings before signing. Unsupported claims were masked [unsupported]; each masked claim drops its finding's honesty label one tier (VERIFIED → COMPUTED → …, LABELED floor).">
+              {report.hallucination_guard.public_note}
+            </Tip>
           </div>
         )}
       </section>

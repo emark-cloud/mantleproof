@@ -5,16 +5,39 @@
  * VERIFIED / COMPUTED / ESTIMATED / EMULATED / LABELED. Hallucination guard
  * one-tier drops are recorded as the FINAL label here — this component shows
  * the label that was anchored on-chain, not the original pre-drop label.
+ *
+ * Tooltip carries the explainer + the one-tier-drop rule so a first-time
+ * viewer doesn't need to leave the page to know what they're looking at.
  */
 
 export type Label = "VERIFIED" | "COMPUTED" | "ESTIMATED" | "EMULATED" | "LABELED";
 
-const COLOR: Record<Label, string> = {
-  VERIFIED: "var(--label-verified)",
-  COMPUTED: "var(--label-computed)",
-  ESTIMATED: "var(--label-estimated)",
-  EMULATED: "var(--label-emulated)",
-  LABELED: "var(--label-labeled)",
+const SPEC: Record<Label, { color: string; explainer: string }> = {
+  VERIFIED: {
+    color: "var(--label-verified)",
+    explainer:
+      "VERIFIED — strongest provenance. The claim traces directly to on-chain bytecode or a verified source line. (Hallucination-guard masks can drop a finding to COMPUTED.)",
+  },
+  COMPUTED: {
+    color: "var(--label-computed)",
+    explainer:
+      "COMPUTED — mathematically derived from the verified source. One tier below VERIFIED.",
+  },
+  ESTIMATED: {
+    color: "var(--label-estimated)",
+    explainer:
+      "ESTIMATED — heuristic inference (Tier-1 pattern match). Highest label Tier-1 ever issues.",
+  },
+  EMULATED: {
+    color: "var(--label-emulated)",
+    explainer:
+      "EMULATED — derived from a local simulation. Used when re-execution proves a behaviour.",
+  },
+  LABELED: {
+    color: "var(--label-labeled)",
+    explainer:
+      "LABELED — manual classification. The floor; the guard can't drop further.",
+  },
 };
 
 export function HonestyLabel({
@@ -25,12 +48,15 @@ export function HonestyLabel({
   className?: string;
 }) {
   const upper = (label || "").toUpperCase() as Label;
-  const color = COLOR[upper] ?? "var(--text-muted)";
+  const spec = SPEC[upper];
+  const color = spec?.color ?? "var(--text-muted)";
+  const explainer =
+    spec?.explainer ?? `honesty label: ${upper} (unknown variant — first-time appearance)`;
   return (
     <span
-      className={`font-mono text-[10px] uppercase tracking-[0.15em] px-1.5 py-0.5 ${className}`}
+      className={`font-mono text-[10px] uppercase tracking-[0.15em] px-1.5 py-0.5 cursor-help ${className}`}
       style={{ color, border: `1px solid ${color}`, lineHeight: 1 }}
-      title={`honesty label: ${upper}`}
+      title={explainer}
     >
       [{upper}]
     </span>

@@ -9,6 +9,7 @@
  */
 import { useReadContracts } from "wagmi";
 import { Address } from "../primitives/Address";
+import { Tip } from "../primitives/Tip";
 import {
   AGENT_ADDRESS,
   AGENT_TOKEN_ID,
@@ -52,7 +53,14 @@ export function AgentIdentityHeader({ tokenId = AGENT_TOKEN_ID }: { tokenId?: bi
               : <span className="text-text-muted">registry unread</span>
           }
         />
-        <Stat label="audits performed" value={auditsPerformed.toString()} />
+        <Stat
+          label={
+            <Tip text="Count of audits anchored under this agent's ERC-8004 identity. Increments inside MantleProofAgent.updateMemoryRoot, called by the registry on every submitAudit.">
+              audits performed
+            </Tip>
+          }
+          value={auditsPerformed.toString()}
+        />
         <Stat
           label="agentURI"
           value={
@@ -64,7 +72,11 @@ export function AgentIdentityHeader({ tokenId = AGENT_TOKEN_ID }: { tokenId?: bi
       </div>
       <div className="mt-3 grid grid-cols-1 gap-1 text-[12px] font-mono">
         <Stat
-          label="memoryRoot"
+          label={
+            <Tip text="Compounding hash chain advanced once per audit: memoryRoot' = keccak256(memoryRoot, rootHash). The agent's full audit history is committed into this single 32-byte value — past audits are tamper-evident even though only the head lives on chain.">
+              memoryRoot
+            </Tip>
+          }
           value={<span className="text-text-secondary break-all">{memoryRoot}</span>}
         />
         <span className="text-[10px] text-text-muted">
@@ -75,7 +87,7 @@ export function AgentIdentityHeader({ tokenId = AGENT_TOKEN_ID }: { tokenId?: bi
   );
 }
 
-function Stat({ label, value }: { label: string; value: React.ReactNode }) {
+function Stat({ label, value }: { label: React.ReactNode; value: React.ReactNode }) {
   return (
     <div>
       <div className="text-[10px] uppercase tracking-wider text-text-muted">{label}</div>

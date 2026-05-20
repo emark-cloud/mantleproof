@@ -38,7 +38,7 @@ const STEPS: JudgeStep[] = [
         number.
       </>
     ),
-    actions: [{ label: "open dashboard", href: "/" }],
+    actions: [{ label: "open dashboard", href: "/app" }],
   },
   {
     index: 2,
@@ -86,7 +86,7 @@ const STEPS: JudgeStep[] = [
     ),
     actions: [
       { label: "decision log on mantlescan", href: `${MANTLESCAN}/address/${DECISION_LOG_ADDRESS}#events` },
-      { label: "agent query log", href: "/" },
+      { label: "agent query log", href: "/app" },
     ],
   },
   {
@@ -135,7 +135,7 @@ export default function Judge() {
   return (
     <div className="min-h-screen flex flex-col">
       <nav className="border-b border-border-strong bg-panel px-4 py-2 flex items-center">
-        <Link to="/" className="font-mono text-[11px] text-text-secondary hover:text-accent">
+        <Link to="/app" className="font-mono text-[11px] text-text-secondary hover:text-accent">
           ← dashboard
         </Link>
         <span className="ml-auto font-mono text-[11px] text-text-muted">
