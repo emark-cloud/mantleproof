@@ -1,0 +1,8 @@
+{
+  "vault": "0x1892f77e335c133ce4a7b28555f13ba74cbb76fa",
+  "deployTx": "0x54d666ad14a4991cc8b5908351642dea46979d3fd04844f14f492215fac1e598",
+  "deployedAt": "2026-05-20T07:47:10.685Z",
+  "deployer": "0x4354d518eD2060b315995E68268f019C074fc1f3",
+  "network": "mantle",
+  "chainId": 5000
+}

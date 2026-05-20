@@ -18,7 +18,8 @@ pace). `[CP]` = on the critical path to **D = three demos green on Mantle mainne
 - [x] **T19** Tier 2 precision pass ✅ — live full-path harness (run_tier2→parse→guard) vs verified-protocol set: 9/9 resolved, T1 0/9, T2 18 conservative source-cited findings, **no FP storm**, guard correctly wired into live path; gate cond (c) met `[CP]`
 - [x] **T20** pipeline.py end-to-end ✅ — `run_audit` Tier1→Tier2→guard→assemble→keccak rootHash→IPFS→anchor; pure core + injectable seams, 10 tests (88-gate). **Live Sepolia run independently verified**: `DecisionLog` audit, rootHash `0x28415e30…f574`, IPFS `bafkrei…zov4`, tx `0xeca296b3…01bdc`, keccak(IPFS)==on-chain, oracle-signed, memoryRoot compounded (auditsPerformed→3). **Gate (b) SATISFIED ✅** `[CP]`
 - [x] **T25** MAINNET cutover ✅ — 5 Path A contracts deployed + Etherscan V2 verified on Mantle mainnet 5000 (2026-05-19); post-deploy state-readback (16/16 wiring checks) independently confirms `oracleSigner=0x9f17…638a` (fresh, distinct from deployer — pre-flight caught identical-key SPOF), `agent.agentTokenId=96`, `identity.ownerOf(96)==deployer`, `agent.agentOwner()==deployer` (License 80/20 recipient resolves), bidirectional `registry↔agent` wiring; deployer 3.94→3.16 MNT spent (0.78 MNT) `[CP]`
-- [ ] **T26/T27/T28** three demo agents on mainnet  →  **DELIVERABLE D** `[CP]`
+- [x] **T26** Demo 1 (deployer-agent) ✅ end-to-end on Mantle mainnet (2026-05-20) — payForAudit `0xde00a2f3…f00a` + submitAudit `0x7cfbb72b…e4ca`; 8/8 independent verification checks; DELIVERABLE D progress 1/3 `[CP]`
+- [ ] **T27/T28** trading + yield agents → completes **DELIVERABLE D** `[CP]`
 
 **Mainnet cutover gate (T25) — all must hold before any mainnet deploy:**
 (a) T6 green on Sepolia ✅ · (b) T20 end-to-end on Sepolia ✅ (real receipt, independently verified —
@@ -104,7 +105,7 @@ Mainnet contracts (chainId 5000, all verified on Mantlescan via Etherscan V2):
 ## Week 5 — Demo agents + cache warmer
 
 - [x] **T25** MAINNET cutover ✅ (2026-05-19) — 5 Path A contracts deployed + Etherscan V2 verified on chainId 5000; oracle-signer rotated to fresh distinct key `0x9f17…638a` pre-deploy (caught + fixed an SPOF where deployer key == oracle key while `oracleSigner` is immutable); post-deploy state-readback 16/16 — `agent.agentTokenId=96`, `identity.ownerOf(96)==deployer`, `agent.agentOwner()==deployer`, `registry.agent↔agent.auditor` bidirectional; gas spent 0.78 MNT, 3.16 MNT remaining. Addrs in `contracts/deployments/mantle.addresses.json`. `[CP]`
-- [ ] **T26** Deployer-agent — Demo 1: payForAudit → finding → decline + redeploy `[CP]`
+- [x] **T26** Deployer-agent — Demo 1 ✅ (2026-05-20) — end-to-end on Mantle mainnet. BuggyYieldVault (naive sUSDe, trips usde_check H1) deployed at `0x1892f77e335c133ce4a7b28555f13ba74cbb76fa` (Etherscan V2 verified). Demo flow: deployer-agent `0x4354…fc1f3` (dedicated wallet, separate from deployer + oracle) → `payForAudit` tx `0xde00a2f3…f00a` (0.5 MNT, AuditPaid event asserts payer == agent) → engine pipeline (live Gemini Tier-2, 2 findings, severity HIGH, guard masked 0) → `submitAudit` tx `0x7cfbb72b…e4ca` (block 95566491) → `getAudit` readback (matches rootHash, submitter == oracle-signer) → DECLINED (severity HIGH ≥ MEDIUM threshold). **Independently re-verified 8/8** (separate web3/httpx reader): tx status=1, tx.from == oracle-signer `0x9f17…638a`, registry.rootHash == claimed, registry.submitter == oracle-signer (only-writer invariant), severity=3 HIGH, **keccak(canonical IPFS JSON) == on-chain rootHash** (audit verifiable end-to-end), agent.auditsPerformed=1 (first mainnet audit), agent.memoryRoot=`0xd1ce…e716` (non-zero compounded). rootHash `0x6a69e7d4…ca46`, IPFS `bafkreibjhg…ewce`. Sepolia rehearsal first (`0x1892f77e…` on 5003, rootHash `0x807b6334…7a2d`, anchor `0xe68ee49b…8942`). `[CP]`
 - [ ] **T27** Trading-agent — Demo 2: getAudit → pause() backdoor → decline → decision-log tx `[CP]`
 - [ ] **T28** Yield-agent — Demo 3: getAudit → clean → LB addLiquidity → decision-log tx `[CP]`
 - [ ] **T29** Cache-warmer cron vs top-200 (Web3.py walker; Goldsky fallback) — deferrable
@@ -280,3 +281,92 @@ Mainnet contracts (chainId 5000, all verified on Mantlescan via Etherscan V2):
   the hallucination guard / honesty labels; did NOT broadcast a smoke audit pre-T26.
   **MantleProof is now operationally live on Mantle mainnet 5000.** Critical path
   remaining: T26/T27/T28 demo agents → DELIVERABLE D.
+- 2026-05-20 — **T26 DONE — Demo 1 (deployer-agent) is live on Mantle mainnet
+  with an independently-verifiable end-to-end receipt.** This is the first 1/3
+  of DELIVERABLE D. Built (a) `contracts/contracts/demo/BuggyYieldVault.sol` —
+  a deliberately-buggy sUSDe vault whose `withdraw()` calls `susde.redeem(...)`
+  synchronously (no `cooldownShares`/`unstake`); the Tier-1 `usde_check` H1
+  fires HIGH on it (verified offline first). Clearly labelled DEMO/NOT-FOR-USE
+  via a `DEMO_WARNING` constant on the contract. (b) viem helpers in
+  `agents/src/lib/mantleproof.ts` (payForAudit / getAudit / isAudited /
+  logDecision) reading addrs from `contracts/deployments/<net>.addresses.json`
+  so Sepolia and mainnet share one code path. (c)
+  `agents/src/lib/engine.ts` — subprocess driver that spawns the Python
+  pipeline harness (matches the way validators were already operating it
+  by hand) and parses rootHash / anchor_tx / IPFS / severity from the
+  known prefixes. (d) `engine/mantleproof/llm/retrying.py` — lifted
+  `RetryingGemini` out of `scripts/validate_tier2.py` so BOTH pipeline
+  harnesses (T20 Sepolia + T26 mainnet) now wrap the live LLM with
+  exponential backoff + flash fallback; the upstream Gemini 503 that
+  bricked the first Sepolia rehearsal attempt was the exact failure
+  this wrapper survives at the pipeline level (provider-agnostic, parsing
+  + guard still see raw text). (e) `engine/scripts/run_pipeline_mantle.py`
+  — mainnet sibling of the Sepolia harness; pins `MANTLE_NETWORK=mantle`
+  BEFORE first import so `settings.active_rpc_url` wires to mainnet,
+  refuses to anchor without `PINATA_JWT` (the IPFS-or-loud-fail invariant).
+  (f) Touched `engine/scripts/run_pipeline_sepolia.py` to pass
+  `DEPLOYER_PRIVATE_KEY` to `anchor_audit` explicitly — without this the
+  Sepolia rehearsal anchors with the new mainnet-only oracle key and
+  reverts `NotOracleSigner` (Sepolia registry's `oracleSigner` is
+  immutable at the pre-T25-rotation deployer address). (g) The
+  orchestrator `agents/src/deployer-agent.ts` — idempotent vault cache,
+  hardhat-verify on Etherscan V2 (local-source fallback if verify fails),
+  payForAudit + AuditPaid-event payer assertion, spawn pipeline, getAudit
+  readback (asserts engine rootHash == registry rootHash AND submitter ==
+  oracleSigner — only-writer invariant), DECLINED decision narrative,
+  append row to `agents/validation/demo1_receipts.md`. (h)
+  `agents/src/lib/wallets.ts` now resolves the **single repo-root .env**
+  (CLAUDE.md: no scattered envs) regardless of pnpm cwd. (i) Generated a
+  dedicated `DEPLOYER_AGENT_PRIVATE_KEY` (`0x4354…fc1f3`) in-process; key
+  never printed; `.env` chmod 600 + gitignored. **Funded on mainnet from
+  the deployer** (no extra user fund): `0x2a30…605B6A` → deployer-agent
+  1.5 MNT (tx `0xe4eb7f21…0f17`) and → fresh oracle-signer 0.2 MNT
+  (tx `0x4f6f06cb…fc29`, the oracle-signer needed gas for its first
+  on-chain write since the T25 rotation). **Sepolia rehearsal first**
+  (CLAUDE.md testnet-first): full flow green on 5003 — vault
+  `0x1892f77e…cbb76fa` (Etherscan-V2 verified) + payForAudit
+  `0x4aab64d3…1352` + submitAudit `0xe68ee49b…8942`, rootHash
+  `0x807b6334…7a2d`, 3 Tier-2 findings, severity HIGH, guard masked 0.
+  **Mainnet run** (single end-to-end): vault re-deployed at the same
+  CREATE address `0x1892f77e335c133ce4a7b28555f13ba74cbb76fa` on chainId
+  5000 (deployer-agent nonce 0 on each chain → same CREATE address;
+  accidental but pleasant), Etherscan-V2 verified. payForAudit tx
+  `0xde00a2f30eb6f10d294c109b1384ce893bc01555356dac19b986ab41c905f00a`
+  (0.5 MNT, mined block 95566468; AuditPaid event asserts payer ==
+  deployer-agent). Engine pipeline: live Gemini Tier-2 (single call), 2
+  findings, severity **HIGH**, hallucination guard **masked=0 /
+  label_drops=0**. submitAudit tx
+  `0x7cfbb72bfff2bacc50603c48bbe9727730aace7d4a6d23fcb3408d1b147be4ca`
+  (block 95566491). rootHash
+  `0x6a69e7d466ad95bb35d932b2e40f9d6f5be16985ea1f093f16e598c05c09ca46`.
+  IPFS `ipfs://bafkreibjhgq73cxpkp4gsemhix4trxjupcaidpas7lyvne3dazymb5ewce`.
+  getAudit readback matches the engine's printed rootHash and the
+  submitter equals the fresh oracle-signer `0x9f17…638a` (only-writer
+  invariant intact through the T25 rotation). Decision: **DECLINED**
+  (severity HIGH ≥ MEDIUM threshold) — "sUSDe cooldown issue per
+  usde_check H1; would fix-and-redeploy with cooldownShares/unstake
+  handling" (the fix-redeploy is narrative per spec §7 — the headline
+  receipts are payForAudit + submitAudit, both produced). **Independently
+  re-verified by a separate off-orchestrator web3/httpx reader**
+  (`engine/scripts/verify_demo1_receipt.py`) — **8/8 checks pass**:
+  (1) anchor tx status=1, (2) anchor tx.from == oracle-signer, (3)
+  registry.rootHash == claimed, (4) registry.submitter == oracle-signer
+  (only-writer), (5) registry.severity == 3 (HIGH), (6) **keccak256 of
+  the canonical IPFS-JSON preimage (drop root_hash/ipfs_*/anchor_tx,
+  sort keys, compact json, ensure_ascii=False — matching
+  `pipeline._canonical`) == on-chain rootHash** (the audit is provably
+  what the trust artifact says it is, end-to-end), (7)
+  agent.auditsPerformed==1 (first mainnet audit ever), (8)
+  agent.memoryRoot=`0xd1ce…e716` (non-zero; will compound on subsequent
+  audits per `MantleProofAgent.updateMemoryRoot`). One verifier defect
+  surfaced during this run (not a pipeline bug): my first-cut
+  canonicalization had `ensure_ascii` defaulting to True; `pipeline._canonical`
+  uses False; the rootHash mismatched once, the defect was fixed in
+  `verify_demo1_receipt.py` and the re-run passed 8/8 — the on-chain
+  state was always correct. Did NOT relax the IPFS/guard invariants;
+  did NOT widen the spec-locked guard scope. Engine gate: **87 passed
+  / 1 deselected** (the 1 deselected is the live `gemini-2.5-pro` smoke
+  test that the same upstream flakiness affected today — wrapped at the
+  pipeline level by RetryingGemini, not at the offline unit-test level),
+  ruff + mypy clean (69 src files); agents typecheck clean. **Critical
+  path remaining: T27 (trading) + T28 (yield), then DELIVERABLE D.**
