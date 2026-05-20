@@ -12,7 +12,7 @@ import { Link, useParams } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { useBlockNumber, usePublicClient } from "wagmi";
 import { useQuery } from "@tanstack/react-query";
-import { getAudit, type AuditResponse } from "../lib/api";
+import { getAudit, type AuditResponse, type ReportSummary } from "../lib/api";
 import {
   DECISION_LOG_ADDRESS,
   decisionLogAbi,
@@ -109,8 +109,11 @@ function AuditedView({
         {report?.contract_name && (
           <div className="mt-2 font-sans text-md text-text-primary">{report.contract_name}</div>
         )}
-        {report?.summary && (
+        {report?.summary && typeof report.summary === "string" && (
           <div className="mt-1 font-sans text-sm text-text-secondary">{report.summary}</div>
+        )}
+        {report?.summary && typeof report.summary === "object" && (
+          <ReportSummaryStrip summary={report.summary} />
         )}
         <div className="mt-3 flex items-center gap-3 text-[11px] font-mono">
           <a
@@ -239,6 +242,64 @@ interface DecisionRow {
   action: string;
   reason: string;
   timestamp: number;
+}
+
+/**
+ * ReportSummaryStrip — renders the engine's `report.summary` object
+ * (`{total, by_severity, by_check, max_severity}`) as a single-line stat row.
+ * Cheap signal density: total finding count, the per-severity breakdown
+ * with severity-coloured dots, and the per-check tally.
+ */
+function ReportSummaryStrip({ summary }: { summary: ReportSummary }) {
+  const SEV: ("high" | "medium" | "low" | "info")[] = ["high", "medium", "low", "info"];
+  const SEV_COLOR: Record<string, string> = {
+    high: "var(--sev-high)",
+    medium: "var(--sev-medium)",
+    low: "var(--sev-low)",
+    info: "var(--sev-info)",
+  };
+  const checks = Object.entries(summary.by_check ?? {});
+  return (
+    <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 font-mono text-[11px] text-text-secondary">
+      <span>
+        <span className="text-text-muted">findings</span>{" "}
+        <span className="text-text-primary tabular-nums">{summary.total}</span>
+      </span>
+      <span className="flex items-center gap-2">
+        {SEV.map((s) => {
+          const n = summary.by_severity?.[s] ?? 0;
+          if (!n) return null;
+          return (
+            <span key={s} className="inline-flex items-center gap-1">
+              <span
+                aria-hidden
+                style={{
+                  background: SEV_COLOR[s],
+                  width: 6,
+                  height: 6,
+                  borderRadius: "50%",
+                  display: "inline-block",
+                }}
+              />
+              <span className="text-text-muted">{s}</span>
+              <span className="tabular-nums">{n}</span>
+            </span>
+          );
+        })}
+      </span>
+      {checks.length > 0 && (
+        <span className="flex items-center gap-2">
+          <span className="text-text-muted">checks</span>
+          {checks.map(([k, n]) => (
+            <span key={k} className="inline-flex items-baseline gap-1">
+              <span className="text-text-secondary">{k}</span>
+              <span className="tabular-nums text-text-muted">{n}</span>
+            </span>
+          ))}
+        </span>
+      )}
+    </div>
+  );
 }
 
 function QueriedBySection({

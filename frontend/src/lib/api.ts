@@ -50,11 +50,20 @@ export interface Finding {
   matched_pattern?: string;
 }
 
+/** The engine's summary object packed by pipeline.py's _summarize. */
+export interface ReportSummary {
+  total: number;
+  by_severity: Record<"info" | "low" | "medium" | "high", number>;
+  by_check: Record<string, number>;
+  max_severity: "info" | "low" | "medium" | "high";
+}
+
 export interface ReportEnvelope {
   tier?: 1 | 2;
   provider?: string;
   contract_name?: string;
-  summary?: string;
+  /** Object on every recent audit; legacy strings kept for back-compat. */
+  summary?: ReportSummary | string;
   findings?: Finding[];
   hallucination_guard?: { masked_count?: number; public_note?: string };
   [k: string]: unknown;
