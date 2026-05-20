@@ -25,13 +25,11 @@ export async function auditContract(address: string, tier = 2): Promise<ToolResu
     const text = [
       `no cached audit for ${resp.target} on chainId ${resp.chain_id}.`,
       `to obtain a Tier-${tier} audit, call \`requestAudit(${resp.target}, ${tier})\``,
-      "which will settle 0.50 USDC on Base (eip155:8453) and anchor the result",
-      "on Mantle (eip155:5000).",
-      "",
-      "STATUS: requestAudit currently requires the x402 paywall endpoint to be",
-      "deployed (project task T11). Until that ships, no Tier-2 audit can be",
-      "purchased through this tool; use `getAudit` to read existing anchored",
-      "audits, or check back after T11 lands.",
+      "which returns the x402 payment requirements (0.50 USDC on Base,",
+      "eip155:8453); once an x402-aware client signs an EIP-3009",
+      "transferWithAuthorization and re-calls the endpoint with the X-PAYMENT",
+      "header, the audit anchors on Mantle (eip155:5000) and both txHashes are",
+      "returned.",
     ].join(" ");
     return {
       content: [

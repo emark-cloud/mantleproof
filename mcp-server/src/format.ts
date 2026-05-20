@@ -51,9 +51,8 @@ export function formatAuditResult(resp: AuditResponse): ToolResult {
     const text = [
       `no on-chain audit for ${resp.target} on chainId ${resp.chain_id}.`,
       "use the `requestAudit` tool to pay 0.50 USDC on Base and trigger a Tier-2",
-      "audit (note: requestAudit currently depends on the x402 paywall endpoint",
-      "being deployed — T11). until that ships, this target has no MantleProof",
-      "audit history.",
+      "audit; the result anchors on Mantle (eip155:5000) and the response carries",
+      "both txHashes.",
     ].join(" ");
     return {
       content: [

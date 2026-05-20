@@ -120,8 +120,9 @@ async function main() {
     console.log(summarize(r2));
   }
 
-  // requestAudit MUST refuse (T11 not deployed)
-  console.log(`\n=== requestAudit(0x0…0) (expect honest refusal) ===`);
+  // requestAudit on unaudited target must invoke the x402 endpoint and return
+  // the payment requirements (the 402 dance). It must NOT fabricate a tx.
+  console.log(`\n=== requestAudit(0x0…0) (expect 402 dance — payment requirements) ===`);
   const r3 = await send("tools/call", {
     name: "requestAudit",
     arguments: { address: "0x0000000000000000000000000000000000000000", tier: 2 },
@@ -129,11 +130,31 @@ async function main() {
   const txt = r3.result?.content?.find((b) => b.type === "text")?.text ?? "";
   const isError = r3.result?.isError ?? false;
   console.log(`isError=${isError}`);
-  console.log(txt.split("\n").slice(0, 4).join("\n"));
-  if (!isError) throw new Error("requestAudit should have surfaced isError=true while T11 is pending");
+  console.log(txt.split("\n").slice(0, 5).join("\n"));
+  if (isError) throw new Error("requestAudit returned isError after T11 — engine unreachable?");
+  if (!txt.includes("USDC") || !txt.includes("base")) {
+    throw new Error("requestAudit did not surface the 402 payment requirements");
+  }
+  if (txt.match(/tx[: =]0x[a-f0-9]{64}/i)) {
+    throw new Error("requestAudit returned a tx hash without an actual payment — fabrication!");
+  }
+
+  // requestAudit on an already-audited target must short-circuit to the cache.
+  console.log(`\n=== requestAudit(Demo 1 vault) (expect cache hit) ===`);
+  const r4 = await send("tools/call", {
+    name: "requestAudit",
+    arguments: { address: TARGETS[0], tier: 2 },
+  });
+  const t4 = r4.result?.content?.find((b) => b.type === "text")?.text ?? "";
+  console.log(t4.split("\n").slice(0, 2).join("\n"));
+  if (!t4.includes("cached audit found")) {
+    throw new Error("requestAudit should short-circuit to cache when target already audited");
+  }
 
   child.kill();
-  console.log("\n[smoke] OK — 3 tools advertised, getAudit live, requestAudit honestly refused");
+  console.log(
+    "\n[smoke] OK — 3 tools advertised, getAudit live, requestAudit returns 402 requirements (no fabricated tx), cache short-circuit works",
+  );
 }
 
 main().catch((e) => {

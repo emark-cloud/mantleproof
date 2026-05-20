@@ -4,7 +4,14 @@ from __future__ import annotations
 
 from fastapi import FastAPI
 
-from mantleproof.api import routes_audit, routes_cache, routes_feed, routes_health, routes_queries
+from mantleproof.api import (
+    routes_audit,
+    routes_cache,
+    routes_feed,
+    routes_health,
+    routes_queries,
+    routes_x402,
+)
 
 
 def create_app() -> FastAPI:
@@ -14,6 +21,7 @@ def create_app() -> FastAPI:
     app.include_router(routes_feed.router)
     app.include_router(routes_cache.router)
     app.include_router(routes_queries.router)
+    app.include_router(routes_x402.router)
     return app
 
 

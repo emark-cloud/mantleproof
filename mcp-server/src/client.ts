@@ -133,6 +133,60 @@ export async function fetchAudit(address: string): Promise<AuditResponse> {
   return { ok: false, error: `engine ${res.status}: ${text.slice(0, 200)}`, status: res.status };
 }
 
+/** Body of the 402 response from POST /x402/audit/{address}. */
+export interface X402Requirements {
+  scheme: "exact";
+  network: "base";
+  maxAmountRequired: string;
+  resource: string;
+  description: string;
+  mimeType: string;
+  payTo: string;
+  maxTimeoutSeconds: number;
+  asset: string;
+  extra?: { name?: string; version?: string };
+}
+
+export interface X402Body {
+  x402Version: number;
+  error: string;
+  accepts: X402Requirements[];
+}
+
+export type X402InitResult =
+  | { ok: true; status: 402; body: X402Body }
+  | { ok: true; status: 200; body: unknown }
+  | { ok: false; error: string; status?: number; body?: unknown };
+
+/**
+ * POST /x402/audit/{address} WITHOUT an X-PAYMENT header — this is the first
+ * leg of the dance: the server returns 402 with the payment requirements the
+ * client must sign. Completing the dance (sign EIP-3009 + retry with the
+ * X-PAYMENT header) is the responsibility of an x402-aware client, not the MCP
+ * server (which has no access to the user's USDC key).
+ */
+export async function startX402Audit(address: string): Promise<X402InitResult> {
+  let res: Response;
+  try {
+    res = await fetch(`${apiBase()}/x402/audit/${address}`, { method: "POST" });
+  } catch (e) {
+    return { ok: false, error: `engine unreachable: ${(e as Error).message}` };
+  }
+  if (res.status === 402) {
+    return { ok: true, status: 402, body: (await res.json()) as X402Body };
+  }
+  if (res.status === 200) {
+    return { ok: true, status: 200, body: await res.json() };
+  }
+  let body: unknown = undefined;
+  try {
+    body = await res.json();
+  } catch {
+    /* ignore */
+  }
+  return { ok: false, error: `engine ${res.status}`, status: res.status, body };
+}
+
 export async function fetchHealth(): Promise<HealthResult> {
   try {
     const res = await fetch(`${apiBase()}/api/health`);
