@@ -93,8 +93,8 @@ export function AgentQueryPanel({ chainId = MANTLE_CHAIN_ID }: { chainId?: numbe
     <aside className="panel flex flex-col h-full">
       <header className="px-3 py-2 row-divider flex items-baseline justify-between">
         <h2 className="font-mono text-xs uppercase tracking-wider text-text-primary">
-          <Tip text="On-chain DecisionLog — every receipt of an agent acting on a MantleProof audit (APPROVED or DECLINED, with the rootHash referenced). Live-scanned from Mantle mainnet via wagmi; verifiable on Mantlescan.">
-            Agent queries
+          <Tip text="Every receipt of an agent acting on a MantleProof audit (APPROVED or DECLINED, referencing the audit hash). Read live from the DecisionLog contract on Mantle and verifiable on Mantlescan.">
+            Agent decisions
           </Tip>
         </h2>
         <span className="font-mono text-[10px] text-text-muted flex items-center gap-1">
@@ -102,7 +102,7 @@ export function AgentQueryPanel({ chainId = MANTLE_CHAIN_ID }: { chainId?: numbe
         </span>
       </header>
       <div className="px-3 py-2 row-divider text-[10px] text-text-muted font-mono">
-        on-chain DecisionLog · {counters.total} · APPROVED {counters.approved} · DECLINED {counters.declined}
+        from DecisionLog on Mantle · {counters.total} · APPROVED {counters.approved} · DECLINED {counters.declined}
       </div>
       {error && (
         <div className="px-3 py-2 text-sev-high text-[11px] font-mono">
@@ -112,7 +112,7 @@ export function AgentQueryPanel({ chainId = MANTLE_CHAIN_ID }: { chainId?: numbe
       <ul className="flex-1 overflow-y-auto">
         {rows.length === 0 && !error ? (
           <li className="px-3 py-4 text-[11px] text-text-muted font-mono">
-            scanning {LOOKBACK_BLOCKS.toString()} blocks on Mantle mainnet…
+            scanning the last {LOOKBACK_BLOCKS.toString()} blocks on Mantle…
           </li>
         ) : (
           rows.map((r) => {

@@ -64,9 +64,9 @@ export default function Agent() {
             Capabilities
           </h2>
           <ul className="font-mono text-[12px] text-text-secondary space-y-1">
-            <li>• <span className="text-accent">auditContract(address, tier)</span> · tier 1 free · tier 2 0.50 USDC on base</li>
+            <li>• <span className="text-accent">auditContract(address, tier)</span> · fast pass (tier 1) free · deep pass (tier 2) 0.50 USDC on Base</li>
             <li>• <span className="text-accent">getAudit(address)</span> · free, read-only (on-chain + REST)</li>
-            <li>• <span className="text-accent">requestAudit(address, tier)</span> · x402, settles USDC on Base, anchors on Mantle</li>
+            <li>• <span className="text-accent">requestAudit(address, tier)</span> · paid (x402): pay in USDC on Base, audit published on Mantle</li>
           </ul>
           <div className="mt-3 font-mono text-[11px] text-text-muted">
             <div>endpoints:</div>
@@ -106,7 +106,7 @@ export default function Agent() {
             </div>
           )}
           <div className="mt-3 text-[10px] font-mono text-text-muted">
-            Computed from the {KNOWN_TARGETS.length} curated audited targets. Lifetime totals require T29 indexer.
+            Computed from the {KNOWN_TARGETS.length} curated audited targets. Lifetime totals come online with the event indexer.
           </div>
         </section>
 

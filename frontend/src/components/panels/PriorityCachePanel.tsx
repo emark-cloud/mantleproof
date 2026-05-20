@@ -21,10 +21,10 @@ import { KNOWN_TARGETS, MANTLE_CHAIN_ID } from "../../lib/contracts";
 import { getAudit, getCacheFeed, type AuditResponse, type CacheItem } from "../../lib/api";
 
 function freshnessText(s: number | null): string {
-  if (s === null) return "cache-warmer cold";
-  if (s < 60) return `cache ${s}s old`;
-  if (s < 3600) return `cache ${Math.floor(s / 60)}m old`;
-  return `cache ${Math.floor(s / 3600)}h old`;
+  if (s === null) return "indexer warming up";
+  if (s < 60) return `indexed ${s}s ago`;
+  if (s < 3600) return `indexed ${Math.floor(s / 60)}m ago`;
+  return `indexed ${Math.floor(s / 3600)}h ago`;
 }
 
 export function PriorityCachePanel({ chainId = MANTLE_CHAIN_ID }: { chainId?: number }) {
@@ -74,8 +74,8 @@ export function PriorityCachePanel({ chainId = MANTLE_CHAIN_ID }: { chainId?: nu
     <section className="panel flex flex-col h-full">
       <header className="px-3 py-2 row-divider flex items-baseline justify-between">
         <h2 className="font-mono text-xs uppercase tracking-wider text-text-primary">
-          <Tip text="The audited universe — every contract MantleProof has anchored an audit for. Each row carries a verifiable on-chain rootHash; click to drill into severity, findings, evidence, and the integrity check.">
-            Priority cache (top {totalShown})
+          <Tip text="Every contract MantleProof has published an audit for. Each row carries a verifiable audit hash (rootHash) on Mantle; click into a row to see severity, findings, evidence, and the integrity check.">
+            Audited contracts (top {totalShown})
           </Tip>
         </h2>
         <span className="font-mono text-[10px] text-text-muted">
@@ -117,8 +117,10 @@ export function PriorityCachePanel({ chainId = MANTLE_CHAIN_ID }: { chainId?: nu
                   {isAudited ? (
                     <>
                       <SeverityBadge severity={severity} count={findingCount} />
-                      <span className="text-text-muted">tier {report?.tier ?? "?"}</span>
-                      <span className="text-text-muted">· audit_count {anchor!.audit_count}</span>
+                      <Tip text="Tier 1 = fast pattern-matching pass. Tier 2 = deeper LLM-reasoning pass.">
+                        <span className="text-text-muted">tier {report?.tier ?? "?"}</span>
+                      </Tip>
+                      <span className="text-text-muted">· {anchor!.audit_count} audits</span>
                     </>
                   ) : isLoading ? (
                     <span className="text-text-muted">reading on-chain…</span>
@@ -151,11 +153,11 @@ export function PriorityCachePanel({ chainId = MANTLE_CHAIN_ID }: { chainId?: nu
               </div>
               <div className="mt-1.5 flex items-center gap-2 text-[11px]">
                 <SeverityBadge severity={row.severity} />
-                <span className="text-text-muted">· audit_count {row.audit_count}</span>
-                <span className="text-text-muted">· anchored block {row.block_number}</span>
+                <span className="text-text-muted">· {row.audit_count} audits</span>
+                <span className="text-text-muted">· block {row.block_number}</span>
               </div>
               <div className="mt-1 text-[10px] text-text-muted">
-                from /api/cache · indexed by cache-warmer
+                indexed from /api/cache
               </div>
             </Link>
           </li>
@@ -163,7 +165,7 @@ export function PriorityCachePanel({ chainId = MANTLE_CHAIN_ID }: { chainId?: nu
       </ul>
 
       <footer className="px-3 py-2 row-divider text-[10px] text-text-muted">
-        Curated demos always shown; additional rows arrive as the cache-warmer indexes them.
+        Curated demos always shown; additional rows arrive as the background indexer picks them up.
       </footer>
     </section>
   );

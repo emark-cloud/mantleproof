@@ -57,11 +57,13 @@ export default function Contract() {
         )}
         {data?.audited === false && (
           <div className="panel px-4 py-4 font-mono text-sm text-text-secondary">
-            no audit on Mantle for{" "}
-            <Address value={data.target} chainId={chainId} withScanLink />.
+            No audit on Mantle for{" "}
+            <Address value={data.target} chainId={chainId} withScanLink /> yet.
             <div className="mt-2 text-[11px] text-text-muted">
-              To request one, call <span className="text-accent">requestAudit({data.target}, 2)</span>{" "}
-              via the MCP server or POST <span className="text-accent">/x402/audit/{data.target}</span>{" "}
+              To request one, call{" "}
+              <span className="text-accent">requestAudit({data.target}, 2)</span>{" "}
+              via the MCP server, or POST{" "}
+              <span className="text-accent">/x402/audit/{data.target}</span>{" "}
               with 0.50 USDC on Base.
             </div>
           </div>
@@ -103,7 +105,7 @@ function AuditedView({
           <SeverityBadge severity={sev} count={findings.length} />
           <Address value={target} chainId={chainId} withScanLink />
           <span className="ml-auto font-mono text-[11px] text-text-muted">
-            anchored <Timestamp epochSeconds={anchor.timestamp} /> · audit_count {anchor.audit_count}
+            published <Timestamp epochSeconds={anchor.timestamp} /> · {anchor.audit_count} audits
           </span>
         </div>
         {report?.contract_name && (
@@ -142,7 +144,7 @@ function AuditedView({
           </Link>
           <span className="ml-auto">
             <Tip
-              text="Tier 1 = heuristic + bytecode pattern checks (5 Mantle-specific modules). Tier 2 = LLM reasoning on top of Tier 1's union, with verified source + skill briefs + a hallucination guard."
+              text="Tier 1 = the fast pass (pattern checks across 5 Mantle-specific modules). Tier 2 = the deep pass (LLM reasoning on top of Tier 1, with verified source, protocol briefs, and the hallucination guard)."
             >
               tier {report?.tier ?? "?"}
             </Tip>{" "}
@@ -152,17 +154,17 @@ function AuditedView({
         <div className="mt-3 flex items-center gap-2 font-mono text-[11px]">
           {integrityOk && (
             <Tip
-              text="keccak256 of the IPFS-pinned canonical report == on-chain rootHash. ✓ means the report you're reading is byte-for-byte what was anchored."
+              text="We recomputed keccak256 over the IPFS-pinned canonical report and it matches the on-chain rootHash. ✓ means the report you're reading is byte-for-byte what was published."
               underline={false}
             >
               <span className="text-sev-clean inline-flex items-center gap-1">
-                <StatusDot status="complete" size={6} /> integrity ✓ recomputed keccak == on-chain rootHash
+                <StatusDot status="complete" size={6} /> integrity ✓ report matches the on-chain hash
               </span>
             </Tip>
           )}
           {integrityFailed && (
             <Tip
-              text="keccak256 of the IPFS report DOES NOT match the on-chain rootHash. The IPFS content may have been altered after anchoring; do not trust the report body."
+              text="The hash of the IPFS report does not match the on-chain rootHash. The IPFS content may have been altered since publishing; don't trust the report body."
               underline={false}
             >
               <span className="text-sev-high inline-flex items-center gap-1">
@@ -179,7 +181,7 @@ function AuditedView({
         </div>
         {report?.hallucination_guard?.public_note && (
           <div className="mt-2 font-mono text-[11px] text-text-secondary">
-            <Tip text="Every $ / % / hex / address claim in the Tier-2 output was regex-extracted and verified against source line / bytecode offset / Tier-1 findings before signing. Unsupported claims were masked [unsupported]; each masked claim drops its finding's honesty label one tier (VERIFIED → COMPUTED → …, LABELED floor).">
+            <Tip text="Every $, %, hex, and address claim in the deep (Tier 2) output was regex-extracted and checked against source line, bytecode offset, or Tier 1 finding before signing. Anything we couldn't verify was masked [unsupported]; each masked claim drops its finding's honesty label one tier (VERIFIED → COMPUTED → …, with LABELED as the floor).">
               {report.hallucination_guard.public_note}
             </Tip>
           </div>
@@ -216,7 +218,7 @@ function AuditedView({
           <div className="px-4 py-2 row-divider grid grid-cols-[80px_60px_1fr_160px_120px] gap-3 text-[10px] font-mono uppercase tracking-wider text-text-muted">
             <span>when</span>
             <span>tier</span>
-            <span>rootHash</span>
+            <span>audit hash</span>
             <span>source</span>
             <span>label</span>
           </div>
@@ -225,7 +227,7 @@ function AuditedView({
           ))}
           {anchor.audit_count > 1 && (
             <div className="px-4 py-2 text-[10px] font-mono text-text-muted">
-              Older audits live in registry event logs; full history view ships with T29.
+              Older audits live in registry event logs; the full history view is coming with the event indexer.
             </div>
           )}
         </div>
@@ -360,7 +362,7 @@ function QueriedBySection({
         )}
         {rows?.length === 0 && (
           <div className="px-4 py-3 font-mono text-[12px] text-text-muted">
-            No on-chain decisions reference rootHash {rootHash.slice(0, 12)}… yet.
+            No on-chain decisions reference audit hash {rootHash.slice(0, 12)}… yet.
           </div>
         )}
         {rows && rows.length > 0 && (

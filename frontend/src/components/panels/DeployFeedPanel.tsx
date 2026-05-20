@@ -27,15 +27,15 @@ const CLASSIFICATION_STATUS: Record<FeedItem["classification"], ClsStatus> = {
 };
 
 const CLASSIFICATION_LABEL: Record<FeedItem["classification"], string> = {
-  audited: "audited · in priority cache",
-  queued: "queued for tier 2",
+  audited: "audited — already in our cache",
+  queued: "queued for deep (Tier 2) audit",
   "skipped:template": "skipped — ERC-20 clone (template)",
   "skipped:factory": "skipped — factory child",
-  unknown: "bytecode unreadable — review",
+  unknown: "bytecode unreadable — needs review",
 };
 
 function freshnessText(s: number | null): string {
-  if (s === null) return "indexer cold (run cache-warmer)";
+  if (s === null) return "indexer warming up";
   if (s < 60) return `refreshed ${s}s ago`;
   if (s < 3600) return `refreshed ${Math.floor(s / 60)}m ago`;
   return `refreshed ${Math.floor(s / 3600)}h ago`;
@@ -55,14 +55,14 @@ export function DeployFeedPanel({ chainId = MANTLE_CHAIN_ID }: { chainId?: numbe
     <aside className="panel flex flex-col h-full">
       <header className="px-3 py-2 row-divider flex items-baseline justify-between">
         <h2 className="font-mono text-xs uppercase tracking-wider text-text-primary">
-          <Tip text="Live stream of contract creations on Mantle mainnet. Most rows are greyed-out 'skipped' (template proxies, factory children) — we don't pretend to audit everything. Indexed by the T29 deploy-feed walker.">
+          <Tip text="Live stream of contract creations on Mantle mainnet. Most rows are greyed-out 'skipped' (template proxies, factory children).">
             Deploy feed
           </Tip>
         </h2>
         <span className="font-mono text-[10px] text-text-muted flex items-center gap-1">
           {isCold ? (
             <>
-              <StatusDot status="pending" size={6} /> indexer cold
+              <StatusDot status="pending" size={6} /> indexer warming up
             </>
           ) : (
             <>
@@ -127,8 +127,8 @@ function ColdFallback({ chainId }: { chainId: number }) {
   return (
     <>
       <div className="px-3 py-2 row-divider text-[11px] text-text-muted font-mono">
-        Deploy stream comes online after the cache-warmer cron runs. Showing the
-        curated audited set so the column carries signal.
+        Deploy stream comes online after the background indexer runs. Showing
+        the curated audited set so the column carries signal.
       </div>
       <ul className="flex-1 overflow-y-auto">
         {KNOWN_TARGETS.map((t) => (
@@ -139,7 +139,7 @@ function ColdFallback({ chainId }: { chainId: number }) {
               <Timestamp epochSeconds={0} className="ml-auto text-text-muted" />
             </div>
             <div className="text-[11px] text-text-secondary mt-0.5">{t.label}</div>
-            <div className="text-[10px] text-text-muted mt-0.5">audited · in priority cache</div>
+            <div className="text-[10px] text-text-muted mt-0.5">audited — already in our cache</div>
           </li>
         ))}
         <li className="px-3 py-2 row-divider opacity-60">

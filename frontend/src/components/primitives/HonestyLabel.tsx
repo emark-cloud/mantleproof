@@ -16,7 +16,7 @@ const SPEC: Record<Label, { color: string; explainer: string }> = {
   VERIFIED: {
     color: "var(--label-verified)",
     explainer:
-      "VERIFIED — strongest provenance. The claim traces directly to on-chain bytecode or a verified source line. (Hallucination-guard masks can drop a finding to COMPUTED.)",
+      "VERIFIED — the strongest claim we make. The finding traces directly to on-chain bytecode or a verified source line. (The hallucination guard can drop a masked finding from VERIFIED to COMPUTED.)",
   },
   COMPUTED: {
     color: "var(--label-computed)",
@@ -26,17 +26,17 @@ const SPEC: Record<Label, { color: string; explainer: string }> = {
   ESTIMATED: {
     color: "var(--label-estimated)",
     explainer:
-      "ESTIMATED — heuristic inference (Tier-1 pattern match). Highest label Tier-1 ever issues.",
+      "ESTIMATED — best-effort guess from pattern matching (the fast Tier-1 pass). The highest label Tier-1 ever issues.",
   },
   EMULATED: {
     color: "var(--label-emulated)",
     explainer:
-      "EMULATED — derived from a local simulation. Used when re-execution proves a behaviour.",
+      "EMULATED — derived from a local simulation. Used when re-running the code proves the behaviour.",
   },
   LABELED: {
     color: "var(--label-labeled)",
     explainer:
-      "LABELED — manual classification. The floor; the guard can't drop further.",
+      "LABELED — a manual classification. This is the floor; the guard can't drop further.",
   },
 };
 

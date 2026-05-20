@@ -18,6 +18,7 @@ import { EngineStatusFooter } from "../components/composite/EngineStatusFooter";
 import { SeverityBadge } from "../components/primitives/SeverityBadge";
 import { Address } from "../components/primitives/Address";
 import { StatusDot } from "../components/primitives/StatusDot";
+import { Tip } from "../components/primitives/Tip";
 import {
   AGENT_ADDRESS,
   DECISION_LOG_ADDRESS,
@@ -76,7 +77,7 @@ function NavBar() {
         MANTLEPROOF
       </Link>
       <span className="font-mono text-[10px] text-text-muted uppercase tracking-wider hidden sm:inline">
-        audit oracle · Mantle mainnet
+        on-chain audit registry · Mantle mainnet
       </span>
       <div className="ml-auto flex items-center gap-4 text-[12px] font-mono text-text-secondary">
         <Link to="/app" className="hover:text-accent">[dashboard]</Link>
@@ -121,14 +122,28 @@ function Hero() {
         ● live on Mantle mainnet
       </div>
       <h1 className="font-sans text-3xl md:text-5xl font-semibold text-text-primary leading-tight">
-        The audit oracle for{" "}
-        <span className="text-accent">Mantle's agentic economy</span>
+        The on-chain audit registry for{" "}
+        <span className="text-accent">
+          <Tip
+            text="Mantle's framing for agent-to-agent transactions — autonomous AI agents acting as the primary users of on-chain finance."
+            underline={false}
+          >
+            Mantle's agentic economy
+          </Tip>
+        </span>
       </h1>
       <p className="font-sans text-md md:text-lg text-text-secondary mt-5 max-w-3xl leading-relaxed">
-        Other agents query MantleProof before touching a contract and get back a
-        structured safety signal in under a second. Five Mantle-specific check
-        dimensions, two-tier reasoning, a hallucination guard, and every audit
-        anchored on-chain with an IPFS-pinned report.
+        AI agents query MantleProof before touching a smart contract and get a
+        structured safety signal back in under a second. Five Mantle-specific
+        risk checks, a{" "}
+        <Tip text="A fast pattern-matching pass (Tier 1), then a deeper LLM-reasoning pass (Tier 2) for anything that needs it.">
+          two-pass pipeline
+        </Tip>
+        , a{" "}
+        <Tip text="Every $, %, hex, and address claim in an LLM-written finding is regex-checked against the contract source and bytecode. Unverifiable claims are masked and the finding's honesty label drops one tier.">
+          hallucination guard
+        </Tip>
+        , and every audit published on Mantle with the full report on IPFS.
       </p>
 
       <div className="mt-8 flex flex-wrap items-center gap-3">
@@ -154,7 +169,7 @@ function Hero() {
       <div className="mt-10 grid grid-cols-2 md:grid-cols-4 gap-6 font-mono">
         <Stat
           big={counted.toLocaleString()}
-          label="audits anchored on-chain"
+          label="audits published on Mantle"
         />
         <Stat
           big={agentAudits.toLocaleString()}
@@ -162,11 +177,11 @@ function Hero() {
         />
         <Stat
           big="5"
-          label="check dimensions"
+          label="risk checks"
         />
         <Stat
           big="4"
-          label="query surfaces"
+          label="ways to query"
         />
       </div>
     </section>
@@ -220,9 +235,9 @@ const DIMENSIONS: { name: string; breaks: string; example: string }[] = [
 function Dimensions() {
   return (
     <section className="px-6 py-12 max-w-5xl mx-auto">
-      <SectionLabel>The five audit dimensions</SectionLabel>
+      <SectionLabel>The five risk checks</SectionLabel>
       <h2 className="font-sans text-xl md:text-2xl text-text-primary mt-2 mb-6">
-        Mantle-specific bug surfaces a generic static analyzer misses
+        Mantle-specific bug classes a generic static analyzer misses
       </h2>
       <div className="panel divide-y divide-border-faint">
         {DIMENSIONS.map((d) => (
@@ -245,38 +260,45 @@ function Dimensions() {
 function Tier2Flow() {
   return (
     <section className="px-6 py-12 max-w-5xl mx-auto">
-      <SectionLabel>How a Tier-2 audit ships</SectionLabel>
+      <SectionLabel>How a deep (Tier-2) audit ships</SectionLabel>
       <h2 className="font-sans text-xl md:text-2xl text-text-primary mt-2 mb-6">
-        Heuristic + LLM reasoning, with provenance baked in
+        Pattern checks first, then LLM reasoning — every claim verified before we sign
       </h2>
 
       <div className="panel px-4 py-5">
         <ol className="grid grid-cols-1 md:grid-cols-[1fr_1fr_1fr_1fr] gap-4 font-mono text-[12px]">
           <FlowStep n="1" title="resolve">
-            verified source via Etherscan V2 · runtime bytecode via RPC · Tier-1
-            union of 5 check modules · skill briefs for each protocol
+            Pull verified source (Etherscan V2) and runtime bytecode (RPC). Run
+            the five fast (Tier-1) checks and load protocol-specific briefs.
           </FlowStep>
           <FlowStep n="2" title="reason">
-            tightly-scoped JSON-only prompt → Gemini (live) → text findings, each
-            citing source lines or bytecode offsets
+            Send a tightly-scoped prompt to the LLM (Gemini). Findings come back
+            as text, each citing a source line or bytecode offset.
           </FlowStep>
           <FlowStep n="3" title="guard">
-            every $ / % / hex / address claim regex-extracted + verified against
-            source/bytecode/Tier-1; unsupported → masked + label tier-drops once
+            Every $, %, hex, and address claim is checked against source,
+            bytecode, and Tier-1 findings. Anything we can't verify is masked
+            and the finding's honesty label drops one tier.
           </FlowStep>
-          <FlowStep n="4" title="anchor">
-            keccak(canonical(report)) → IPFS pin (Pinata) → on-chain
-            <span className="text-accent"> submitAudit</span> on Mantle → memoryRoot advances
+          <FlowStep n="4" title="publish">
+            Hash the canonical report (keccak256), pin the full report to IPFS
+            (Pinata), and call <span className="text-accent">submitAudit</span>{" "}
+            on Mantle. The agent's running audit fingerprint (
+            <Tip text="A rolling keccak256 over every audit this agent has signed. Past audits are tamper-evident even though only the head lives on chain.">
+              memoryRoot
+            </Tip>
+            ) advances.
           </FlowStep>
         </ol>
 
         <p className="font-sans text-[12px] text-text-secondary mt-5 leading-relaxed">
-          The credibility loop is independently verifiable: anyone can fetch the
-          IPFS report, recompute keccak256 of the canonical preimage, and assert
-          it equals the on-chain rootHash. The dashboard's{" "}
-          <span className="text-accent">integrity ✓</span> badge means that check
-          passed for the row in front of you. The hallucination guard's count is
-          surfaced publicly on every Tier-2 audit ("guard fired: N masked") — we
+          Anyone can verify a finding without trusting our backend: fetch the
+          IPFS report, recompute the hash, and check it against the value on
+          Mantle. The dashboard's{" "}
+          <span className="text-accent">integrity ✓</span> badge means that
+          check passed for the row in front of you. The hallucination guard's
+          count is surfaced publicly on every deep audit (
+          <span className="text-text-primary">guard fired: N masked</span>) — we
           never hide what was caught.
         </p>
       </div>
@@ -300,19 +322,19 @@ const DEMO_BLURBS: Record<string, { agent: string; verdict: "APPROVED" | "DECLIN
     agent: "deployer-agent",
     verdict: "DECLINED",
     story:
-      "Intentionally vulnerable BuggyYieldVault. Tier-2 flagged a sUSDe-cooldown handling bug. The agent declined to deploy further; the audit is anchored as the receipt.",
+      "An intentionally vulnerable BuggyYieldVault. The deep audit flagged a sUSDe-cooldown handling bug. The agent declined to deploy further; the audit itself is the on-chain receipt.",
   },
   "0x8F6679EB031799fc9C5e149DFb75b4543808912F": {
     agent: "trading-agent",
     verdict: "DECLINED",
     story:
-      "BackdooredMemeToken with a pause() + mint() admin backdoor. Pre-swap query returned HIGH severity; the agent refused the swap and posted a DECLINED entry to the on-chain DecisionLog.",
+      "BackdooredMemeToken with a pause() + mint() admin backdoor. The pre-swap audit returned HIGH severity; the agent refused the swap and posted a DECLINED entry to the on-chain DecisionLog.",
   },
   "0x013e138EF6008ae5FDFDE29700e3f2Bc61d21E3a": {
     agent: "yield-agent",
     verdict: "APPROVED",
     story:
-      "Canonical Merchant Moe LBRouter v2.2 — the contract the agent was about to call. Audit came back clean; the agent posted a real single-sided WMNT addLiquidity tx on mainnet and recorded APPROVED in the DecisionLog.",
+      "The canonical Merchant Moe LBRouter v2.2 — the contract the agent was about to call. The audit came back clean; the agent posted a real single-sided WMNT addLiquidity transaction on Mantle and recorded APPROVED in the DecisionLog.",
   },
 };
 
@@ -474,12 +496,13 @@ const FAQ_ITEMS: { q: string; a: React.ReactNode }[] = [
     q: "How is the audit verifiable without trusting your backend?",
     a: (
       <>
-        Every audit's <code className="text-accent">rootHash</code> is
-        keccak256 of a canonical JSON preimage of the report. The full report is
-        pinned to IPFS; the rootHash + severity + IPFS CID are anchored on Mantle
-        via <code className="text-accent">submitAudit</code>. Anyone can{" "}
-        <code className="text-accent">cast call getAudit(target)</code> from any
-        Mantle RPC, fetch the IPFS report, recompute keccak, and assert match.
+        Every audit has a <code className="text-accent">rootHash</code> — a
+        keccak256 hash over the report's canonical JSON. The full report is
+        pinned to IPFS; the rootHash, severity, and IPFS CID live on Mantle via{" "}
+        <code className="text-accent">submitAudit</code>. Anyone can read the
+        audit straight from a Mantle RPC (
+        <code className="text-accent">cast call getAudit(target)</code>), fetch
+        the report from IPFS, recompute the hash locally, and check it matches.
         The dashboard's <span className="text-accent">integrity ✓</span> badge
         means that check passed for the row in front of you.
       </>
@@ -518,14 +541,15 @@ const FAQ_ITEMS: { q: string; a: React.ReactNode }[] = [
     q: "What's the hallucination guard?",
     a: (
       <>
-        A pure, unit-tested function. Before any Tier-2 audit is signed and
-        anchored, every <code>$</code>/<code>%</code>/hex/address claim in the
-        LLM's output is regex-extracted and verified against the contract source
-        line / bytecode offset / Tier-1 findings. Unsupported claims are masked{" "}
+        A pure, unit-tested function that runs before any deep (Tier-2) audit
+        is signed and published. Every <code>$</code>, <code>%</code>, hex, and
+        address claim in the LLM's output is regex-extracted and checked
+        against the contract source line, bytecode offset, or Tier-1 finding it
+        cites. Anything we can't verify is masked{" "}
         <code className="text-accent">[unsupported]</code> and the finding's
-        honesty label drops one tier (VERIFIED → COMPUTED → …, LABELED floor).
-        The count is publicly displayed on every Tier-2 audit. This is the
-        single most credibility-purchasing piece of the build.
+        honesty label drops one tier (VERIFIED → COMPUTED → …, with LABELED as
+        the floor). The masked count is shown publicly on every audit. This is
+        the single most credibility-purchasing piece of the build.
       </>
     ),
   },

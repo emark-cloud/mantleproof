@@ -29,13 +29,13 @@ const STEPS: JudgeStep[] = [
   {
     index: 1,
     total: TOTAL,
-    title: "Verify the audit oracle is live",
+    title: "Verify the audit registry is live",
     instruction: (
       <>
-        Open the dashboard. Confirm: the priority cache shows real audited
-        targets with severity badges, the agent-query log shows on-chain
-        DecisionLog entries, and the engine footer reports a healthy block
-        number.
+        Open the dashboard. Confirm: the audited-contracts panel shows real
+        targets with severity badges, the agent-decisions panel shows live
+        DecisionLog entries on Mantle, and the engine footer reports a healthy
+        block number.
       </>
     ),
     actions: [{ label: "open dashboard", href: "/app" }],
@@ -43,13 +43,13 @@ const STEPS: JudgeStep[] = [
   {
     index: 2,
     total: TOTAL,
-    title: "Verify on-chain anchoring",
+    title: "Verify the audits are on-chain",
     instruction: (
       <>
         Open MantleProofRegistry on Mantlescan and confirm recent{" "}
-        <code className="text-accent">submitAudit</code> txs from the
-        oracle-signer address. Every audit referenced here has an on-chain
-        rootHash and an IPFS-pinned report.
+        <code className="text-accent">submitAudit</code> transactions from the
+        signing key. Every audit linked here has an on-chain hash (rootHash)
+        and the full report pinned to IPFS.
       </>
     ),
     actions: [
@@ -60,13 +60,13 @@ const STEPS: JudgeStep[] = [
   {
     index: 3,
     total: TOTAL,
-    title: "Inspect a Tier-2 audit end-to-end",
+    title: "Inspect a deep (Tier-2) audit end-to-end",
     instruction: (
       <>
-        Open the Demo 1 contract page (intentionally vulnerable
-        BuggyYieldVault). Confirm findings carry honesty labels, evidence cites
-        source lines or matched patterns, and the integrity check (keccak of
-        canonical IPFS report == on-chain rootHash) is ✓.
+        Open the Demo 1 contract page (an intentionally vulnerable
+        BuggyYieldVault). Confirm findings carry honesty labels, evidence
+        cites source lines or matched patterns, and the integrity check
+        (report matches the on-chain hash) is ✓.
       </>
     ),
     actions: [{ label: "open contract", href: `/contract/${DEMO_1}` }],
@@ -77,16 +77,16 @@ const STEPS: JudgeStep[] = [
     title: "Verify agent-to-agent decisions",
     instruction: (
       <>
-        The DecisionLog on Mantle mainnet records every demo agent's decision
-        with the audit rootHash it relied on. Demo 2 trading-agent DECLINED a
-        backdoored token; Demo 3 yield-agent APPROVED Merchant Moe LBRouter
-        and posted real liquidity. Open the DecisionLog on Mantlescan and
-        inspect the Decision events.
+        The DecisionLog on Mantle records every demo agent's decision and the
+        audit hash it relied on. Demo 2's trading agent DECLINED a backdoored
+        token; Demo 3's yield agent APPROVED Merchant Moe LBRouter and posted
+        real liquidity. Open the DecisionLog on Mantlescan and inspect the
+        Decision events.
       </>
     ),
     actions: [
       { label: "decision log on mantlescan", href: `${MANTLESCAN}/address/${DECISION_LOG_ADDRESS}#events` },
-      { label: "agent query log", href: "/app" },
+      { label: "agent decisions panel", href: "/app" },
     ],
   },
   {
@@ -95,10 +95,10 @@ const STEPS: JudgeStep[] = [
     title: "Verify the hallucination guard",
     instruction: (
       <>
-        Open any Tier-2 audit and confirm the public note
+        Open any deep (Tier-2) audit and confirm the public note
         <span className="text-accent"> "Hallucination guard fired: N masked"</span>{" "}
-        appears. The guard is a pure unit-tested function that drops a finding's
-        honesty label one tier per unverifiable claim; see{" "}
+        appears. The guard is a pure, unit-tested function that drops a
+        finding's honesty label one tier per unverifiable claim; see{" "}
         <span className="font-mono">engine/mantleproof/tier2/hallucination_guard.py</span>.
       </>
     ),
@@ -113,8 +113,8 @@ const STEPS: JudgeStep[] = [
     instruction: (
       <>
         Read the audit yourself via <code className="text-accent">cast call</code>.
-        Copy the command below and run against any Mantle RPC. The returned
-        rootHash matches what the dashboard shows. No trust in our backend
+        Copy the command below and run it against any Mantle RPC. The hash it
+        returns matches what the dashboard shows — no trust in our backend
         required.
       </>
     ),

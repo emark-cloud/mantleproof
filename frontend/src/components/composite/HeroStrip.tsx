@@ -60,16 +60,18 @@ export function HeroStrip({ chainId = MANTLE_CHAIN_ID }: { chainId?: number }) {
           {isLoading ? "—" : counted.toLocaleString()}
         </div>
         <div className="font-mono text-[11px] text-text-muted mt-1 uppercase tracking-wider">
-          audits anchored on-chain
+          audits published on Mantle
         </div>
       </div>
       <div>
         <div className="font-sans text-md text-text-primary leading-snug uppercase tracking-wide">
-          Audit oracle for the Mantle agentic economy
+          On-chain audit registry for the Mantle agentic economy
         </div>
         <div className="font-sans text-sm text-text-secondary mt-1.5 leading-snug">
-          Tier 1 + Tier 2 audits posted on-chain. Queryable by any agent via MCP,
-          x402 (USDC on Base, eip155:8453), or <span className="font-mono">getAudit(address)</span>. Live.
+          Fast and deep (Tier 1 + Tier 2) audits, all published on Mantle. Any
+          agent can query them three ways: on-chain via{" "}
+          <span className="font-mono">getAudit(address)</span>, MCP, or paid
+          REST (x402, USDC on Base). Live.
         </div>
         <div className="mt-3 text-accent">
           <Sparkline values={sparklineValues.length ? sparklineValues : [1, 2, 1, 3, 2, 3, 3]} className="text-lg" />

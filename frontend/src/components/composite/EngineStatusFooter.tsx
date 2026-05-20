@@ -10,7 +10,7 @@ import { getHealth, type HealthResponse } from "../../lib/api";
 import { StatusDot } from "../primitives/StatusDot";
 
 function fmtFreshness(s: number | null): string {
-  if (s === null) return "cache: pending (T29)";
+  if (s === null) return "indexer: warming up";
   if (s < 60) return `cache: ${s}s`;
   if (s < 3600) return `cache: ${Math.floor(s / 60)}m`;
   return `cache: ${Math.floor(s / 3600)}h`;

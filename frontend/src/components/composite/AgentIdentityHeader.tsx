@@ -55,7 +55,7 @@ export function AgentIdentityHeader({ tokenId = AGENT_TOKEN_ID }: { tokenId?: bi
         />
         <Stat
           label={
-            <Tip text="Count of audits anchored under this agent's ERC-8004 identity. Increments inside MantleProofAgent.updateMemoryRoot, called by the registry on every submitAudit.">
+            <Tip text="Number of audits this agent has signed and published. Maintained on-chain inside MantleProofAgent.updateMemoryRoot, called by the registry on every submitAudit.">
               audits performed
             </Tip>
           }
@@ -73,14 +73,14 @@ export function AgentIdentityHeader({ tokenId = AGENT_TOKEN_ID }: { tokenId?: bi
       <div className="mt-3 grid grid-cols-1 gap-1 text-[12px] font-mono">
         <Stat
           label={
-            <Tip text="Compounding hash chain advanced once per audit: memoryRoot' = keccak256(memoryRoot, rootHash). The agent's full audit history is committed into this single 32-byte value — past audits are tamper-evident even though only the head lives on chain.">
-              memoryRoot
+            <Tip text="A rolling fingerprint covering every audit this agent has signed. Each new audit advances it: memoryRoot' = keccak256(memoryRoot, rootHash). Only the latest value lives on-chain, but the full audit history is committed into it — past audits are tamper-evident.">
+              audit fingerprint (memoryRoot)
             </Tip>
           }
           value={<span className="text-text-secondary break-all">{memoryRoot}</span>}
         />
         <span className="text-[10px] text-text-muted">
-          compounded: <span className="text-text-secondary">memoryRoot' = keccak256(memoryRoot, rootHash)</span> per audit
+          rolls forward: <span className="text-text-secondary">memoryRoot' = keccak256(memoryRoot, rootHash)</span> on every audit
         </span>
       </div>
     </section>

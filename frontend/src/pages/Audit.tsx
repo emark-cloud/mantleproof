@@ -42,7 +42,7 @@ export default function Audit() {
       <main className="flex-1 px-4 py-4 max-w-4xl w-full mx-auto flex flex-col gap-4">
         <header>
           <div className="font-mono text-[11px] text-text-muted uppercase tracking-wider">
-            audit · rootHash
+            audit · audit hash (rootHash)
           </div>
           <div className="mt-1 font-mono text-sm text-accent break-all">{rootHash}</div>
         </header>
@@ -52,18 +52,19 @@ export default function Audit() {
             <div className="flex items-center gap-2">
               <StatusDot status="pending" />
               <span className="text-text-secondary">
-                rootHash not in the curated audited set.
+                This audit hash isn't in the curated set yet.
               </span>
             </div>
             <div className="mt-2 text-[11px] text-text-muted">
-              Reverse lookup rootHash → target requires the T29 event indexer
-              (currently pending). Until then, only the {KNOWN_TARGETS.length}{" "}
-              targets listed on the dashboard resolve here.
+              Looking up an audit hash → target contract needs the event
+              indexer, which is still warming up. For now, only the{" "}
+              {KNOWN_TARGETS.length} contracts listed on the dashboard resolve
+              here.
             </div>
             <div className="mt-3 text-[11px] text-text-muted">
-              You can still verify on-chain by calling
+              You can still verify it on-chain by calling
               <span className="text-accent"> registry.getAudit(target)</span>{" "}
-              for the corresponding target.
+              for the matching contract.
             </div>
           </div>
         ) : (
@@ -105,7 +106,9 @@ function ResolvedAudit({ data }: { data: Extract<AuditResponse, { audited: true 
         </Field>
         <Field k="Integrity">
           {integrity.match === true ? (
-            <span className="text-sev-clean">✓ keccak(canonical(report)) == on-chain rootHash</span>
+            <span className="text-sev-clean" title="keccak256(canonical(report)) == on-chain rootHash">
+              ✓ report matches on-chain hash
+            </span>
           ) : integrity.match === false ? (
             <span className="text-sev-high">✗ MISMATCH — possible tamper</span>
           ) : (

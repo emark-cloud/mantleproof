@@ -80,7 +80,7 @@ export function FindingCard({ finding }: { finding: Finding }) {
         </div>
         {evidenceLines.length === 0 ? (
           <div className="font-mono text-[11px] text-sev-high">
-            evidence missing — anchored only because the guard passed; review needed.
+            evidence missing — this finding only made it on-chain because the hallucination guard passed it; treat it with extra scrutiny.
           </div>
         ) : (
           <ul className="font-mono text-[11px] text-text-secondary">
