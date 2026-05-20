@@ -4,7 +4,7 @@ Usage::
 
     python -m mantleproof.triage.refresh --both
     python -m mantleproof.triage.refresh --cache --window-blocks 50000
-    python -m mantleproof.triage.refresh --feed  --window-blocks 1500
+    python -m mantleproof.triage.refresh --feed  --window-blocks 7500
 
 Cron-friendly: idempotent (re-runnable any time; latest wins), prints a
 single summary line per store + exits 0 on success / 1 on hard failure

@@ -10,11 +10,13 @@ the runtime bytecode, and classify:
                        template hash (minimal ERC-20 / proxy clones).
   - "queued"           otherwise — a real-looking unique contract.
 
-**Bounded by design** — `window_blocks` defaults to 1500 (~50 min on
-Mantle's 2s blocks). The plan-doc's "Goldsky fallback" sits here: if you
-need a longer window or a denser per-block scan, switch to a hosted
-subgraph rather than hammering RPC. Documented, not implemented; the
-deferred slot is honest about scope.
+**Bounded by design** — `window_blocks` defaults to 7500 (~4.2 hours on
+Mantle's 2s blocks), sized to give the panel a useful population on
+quiet days while staying within a single cron refresh's RPC budget. The
+plan-doc's "Goldsky fallback" sits here: if you need a wider window or
+a denser per-block scan, switch to a hosted subgraph rather than
+hammering RPC. Documented, not implemented; the deferred slot is honest
+about scope.
 """
 
 from __future__ import annotations
@@ -29,10 +31,10 @@ from mantleproof.triage.store import CacheStore, FeedRow, FeedSnapshot, FeedStor
 
 log = logging.getLogger(__name__)
 
-# Default window: ~50 minutes on Mantle 2s blocks. Walker time is roughly
+# Default window: ~4.2 hours on Mantle 2s blocks. Walker time is roughly
 # linear in window size (one `eth_getBlockByNumber(num, true)` per block,
-# plus a bytecode read per new contract); 1500 ≈ 1500 RPCs.
-DEFAULT_WINDOW_BLOCKS = 1500
+# plus a bytecode read per new contract); 7500 ≈ 7500 RPCs.
+DEFAULT_WINDOW_BLOCKS = 7500
 
 
 @dataclass(frozen=True)
