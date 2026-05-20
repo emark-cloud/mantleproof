@@ -15,6 +15,9 @@ from mantleproof.main import create_app
 def test_health_ok_when_rpc_and_oracle_succeed(monkeypatch):
     monkeypatch.setattr(routes_health, "_live_rpc_ping", lambda: 95_569_094)
     monkeypatch.setattr(routes_health, "_live_oracle_signer", lambda: "0x9f17...638a")
+    # Pin freshness so the test doesn't depend on whether the host has run the
+    # T29 walker; the two T29 health tests cover the cold/warm freshness branches.
+    monkeypatch.setattr(routes_health, "_live_cache_freshness", lambda: None)
     monkeypatch.setenv("MANTLEPROOF_REGISTRY_ADDRESS", "0x60E97c83Dd184D3B0812Ce25430e9D6930eD63aE")
 
     # Clear the lru_cache on get_settings so the env override is picked up.
@@ -31,7 +34,6 @@ def test_health_ok_when_rpc_and_oracle_succeed(monkeypatch):
     assert body["rpc"]["error"] is None
     assert body["oracle_signer"] == "0x9f17...638a"
     assert body["oracle_error"] is None
-    # Until T29, cache_freshness_s is honestly null — never fake it.
     assert body["cache_freshness_s"] is None
     get_settings.cache_clear()  # type: ignore[attr-defined]
 
