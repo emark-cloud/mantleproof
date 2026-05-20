@@ -109,4 +109,14 @@ export const KNOWN_TARGETS: readonly { address: `0x${string}`; label: string; pr
     label: "sUSDe — Ethena staked USDe OFT (Audit 6)",
     provenance: "live production audit — Ethena yield-bearing stable bridged via LayerZero",
   },
+  {
+    address: "0xB65E1C3ab3072d5fBF25A5bF625318E3035D4505",
+    label: "ChainIdReplayPermit (Bait 7)",
+    provenance: "self-deployed bait — EIP-712 domain hardcodes chainId=1; bait for check #5 (replay)",
+  },
+  {
+    address: "0xeB19da38EcdAec1aAAAdE76098c7f3cAf24Ec1F0",
+    label: "MisaccountedMethVault (Bait 8)",
+    provenance: "self-deployed bait — mETH balance-proportional accounting, no exchange-rate read; bait for check #2 (mETH math)",
+  },
 ] as const;

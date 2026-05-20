@@ -16,6 +16,7 @@ contracts/artifacts/
 contracts/typechain-types/
 contracts/deployments/*.json
 !contracts/deployments/*.addresses.json
+!contracts/deployments/*.bait.json
 
 # --- Python ---
 __pycache__/

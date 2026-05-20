@@ -13,8 +13,11 @@ class Settings(BaseSettings):
         env_file=("../.env", ".env"), env_file_encoding="utf-8", extra="ignore"
     )
 
-    # --- Network (testnet-first) ---
-    mantle_network: Literal["mantleSepolia", "mantle"] = "mantleSepolia"
+    # --- Network ---
+    # Default is mainnet now that the cutover gate is cleared (CLAUDE.md §4):
+    # contracts deployed on Mantle 5000, all 8 demo audits anchored there.
+    # Tests and the Sepolia harness pin `MANTLE_NETWORK=mantleSepolia` explicitly.
+    mantle_network: Literal["mantleSepolia", "mantle"] = "mantle"
     mantle_rpc_url: str = "https://rpc.mantle.xyz"
     mantle_sepolia_rpc_url: str = "https://rpc.sepolia.mantle.xyz"
 

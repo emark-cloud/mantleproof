@@ -360,6 +360,18 @@ const DEMO_BLURBS: Record<string, { agent: string; verdict: "APPROVED" | "DECLIN
     story:
       "Live scan of Ethena sUSDe (StakedUSDeOFT, LayerZero-bridged). Tier-2 returned MEDIUM after the allowlist dropped the by-design OFT 1:1 observation; surfaced two grounded MEDIUM concerns about role-key compromise (rogue blackLister, rogue rateLimiter) with named attack paths. Guard fired 0 masks.",
   },
+  "0xB65E1C3ab3072d5fBF25A5bF625318E3035D4505": {
+    agent: "self-deployed bait",
+    verdict: "FLAGGED",
+    story:
+      "Bait for check #5 (EIP-712 replay). The permit contract hardcodes chainId=1 in its domain separator and never reads block.chainid — signatures replay to any chain the bytecode lands on. Tier-2 caught it: 1 HIGH on replay_check (the designed catch), plus a MEDIUM on EIP-20 approve race + LOW on ecrecover malleability the rubric correctly placed below HIGH. Guard fired 0 masks.",
+  },
+  "0xeB19da38EcdAec1aAAAdE76098c7f3cAf24Ec1F0": {
+    agent: "self-deployed bait",
+    verdict: "FLAGGED",
+    story:
+      "Bait for check #2 (mETH accounting). The vault uses balanceOf / totalSupply proportion to size shares and never reads any exchange rate — early stakers silently diluted as mETH yield accrues. Tier-2 caught it: 1 HIGH on meth_check (the designed catch), plus a second HIGH on the classic share-price inflation attack — a concrete exploit path the rubric kept at HIGH. Guard fired 0 masks.",
+  },
 };
 
 function Demos() {
@@ -374,9 +386,9 @@ function Demos() {
 
   return (
     <section className="px-6 py-12 max-w-5xl mx-auto">
-      <SectionLabel>Six audits on Mantle mainnet — independently verifiable</SectionLabel>
+      <SectionLabel>Eight audits on Mantle mainnet — independently verifiable</SectionLabel>
       <h2 className="font-sans text-xl md:text-2xl text-text-primary mt-2 mb-6">
-        Three agent-to-agent flows + three live scans of real Mantle protocols
+        Three agent-to-agent flows · three live scans of real Mantle protocols · two self-deployed check-coverage baits
       </h2>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
         {KNOWN_TARGETS.map((t, i) => {
@@ -403,7 +415,7 @@ function Demos() {
             >
               <div className="flex items-center gap-2">
                 <span className="font-mono text-[10px] uppercase tracking-wider text-text-muted">
-                  {i < 3 ? `Demo ${i + 1}` : `Audit ${i + 1}`} · {blurb.agent}
+                  {i < 3 ? `Demo ${i + 1}` : i < 6 ? `Audit ${i + 1}` : `Bait ${i + 1}`} · {blurb.agent}
                 </span>
                 <span className="ml-auto text-[10px] font-mono uppercase tracking-wider text-text-muted flex items-center gap-1">
                   {integrityOk && (

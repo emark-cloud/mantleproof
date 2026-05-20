@@ -39,8 +39,9 @@ import traceback
 
 # Force the settings layer onto mainnet BEFORE first import — Settings reads
 # this at construction time and caches via lru_cache; mutating later would not
-# rewire `active_rpc_url`. This makes the mainnet harness chain-explicit even
-# when the repo-root .env still defaults `MANTLE_NETWORK=mantleSepolia`.
+# rewire `active_rpc_url`. Belt-and-braces even though `MANTLE_NETWORK`
+# defaults to mainnet now — keeps this harness chain-explicit regardless of
+# what the caller's .env says.
 os.environ["MANTLE_NETWORK"] = "mantle"
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))

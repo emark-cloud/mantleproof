@@ -1,0 +1,10 @@
+{
+  "chainId": 5000,
+  "network": "mantle",
+  "deployer": "0x2a3080AA52DE07702dd30b81cC97C3527e605B6A",
+  "contracts": {
+    "ChainIdReplayPermit": "0xB65E1C3ab3072d5fBF25A5bF625318E3035D4505",
+    "MisaccountedMethVault": "0xeB19da38EcdAec1aAAAdE76098c7f3cAf24Ec1F0"
+  },
+  "deployedAt": "2026-05-20T21:45:54.156Z"
+}
