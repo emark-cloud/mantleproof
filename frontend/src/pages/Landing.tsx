@@ -567,9 +567,9 @@ function FAQ() {
       <div className="mt-10 panel px-4 py-4 text-[12px] font-mono text-text-muted">
         <div className="text-text-secondary mb-2">deployed contracts (Mantle mainnet):</div>
         <ul className="space-y-1">
-          <li>registry · <Address value={REGISTRY_ADDRESS} chainId={MANTLE_CHAIN_ID} withScanLink /></li>
-          <li>agent · <Address value={AGENT_ADDRESS} chainId={MANTLE_CHAIN_ID} withScanLink /></li>
-          <li>decision log · <Address value={DECISION_LOG_ADDRESS} chainId={MANTLE_CHAIN_ID} withScanLink /></li>
+          <li>registry · <ContractLink address={REGISTRY_ADDRESS} /></li>
+          <li>agent · <ContractLink address={AGENT_ADDRESS} /></li>
+          <li>decision log · <ContractLink address={DECISION_LOG_ADDRESS} /></li>
           <li>
             <a
               href={`${MANTLESCAN}/address/${REGISTRY_ADDRESS}#events`}
@@ -587,6 +587,25 @@ function FAQ() {
 }
 
 /* ------------------------------ Bits and bobs -------------------------- */
+
+/** Truncated address rendered as a direct explorer link (whole truncation is
+ *  the click target). Used in the deployed-contracts footer where the user's
+ *  intent is "open explorer," not "copy address" (which is the default
+ *  semantic of `Address`). */
+function ContractLink({ address }: { address: string }) {
+  const short = `${address.slice(0, 6)}…${address.slice(-4)}`;
+  return (
+    <a
+      href={`${MANTLESCAN}/address/${address}`}
+      target="_blank"
+      rel="noreferrer"
+      className="font-mono text-text-secondary hover:text-accent"
+      title={address}
+    >
+      {short} ↗
+    </a>
+  );
+}
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
