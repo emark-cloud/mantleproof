@@ -58,9 +58,9 @@ REPORT = pathlib.Path(__file__).resolve().parents[1] / "validation" / "pipeline_
 
 
 def _local_source(contract_name: str) -> str | None:
-    """Fallback: our own deployed contract's source from contracts/contracts/."""
-    f = CONTRACTS_DIR / f"{contract_name}.sol"
-    if f.exists():
+    """Fallback: our own deployed contract's source from contracts/ (recursive
+    so demo/ subdirs are searched too)."""
+    for f in CONTRACTS_DIR.rglob(f"{contract_name}.sol"):
         return f"// === {f.name} (local fallback) ===\n{f.read_text()}"
     return None
 
@@ -96,9 +96,21 @@ def main() -> int:
     except Exception as e:  # noqa: BLE001
         print(f"[source]   live resolve failed ({type(e).__name__}: {e})", flush=True)
     if source is None:
-        source = _local_source(default_target_name)
-        contract_name = default_target_name
-        print("[source]   FALLBACK to local contracts/ source (our own code)", flush=True)
+        # Hint lets the agent script disambiguate when multiple demo contracts
+        # coexist (Demo 1 BuggyYieldVault, Demo 2 BackdooredMemeToken).
+        import os as _os
+        hint = _os.environ.get("MANTLEPROOF_TARGET_NAME") or ""
+        guesses = (
+            (hint,) if hint else ()
+        ) + ("BackdooredMemeToken", "BuggyYieldVault", default_target_name)
+        for guess in guesses:
+            if not guess:
+                continue
+            source = _local_source(guess)
+            if source:
+                contract_name = guess
+                print(f"[source]   FALLBACK to local contracts/ source ({guess})", flush=True)
+                break
     if source is None:
         print("ERROR: no source for target (live unverified + no local file).")
         return 2

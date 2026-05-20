@@ -115,8 +115,18 @@ def main() -> int:
     except Exception as e:  # noqa: BLE001
         print(f"[source]   live resolve failed ({type(e).__name__}: {e})", flush=True)
     if source is None:
-        # Targets the deployer-agent deploys (BuggyYieldVault) -- local fallback.
-        for guess in ("BuggyYieldVault", "DecisionLog"):
+        # Local fallback for our own demo / system contracts when Etherscan V2
+        # verification hasn't propagated. An optional MANTLEPROOF_TARGET_NAME
+        # env hint disambiguates when multiple demo contracts coexist (Demo 1
+        # BuggyYieldVault + Demo 2 BackdooredMemeToken) -- the agent script
+        # passes it. Without the hint the list is searched in order.
+        hint = os.environ.get("MANTLEPROOF_TARGET_NAME") or ""
+        guesses = (
+            (hint,) if hint else ()
+        ) + ("BackdooredMemeToken", "BuggyYieldVault", "DecisionLog")
+        for guess in guesses:
+            if not guess:
+                continue
             source = _local_source(guess)
             if source:
                 contract_name = guess

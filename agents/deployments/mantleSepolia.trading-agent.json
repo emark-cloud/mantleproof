@@ -1,0 +1,9 @@
+{
+  "token": "0x8f6679eb031799fc9c5e149dfb75b4543808912f",
+  "contract": "BackdooredMemeToken",
+  "deployTx": "0xf71cbb528cc87d71db95a6588778a3ae3b0c236241b18657237413d96c78aea2",
+  "deployedAt": "2026-05-20T08:10:18.147Z",
+  "deployer": "0xB74a08a5aD469758F1a0fAc2cF6059de3cc4A148",
+  "network": "mantleSepolia",
+  "chainId": 5003
+}
