@@ -1,3 +1,7 @@
+/* Inter + JetBrains Mono via Google Fonts — zero npm dep; loaded once.
+   Falls back to system mono if offline (design.md §4 font stack). */
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap");
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -65,4 +69,36 @@ body {
   font-family: var(--font-sans);
   font-size: 14px;
   line-height: var(--leading-normal);
+  -webkit-font-smoothing: antialiased;
 }
+
+button {
+  background: none;
+  border: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  padding: 0;
+}
+
+a { color: inherit; text-decoration: none; }
+a:hover { color: var(--accent); }
+
+/* §8 motion spec — the ONLY animation that loops. */
+@keyframes pulse-running {
+  0%, 100% { opacity: 0.4; }
+  50%      { opacity: 1.0; }
+}
+.animate-pulse-running { animation: pulse-running 1.4s ease-in-out infinite; }
+
+/* §8 feed-row-insert (used by DeployFeedPanel + AgentQueryPanel). */
+@keyframes feed-row-insert {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.animate-feed-row-insert { animation: feed-row-insert 300ms ease-out; }
+
+/* Faint hairlines between rows; respects §3 border tokens. */
+.row-divider { border-bottom: 1px solid var(--border-faint); }
+.panel { background: var(--bg-panel); border: 1px solid var(--border-strong); }
+.panel-hi { background: var(--bg-panel-hi); }
