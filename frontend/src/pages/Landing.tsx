@@ -77,7 +77,7 @@ function NavBar() {
         MANTLEPROOF
       </Link>
       <span className="font-mono text-[10px] text-text-muted uppercase tracking-wider hidden sm:inline">
-        on-chain audit registry · Mantle mainnet
+        on-chain audit oracle · Mantle mainnet
       </span>
       <div className="ml-auto flex items-center gap-4 text-[12px] font-mono text-text-secondary">
         <Link to="/app" className="hover:text-accent">[dashboard]</Link>
@@ -122,7 +122,7 @@ function Hero() {
         ● live on Mantle mainnet
       </div>
       <h1 className="font-sans text-3xl md:text-5xl font-semibold text-text-primary leading-tight">
-        The on-chain audit registry for{" "}
+        The on-chain audit oracle for{" "}
         <span className="text-accent">
           <Tip
             text="Mantle's framing for agent-to-agent transactions — autonomous AI agents acting as the primary users of on-chain finance."
@@ -137,13 +137,19 @@ function Hero() {
         structured safety signal back in under a second. Five Mantle-specific
         risk checks, a{" "}
         <Tip text="A fast pattern-matching pass (Tier 1), then a deeper LLM-reasoning pass (Tier 2) for anything that needs it.">
-          two-pass pipeline
+          two-tier pipeline
         </Tip>
         , a{" "}
         <Tip text="Every $, %, hex, and address claim in an LLM-written finding is regex-checked against the contract source and bytecode. Unverifiable claims are masked and the finding's honesty label drops one tier.">
           hallucination guard
         </Tip>
         , and every audit published on Mantle with the full report on IPFS.
+      </p>
+      <p className="font-sans text-sm md:text-md text-text-secondary mt-3 max-w-3xl leading-relaxed">
+        MantleProof also watches every fresh deployment on Mantle and classifies
+        it — already audited, a real candidate worth a look, or a template /
+        factory child safe to skip — so agents see new contracts the moment
+        they appear.
       </p>
 
       <div className="mt-8 flex flex-wrap items-center gap-3">
@@ -237,7 +243,7 @@ function Dimensions() {
     <section className="px-6 py-12 max-w-5xl mx-auto">
       <SectionLabel>The five risk checks</SectionLabel>
       <h2 className="font-sans text-xl md:text-2xl text-text-primary mt-2 mb-6">
-        Mantle-specific bug classes a generic static analyzer misses
+        The five checks Tier 1 runs as pattern matches and Tier 2 reasons over
       </h2>
       <div className="panel divide-y divide-border-faint">
         {DIMENSIONS.map((d) => (
