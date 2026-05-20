@@ -1,9 +1,17 @@
-/** getAudit — read-only registry lookup. SCAFFOLD — implement in T23. */
-type ToolResult = { content: { type: "text"; text: string }[] };
+/**
+ * MCP tool: getAudit (T23).
+ *
+ * Read-only on-chain readback against ``MantleProofRegistry.getAudit(address)``,
+ * joined with the pinned IPFS report and the keccak(canonical) integrity check.
+ *
+ * Maps directly to ``GET /api/audit/{address}``. Free, no payment, no signer.
+ * The MCP equivalent of curl + jq for an agent that wants the safety signal
+ * before touching a contract.
+ */
+import { fetchAudit } from "../client.js";
+import { formatAuditResult, type ToolResult } from "../format.js";
 
 export async function getAudit(address: string): Promise<ToolResult> {
-  // TODO(T23): read MantleProofRegistry.getAudit(address) via the engine.
-  return {
-    content: [{ type: "text", text: `SCAFFOLD: getAudit(${address}) not implemented (T23)` }],
-  };
+  const resp = await fetchAudit(address);
+  return formatAuditResult(resp);
 }
