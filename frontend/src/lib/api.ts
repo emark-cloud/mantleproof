@@ -102,3 +102,64 @@ export function getAudit(address: string): Promise<AuditResponse> {
 export function getHealth(): Promise<HealthResponse> {
   return fetchJson<HealthResponse>(`/api/health`);
 }
+
+/* --------------------------------- T29 ----------------------------------- */
+
+/** A row in `/api/feed` — one contract creation observed by the walker. */
+export interface FeedItem {
+  address: string;
+  deployer: string;
+  block_number: number;
+  tx_hash: string;
+  timestamp: number;
+  classification:
+    | "audited"
+    | "queued"
+    | "skipped:template"
+    | "skipped:factory"
+    | "unknown";
+  bytecode_hash: string | null;
+  notes: string | null;
+}
+
+export interface FeedResponse {
+  chain_id: number | null;
+  last_block: number | null;
+  freshness_s: number | null;
+  filter: { classification: string | null; limit: number };
+  items: FeedItem[];
+}
+
+/** A row in `/api/cache` — one anchored audit head. */
+export interface CacheItem {
+  target: string;
+  root_hash: string;
+  severity: Severity;
+  severity_uint8: number;
+  ipfs_cid: string;
+  timestamp: number;
+  submitter: string;
+  audit_count: number;
+  block_number: number;
+  tx_hash: string;
+}
+
+export interface CacheResponse {
+  chain_id: number | null;
+  last_block: number | null;
+  freshness_s: number | null;
+  filter: { severity: string | null; limit: number };
+  items: CacheItem[];
+}
+
+export function getFeed(limit = 50, classification?: string): Promise<FeedResponse> {
+  const q = new URLSearchParams({ limit: String(limit) });
+  if (classification) q.set("classification", classification);
+  return fetchJson<FeedResponse>(`/api/feed?${q.toString()}`);
+}
+
+export function getCacheFeed(limit = 50, severity?: string): Promise<CacheResponse> {
+  const q = new URLSearchParams({ limit: String(limit) });
+  if (severity) q.set("severity", severity);
+  return fetchJson<CacheResponse>(`/api/cache?${q.toString()}`);
+}

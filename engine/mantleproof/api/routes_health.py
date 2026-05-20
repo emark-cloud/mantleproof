@@ -2,9 +2,11 @@
 
 Surfaces enough state for an external consumer (frontend status dot, MCP startup
 check, x402 client) to know the engine is talking to the right chain and the
-registry's immutable oracle-signer is the address we expect. ``cache_freshness_s``
-stays ``None`` until T29 wires the cache-warmer — that's an honest unknown, not
-a fake number.
+registry's immutable oracle-signer is the address we expect.
+
+``cache_freshness_s`` reads the youngest mtime of the two T29 stores
+(``engine/data/cache.json``, ``engine/data/feed.json``); ``None`` when neither
+file exists (cold start — honest "unknown", not a fake number).
 """
 
 from __future__ import annotations
@@ -29,6 +31,7 @@ def _engine_version() -> str:
 
 PingFn = Callable[[], int]
 OracleFn = Callable[[], str]
+FreshnessFn = Callable[[], int | None]
 
 
 def _live_rpc_ping() -> int:
@@ -48,6 +51,15 @@ def _live_oracle_signer() -> str:
     return read_oracle_signer()
 
 
+def _live_cache_freshness() -> int | None:
+    """Live: youngest mtime across the two T29 stores; None if both absent."""
+    from mantleproof.triage.store import CacheStore, FeedStore
+
+    candidates = [CacheStore().freshness_s(), FeedStore().freshness_s()]
+    seen = [c for c in candidates if c is not None]
+    return min(seen) if seen else None
+
+
 def build_health(
     *,
     chain_id: int,
@@ -58,6 +70,7 @@ def build_health(
     rpc_error: str | None,
     oracle_signer: str | None,
     oracle_error: str | None,
+    cache_freshness_s: int | None = None,
 ) -> dict[str, Any]:
     """Pure: assemble the health payload. Lets tests check shape without I/O."""
     ok = rpc_error is None and oracle_error is None and bool(registry_address)
@@ -74,9 +87,9 @@ def build_health(
         },
         "oracle_signer": oracle_signer,
         "oracle_error": oracle_error,
-        # Filled by the cache-warmer in T29; surfaced as `null` until then to
-        # avoid faking freshness we don't actually have.
-        "cache_freshness_s": None,
+        # Youngest mtime of `engine/data/{cache,feed}.json`; `None` means the
+        # T29 walker has never run on this host — honest "unknown".
+        "cache_freshness_s": cache_freshness_s,
     }
 
 
@@ -84,6 +97,7 @@ def build_health(
 async def health(
     ping: PingFn | None = None,
     oracle: OracleFn | None = None,
+    freshness: FreshnessFn | None = None,
 ) -> dict[str, Any]:
     from mantleproof.settings import get_settings
 
@@ -110,6 +124,11 @@ async def health(
     else:
         oracle_error = "MANTLEPROOF_REGISTRY_ADDRESS not set"
 
+    try:
+        cache_freshness_s = (freshness or _live_cache_freshness)()
+    except Exception:  # noqa: BLE001 — disk read must not fail the route
+        cache_freshness_s = None
+
     return build_health(
         chain_id=chain_id,
         network=s.mantle_network,
@@ -119,4 +138,5 @@ async def health(
         rpc_error=rpc_error,
         oracle_signer=oracle_signer,
         oracle_error=oracle_error,
+        cache_freshness_s=cache_freshness_s,
     )

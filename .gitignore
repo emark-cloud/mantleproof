@@ -33,6 +33,9 @@ htmlcov/
 frontend/.vite/
 frontend/dist/
 
+# --- T29 cache-warmer outputs (host-local, re-derivable from chain) ---
+engine/data/
+
 # --- Local tooling state ---
 .claude/
 
