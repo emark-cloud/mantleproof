@@ -38,7 +38,7 @@ export function EngineStatusFooter() {
         <StatusDot status={status} size={6} />
         engine: {data?.engine ?? (error ? "unreachable" : "…")}
       </span>
-      <span>chainId {data?.chain_id ?? "?"}</span>
+      <span>Mantle mainnet</span>
       <span>
         block {data?.block_number ?? "?"}
         {typeof data?.rpc_latency_ms === "number" && (

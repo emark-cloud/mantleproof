@@ -57,7 +57,7 @@ export default function Contract() {
         )}
         {data?.audited === false && (
           <div className="panel px-4 py-4 font-mono text-sm text-text-secondary">
-            no audit on chainId {data.chain_id} for{" "}
+            no audit on Mantle for{" "}
             <Address value={data.target} chainId={chainId} withScanLink />.
             <div className="mt-2 text-[11px] text-text-muted">
               To request one, call <span className="text-accent">requestAudit({data.target}, 2)</span>{" "}

@@ -109,7 +109,7 @@ export function AgentQueryPanel({ chainId = MANTLE_CHAIN_ID }: { chainId?: numbe
       <ul className="flex-1 overflow-y-auto">
         {rows.length === 0 && !error ? (
           <li className="px-3 py-4 text-[11px] text-text-muted font-mono">
-            scanning {LOOKBACK_BLOCKS.toString()} blocks on chainId {chainId}…
+            scanning {LOOKBACK_BLOCKS.toString()} blocks on Mantle mainnet…
           </li>
         ) : (
           rows.map((r) => {

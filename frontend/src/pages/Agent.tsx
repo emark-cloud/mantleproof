@@ -17,7 +17,6 @@ import {
   KNOWN_TARGETS,
   REGISTRY_ADDRESS,
   DECISION_LOG_ADDRESS,
-  MANTLE_CHAIN_ID,
 } from "../lib/contracts";
 
 const SEVERITIES: ("high" | "medium" | "low" | "info" | "clean")[] = [
@@ -67,7 +66,7 @@ export default function Agent() {
           <ul className="font-mono text-[12px] text-text-secondary space-y-1">
             <li>• <span className="text-accent">auditContract(address, tier)</span> · tier 1 free · tier 2 0.50 USDC on base</li>
             <li>• <span className="text-accent">getAudit(address)</span> · free, read-only (on-chain + REST)</li>
-            <li>• <span className="text-accent">requestAudit(address, tier)</span> · x402, settles USDC on Base eip155:8453, anchors on Mantle eip155:5000</li>
+            <li>• <span className="text-accent">requestAudit(address, tier)</span> · x402, settles USDC on Base, anchors on Mantle</li>
           </ul>
           <div className="mt-3 font-mono text-[11px] text-text-muted">
             <div>endpoints:</div>
@@ -121,7 +120,7 @@ export default function Agent() {
           <div>
             decision log <span className="text-text-secondary break-all">{DECISION_LOG_ADDRESS}</span>
           </div>
-          <div>chainId {MANTLE_CHAIN_ID}</div>
+          <div>Mantle mainnet</div>
         </section>
       </main>
       <EngineStatusFooter />

@@ -36,7 +36,7 @@ function NavBar() {
         MANTLEPROOF
       </Link>
       <span className="font-mono text-[10px] text-text-muted uppercase tracking-wider">
-        audit oracle · mantle 5000
+        audit oracle · Mantle mainnet
       </span>
       <div className="ml-auto flex items-center gap-3 text-[11px] font-mono text-text-secondary">
         <a href="https://github.com/" target="_blank" rel="noreferrer" className="hover:text-accent">

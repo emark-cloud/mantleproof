@@ -59,7 +59,6 @@ export default function Landing() {
         <Dimensions />
         <Tier2Flow />
         <Demos />
-        <Sponsors />
         <Install />
         <FAQ />
       </main>
@@ -77,7 +76,7 @@ function NavBar() {
         MANTLEPROOF
       </Link>
       <span className="font-mono text-[10px] text-text-muted uppercase tracking-wider hidden sm:inline">
-        audit oracle · mantle 5000
+        audit oracle · Mantle mainnet
       </span>
       <div className="ml-auto flex items-center gap-4 text-[12px] font-mono text-text-secondary">
         <Link to="/app" className="hover:text-accent">[dashboard]</Link>
@@ -119,7 +118,7 @@ function Hero() {
   return (
     <section className="px-6 py-12 md:py-20 max-w-5xl mx-auto">
       <div className="font-mono text-[11px] uppercase tracking-[0.2em] text-accent-dim mb-4">
-        ● live on Mantle mainnet · chainId 5000
+        ● live on Mantle mainnet
       </div>
       <h1 className="font-sans text-3xl md:text-5xl font-semibold text-text-primary leading-tight">
         The audit oracle for{" "}
@@ -401,46 +400,6 @@ function Demos() {
   );
 }
 
-/* ------------------------------- Sponsors ------------------------------ */
-
-const SPONSORS: { who: string; what: string }[] = [
-  { who: "Mantle (Labs, ecosystem)", what: "Five Mantle-specific check dimensions; mainnet-anchored on chainId 5000" },
-  { who: "ERC-8004 / Virtuals Protocol", what: "Agent identity NFT (tokenId 96) with compounding memoryRoot advanced on every audit" },
-  { who: "Z.ai", what: "Real ZaiProvider adapter, single-env-var swap from Gemini default (key-gated, shape-tested)" },
-  { who: "Allora / Nansen", what: "Cache-warmer + deploy-feed walker — on-chain audit history queryable via /api/cache + /api/feed" },
-  { who: "Animoca / Hashed / Caladan (VC)", what: "MantleProofLicense 80/20 split + TreasurySplit timelock; pay-per-audit and subscription contracts" },
-  { who: "BGA (Blockchain for Good)", what: "Public safety oracle for an agentic economy — every audit is a free public read, signed write only" },
-  { who: "DoraHacks / HackQuest", what: "/judge 6-step quick-eval with paste-able cast call commands; verifiable without trusting our backend" },
-  { who: "Elfa AI", what: "mantleproof-mcp stdio server — 3 tools (getAudit, auditContract, requestAudit) for Claude Desktop / Cursor" },
-];
-
-function Sponsors() {
-  return (
-    <section className="px-6 py-12 max-w-5xl mx-auto">
-      <SectionLabel>Sponsor / track surfaces</SectionLabel>
-      <h2 className="font-sans text-xl md:text-2xl text-text-primary mt-2 mb-6">
-        What's in this submission that maps to who
-      </h2>
-      <div className="panel">
-        {SPONSORS.map((s, i) => (
-          <div
-            key={s.who}
-            className={`grid grid-cols-1 md:grid-cols-[260px_1fr] gap-3 px-4 py-3 ${
-              i < SPONSORS.length - 1 ? "row-divider" : ""
-            }`}
-          >
-            <div className="font-mono text-[13px] text-accent">{s.who}</div>
-            <div className="font-sans text-[13px] text-text-secondary leading-snug">{s.what}</div>
-          </div>
-        ))}
-      </div>
-      <div className="mt-3 text-[11px] font-mono text-text-muted">
-        single-track submission (AI DevTools); no multi-sponsor capture claim.
-      </div>
-    </section>
-  );
-}
-
 /* ----------------------------- Install / Use --------------------------- */
 
 function Install() {
@@ -468,7 +427,7 @@ curl -X POST https://mantleproof.xyz/x402/audit/0x... \\
       </div>
       <div className="mt-3 text-[11px] font-mono text-text-muted">
         mantleproof-mcp will be published to npm at submission. On-chain + REST
-        are live now against Mantle mainnet 5000.
+        are live now against Mantle mainnet.
       </div>
     </section>
   );
@@ -531,12 +490,11 @@ const FAQ_ITEMS: { q: string; a: React.ReactNode }[] = [
     a: (
       <>
         Coinbase's hosted x402 facilitator supports Base / Polygon / Arbitrum /
-        World / Solana, not Mantle. So the paywall settles in USDC on Base
-        (eip155:8453) and the audit anchors on Mantle (eip155:5000). Both
-        transaction hashes appear in every 200 response — payment receipt on
-        Base, audit anchor on Mantle. Cross-chain is fine because audit findings
-        reference contract addresses, not payment chains. Self-hosting a Mantle
-        facilitator is roadmap.
+        World / Solana, not Mantle. So the paywall settles in USDC on Base and
+        the audit anchors on Mantle. Both transaction hashes appear in every
+        200 response — payment receipt on Base, audit anchor on Mantle.
+        Cross-chain is fine because audit findings reference contract addresses,
+        not payment chains. Self-hosting a Mantle facilitator is roadmap.
       </>
     ),
   },
@@ -607,7 +565,7 @@ function FAQ() {
       </div>
 
       <div className="mt-10 panel px-4 py-4 text-[12px] font-mono text-text-muted">
-        <div className="text-text-secondary mb-2">deployed contracts (mainnet 5000):</div>
+        <div className="text-text-secondary mb-2">deployed contracts (Mantle mainnet):</div>
         <ul className="space-y-1">
           <li>registry · <Address value={REGISTRY_ADDRESS} chainId={MANTLE_CHAIN_ID} withScanLink /></li>
           <li>agent · <Address value={AGENT_ADDRESS} chainId={MANTLE_CHAIN_ID} withScanLink /></li>
