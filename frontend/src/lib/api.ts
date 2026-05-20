@@ -32,13 +32,19 @@ export interface IntegrityInfo {
 
 export interface Finding {
   // Engine field names mirror `engine/mantleproof/checks/_common.py:CheckResult`.
+  // Engine field is `check_id`; some Tier-2 paths historically wrote `check` —
+  // accept both.
+  check_id?: string;
   check?: string;
   severity?: Severity;
   label?: string;
   finding?: string;
   suggested_fix?: string;
+  // The engine packs evidence under this object. Keys vary by check
+  // (`matched_pattern`, `bytecode_address`, `source_address`,
+  // `source_symbol`, `source_lines`, `bytecode_offset`, …). Tier-2 may also
+  // emit some keys at the top level — we look at both.
   evidence?: Record<string, unknown> | null;
-  // Tier-2 emits these via `tier2/prompt.py`; Tier-1 may not.
   source_lines?: string[];
   bytecode_offset?: string;
   matched_pattern?: string;

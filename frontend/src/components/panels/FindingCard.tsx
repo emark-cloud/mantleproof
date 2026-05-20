@@ -14,18 +14,50 @@ import { HonestyLabel } from "../primitives/HonestyLabel";
 export function FindingCard({ finding }: { finding: Finding }) {
   const sev = (finding.severity ?? "info") as Severity;
   const label = finding.label ?? "ESTIMATED";
+  const evidence = (finding.evidence ?? {}) as Record<string, unknown>;
   const evidenceLines: { k: string; v: string }[] = [];
-  if (finding.source_lines?.length) {
-    evidenceLines.push({ k: "src", v: finding.source_lines.join(", ") });
+
+  // Source lines can be on the finding OR inside evidence.
+  const sourceLines =
+    finding.source_lines?.length
+      ? finding.source_lines
+      : Array.isArray(evidence.source_lines)
+        ? (evidence.source_lines as string[])
+        : null;
+  if (sourceLines && sourceLines.length) {
+    evidenceLines.push({ k: "src", v: sourceLines.join(", ") });
   }
-  if (finding.bytecode_offset) {
-    evidenceLines.push({ k: "bytecode offset", v: finding.bytecode_offset });
+
+  const bytecodeOffset =
+    finding.bytecode_offset ??
+    (typeof evidence.bytecode_offset === "string" ? (evidence.bytecode_offset as string) : null) ??
+    (typeof evidence.bytecode_address === "string" ? (evidence.bytecode_address as string) : null);
+  if (bytecodeOffset) {
+    evidenceLines.push({ k: "bytecode", v: bytecodeOffset });
   }
-  if (finding.matched_pattern) {
-    evidenceLines.push({ k: "matched pattern", v: finding.matched_pattern });
+
+  const matchedPattern =
+    finding.matched_pattern ??
+    (typeof evidence.matched_pattern === "string" ? (evidence.matched_pattern as string) : null);
+  if (matchedPattern) {
+    evidenceLines.push({ k: "matched pattern", v: matchedPattern });
   }
-  if (finding.check) {
-    evidenceLines.push({ k: "check", v: finding.check });
+
+  // Engine emits `check_id`; some Tier-2 paths historically wrote `check`.
+  const checkId = finding.check_id ?? finding.check;
+  if (checkId) {
+    evidenceLines.push({ k: "check", v: checkId });
+  }
+
+  // Show source_symbol / source_address if the check is integrator-style.
+  if (typeof evidence.source_symbol === "string") {
+    evidenceLines.push({ k: "source symbol", v: evidence.source_symbol as string });
+  }
+  if (
+    typeof evidence.source_address === "string" &&
+    evidence.source_address !== evidence.bytecode_address
+  ) {
+    evidenceLines.push({ k: "source address", v: evidence.source_address as string });
   }
 
   return (

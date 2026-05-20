@@ -302,7 +302,7 @@ const DEMO_BLURBS: Record<string, { agent: string; verdict: "APPROVED" | "DECLIN
     story:
       "Intentionally vulnerable BuggyYieldVault. Tier-2 flagged a sUSDe-cooldown handling bug. The agent declined to deploy further; the audit is anchored as the receipt.",
   },
-  "0x8f66c8B7AB07c2cF6db52a07d1Dd3C9c7f1c912f": {
+  "0x8F6679EB031799fc9C5e149DFb75b4543808912F": {
     agent: "trading-agent",
     verdict: "DECLINED",
     story:

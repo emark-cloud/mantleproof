@@ -85,7 +85,7 @@ export const KNOWN_TARGETS: readonly { address: `0x${string}`; label: string; pr
     provenance: "agent-deployed contract, intentionally vulnerable",
   },
   {
-    address: "0x8f66c8B7AB07c2cF6db52a07d1Dd3C9c7f1c912f",
+    address: "0x8F6679EB031799fc9C5e149DFb75b4543808912F",
     label: "BackdooredMemeToken (Demo 2)",
     provenance: "trading-agent target — pause() backdoor",
   },
