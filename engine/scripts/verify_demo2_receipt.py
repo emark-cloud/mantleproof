@@ -136,9 +136,11 @@ def main() -> int:  # noqa: C901, PLR0912, PLR0915
         print(f"ERROR: settings.chain_id={s.chain_id}, not mainnet 5000")
         return 2
 
-    dep = json.loads(
-        (Path(__file__).resolve().parents[2] / "contracts" / "deployments" / "mantle.addresses.json").read_text()
+    dep_path = (
+        Path(__file__).resolve().parents[2]
+        / "contracts" / "deployments" / "mantle.addresses.json"
     )
+    dep = json.loads(dep_path.read_text())
     registry_addr = dep["contracts"]["MantleProofRegistry"]
     agent_addr = dep["contracts"]["MantleProofAgent"]
     decision_log_addr = dep["contracts"]["DecisionLog"]
@@ -158,7 +160,10 @@ def main() -> int:  # noqa: C901, PLR0912, PLR0915
     anchor_rcpt = w3.eth.get_transaction_receipt(anchor_hash)
     anchor_txd = w3.eth.get_transaction(anchor_hash)
     anchor_from = anchor_txd["from"]
-    print(f"[anchor]   status={anchor_rcpt['status']} block={anchor_rcpt['blockNumber']} from={anchor_from}")
+    print(
+        f"[anchor]   status={anchor_rcpt['status']} "
+        f"block={anchor_rcpt['blockNumber']} from={anchor_from}"
+    )
 
     checks: list[tuple[str, bool]] = []
     checks.append(("anchor tx status == 1", anchor_rcpt["status"] == 1))

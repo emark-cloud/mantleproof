@@ -111,9 +111,11 @@ def main() -> int:
         print(f"ERROR: settings.chain_id={s.chain_id}, not mainnet 5000")
         return 2
 
-    dep = json.loads(
-        (Path(__file__).resolve().parents[2] / "contracts" / "deployments" / "mantle.addresses.json").read_text()
+    dep_path = (
+        Path(__file__).resolve().parents[2]
+        / "contracts" / "deployments" / "mantle.addresses.json"
     )
+    dep = json.loads(dep_path.read_text())
     registry_addr = dep["contracts"]["MantleProofRegistry"]
     agent_addr = dep["contracts"]["MantleProofAgent"]
     expected_oracle = dep["oracleSigner"]
@@ -198,7 +200,10 @@ def main() -> int:
     if fails:
         print(f"\nFAIL: {fails}/{len(checks)} checks failed")
         return 1
-    print(f"\nOK: {len(checks)}/{len(checks)} checks passed — Demo 1 mainnet receipt is independently verifiable.")
+    print(
+        f"\nOK: {len(checks)}/{len(checks)} checks passed — "
+        "Demo 1 mainnet receipt is independently verifiable."
+    )
     return 0
 
 
