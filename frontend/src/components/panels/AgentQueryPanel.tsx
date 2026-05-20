@@ -14,6 +14,7 @@ import { Link } from "react-router-dom";
 import { StatusDot } from "../primitives/StatusDot";
 import { Address } from "../primitives/Address";
 import { Timestamp } from "../primitives/Timestamp";
+import { Tip } from "../primitives/Tip";
 import { DECISION_LOG_ADDRESS, decisionLogAbi, MANTLE_CHAIN_ID } from "../../lib/contracts";
 
 interface DecisionRow {
@@ -92,7 +93,9 @@ export function AgentQueryPanel({ chainId = MANTLE_CHAIN_ID }: { chainId?: numbe
     <aside className="panel flex flex-col h-full">
       <header className="px-3 py-2 row-divider flex items-baseline justify-between">
         <h2 className="font-mono text-xs uppercase tracking-wider text-text-primary">
-          Agent queries
+          <Tip text="On-chain DecisionLog — every receipt of an agent acting on a MantleProof audit (APPROVED or DECLINED, with the rootHash referenced). Live-scanned from Mantle mainnet via wagmi; verifiable on Mantlescan.">
+            Agent queries
+          </Tip>
         </h2>
         <span className="font-mono text-[10px] text-text-muted flex items-center gap-1">
           <StatusDot status="running" size={6} /> live

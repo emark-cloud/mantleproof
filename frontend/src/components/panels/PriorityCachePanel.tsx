@@ -16,6 +16,7 @@ import { StatusDot } from "../primitives/StatusDot";
 import { Address } from "../primitives/Address";
 import { SeverityBadge } from "../primitives/SeverityBadge";
 import { Timestamp } from "../primitives/Timestamp";
+import { Tip } from "../primitives/Tip";
 import { KNOWN_TARGETS, MANTLE_CHAIN_ID } from "../../lib/contracts";
 import { getAudit, getCacheFeed, type AuditResponse, type CacheItem } from "../../lib/api";
 
@@ -73,7 +74,9 @@ export function PriorityCachePanel({ chainId = MANTLE_CHAIN_ID }: { chainId?: nu
     <section className="panel flex flex-col h-full">
       <header className="px-3 py-2 row-divider flex items-baseline justify-between">
         <h2 className="font-mono text-xs uppercase tracking-wider text-text-primary">
-          Priority cache (top {totalShown})
+          <Tip text="The audited universe — every contract MantleProof has anchored an audit for. Each row carries a verifiable on-chain rootHash; click to drill into severity, findings, evidence, and the integrity check.">
+            Priority cache (top {totalShown})
+          </Tip>
         </h2>
         <span className="font-mono text-[10px] text-text-muted">
           {totalAudited}/{totalShown} audited · {freshnessText(freshness)}

@@ -12,6 +12,7 @@ import { useQuery } from "@tanstack/react-query";
 import { StatusDot } from "../primitives/StatusDot";
 import { Address } from "../primitives/Address";
 import { Timestamp } from "../primitives/Timestamp";
+import { Tip } from "../primitives/Tip";
 import { getFeed, type FeedItem } from "../../lib/api";
 import { KNOWN_TARGETS, MANTLE_CHAIN_ID } from "../../lib/contracts";
 
@@ -54,7 +55,9 @@ export function DeployFeedPanel({ chainId = MANTLE_CHAIN_ID }: { chainId?: numbe
     <aside className="panel flex flex-col h-full">
       <header className="px-3 py-2 row-divider flex items-baseline justify-between">
         <h2 className="font-mono text-xs uppercase tracking-wider text-text-primary">
-          Deploy feed
+          <Tip text="Live stream of contract creations on Mantle mainnet. Most rows are greyed-out 'skipped' (template proxies, factory children) — we don't pretend to audit everything. Indexed by the T29 deploy-feed walker.">
+            Deploy feed
+          </Tip>
         </h2>
         <span className="font-mono text-[10px] text-text-muted flex items-center gap-1">
           {isCold ? (
