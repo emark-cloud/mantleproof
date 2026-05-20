@@ -130,6 +130,134 @@ export const DECISIONLOG_ABI = parseAbi([
   "function logDecision(address target, bytes32 auditRootHash, string action, string reason) external",
 ]);
 
+// --- Merchant Moe LB v2.2 (canonical, Mantle mainnet 5000 only) -----------
+// Addresses from docs.merchantmoe.com/resources/contracts.md, confirmed live
+// via eth_getCode + LBFactory.getAllLBPairs. Sepolia 5003 has no Merchant Moe
+// deployment, so the yield-agent (T28) is mainnet-only.
+export const MOE_LB = {
+  LBFactory: "0xa6630671775c4EA2743840F9A5016dCf2A104054" as Address,
+  LBRouter: "0x013e138EF6008ae5FDFDE29700e3f2Bc61d21E3a" as Address,
+  WMNT: "0x78c1b0C915c4FAA5FffA6CAbf0219DA63d7f4cb8" as Address,
+  USDT0: "0x201EBa5CC46D216Ce6DC03F6a759e8E766e956aE" as Address,
+  MOE: "0x4515A45337F461A11Ff0FE8aBF3c606AE5dC00c9" as Address,
+  // WMNT/USDT0 binStep=25 — deepest pair (932k WMNT + 599k USDT0,
+  // canonical createdByOwner). tokenX=WMNT, tokenY=USDT0.
+  pairWMNT_USDT0_bs25: "0x365722f12ceb2063286A268B03c654Df81B7C00F" as Address,
+  binStep: 25,
+} as const;
+
+// Minimal LB Pair ABI -- only what yield-agent reads (active bin id +
+// reserves) to pick a single-sided WMNT bin above the active id.
+export const LBPAIR_ABI = parseAbi([
+  "function getActiveId() view returns (uint24)",
+  "function getReserves() view returns (uint128 reserveX, uint128 reserveY)",
+  "function getTokenX() view returns (address)",
+  "function getTokenY() view returns (address)",
+]);
+
+// LBRouter.addLiquidityNATIVE -- the LiquidityParameters struct (LB v2.2,
+// matches Trader Joe). Defined in structured ABI form because parseAbi can't
+// handle struct args. Returns layout omitted -- yield-agent only needs the
+// tx receipt status, not the depositIds/liquidityMinted arrays.
+export const LBROUTER_ABI = [
+  {
+    type: "function",
+    name: "addLiquidityNATIVE",
+    stateMutability: "payable",
+    inputs: [
+      {
+        name: "liquidityParameters",
+        type: "tuple",
+        components: [
+          { name: "tokenX", type: "address" },
+          { name: "tokenY", type: "address" },
+          { name: "binStep", type: "uint256" },
+          { name: "amountX", type: "uint256" },
+          { name: "amountY", type: "uint256" },
+          { name: "amountXMin", type: "uint256" },
+          { name: "amountYMin", type: "uint256" },
+          { name: "activeIdDesired", type: "uint256" },
+          { name: "idSlippage", type: "uint256" },
+          { name: "deltaIds", type: "int256[]" },
+          { name: "distributionX", type: "uint256[]" },
+          { name: "distributionY", type: "uint256[]" },
+          { name: "to", type: "address" },
+          { name: "refundTo", type: "address" },
+          { name: "deadline", type: "uint256" },
+        ],
+      },
+    ],
+    outputs: [
+      { name: "amountXAdded", type: "uint256" },
+      { name: "amountYAdded", type: "uint256" },
+      { name: "amountXLeft", type: "uint256" },
+      { name: "amountYLeft", type: "uint256" },
+      { name: "depositIds", type: "uint256[]" },
+      { name: "liquidityMinted", type: "uint256[]" },
+    ],
+  },
+] as const;
+
+/** Build the LB v2.2 LiquidityParameters for a single-sided WMNT deposit
+ * to one bin above the active id (X-only side). `msg.value` of the tx
+ * MUST equal `amountX` -- the router enforces this when tokenX is WMNT.
+ *
+ * distributionX = [1e18] = 100% of WMNT into the single bin (normalized).
+ * distributionY = [0]    = no USDT0 added.
+ * deltaIds      = [+1]   = the bin immediately above active (X-only side).
+ * amountXMin    = amountX (no slippage on the X side — single-sided add
+ *                 doesn't slip on the deposited token; idSlippage handles
+ *                 active-id drift).
+ */
+export interface LiquidityParameters {
+  tokenX: Address;
+  tokenY: Address;
+  binStep: bigint;
+  amountX: bigint;
+  amountY: bigint;
+  amountXMin: bigint;
+  amountYMin: bigint;
+  activeIdDesired: bigint;
+  idSlippage: bigint;
+  deltaIds: readonly bigint[];
+  distributionX: readonly bigint[];
+  distributionY: readonly bigint[];
+  to: Address;
+  refundTo: Address;
+  deadline: bigint;
+}
+
+export function buildSingleSidedWMNTParams(opts: {
+  tokenX: Address;
+  tokenY: Address;
+  binStep: number;
+  amountWei: bigint;
+  activeId: number;
+  recipient: Address;
+  deadlineSecs?: number;
+}): LiquidityParameters {
+  const deadline = BigInt(
+    Math.floor(Date.now() / 1000) + (opts.deadlineSecs ?? 600),
+  );
+  return {
+    tokenX: opts.tokenX,
+    tokenY: opts.tokenY,
+    binStep: BigInt(opts.binStep),
+    amountX: opts.amountWei,
+    amountY: 0n,
+    amountXMin: opts.amountWei, // single-sided, no slippage on X
+    amountYMin: 0n,
+    activeIdDesired: BigInt(opts.activeId),
+    idSlippage: 10n, // tolerate ±10 bins of active-id drift
+    deltaIds: [1n], // one bin above active = X-only side
+    distributionX: [10n ** 18n], // 100% of WMNT into that bin
+    distributionY: [0n],
+    to: opts.recipient,
+    refundTo: opts.recipient,
+    deadline,
+  };
+}
+
 export interface AuditReport {
   rootHash: Hex;
   severity: number; // 0=Info 1=Low 2=Med 3=High (Solidity-uint8)
