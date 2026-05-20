@@ -44,6 +44,7 @@ import traceback
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
 
+from mantleproof.llm.retrying import RetryingGemini  # noqa: E402
 from mantleproof.persistence.anchor import anchor_audit  # noqa: E402
 from mantleproof.pipeline import run_audit  # noqa: E402
 from mantleproof.settings import get_settings  # noqa: E402
@@ -114,8 +115,19 @@ def main() -> int:
 
         return pin_json(report)
 
-    def _anchor(t, sev, root_hash, cid):  # noqa: ANN001 — bind the registry addr
-        return anchor_audit(t, sev, root_hash, cid, registry_address=registry_addr)
+    # Sepolia registry's oracleSigner is immutable at the PRE-rotation deployer
+    # address (this Sepolia registry was deployed before T25's mainnet-only
+    # oracle-signer key was minted). Pass DEPLOYER_PRIVATE_KEY explicitly so a
+    # cross-chain key rotation in .env can't break this rehearsal harness.
+    import os as _os
+    _sepolia_signer = _os.environ.get("DEPLOYER_PRIVATE_KEY") or None
+
+    def _anchor(t, sev, root_hash, cid):  # noqa: ANN001 — bind addr + signer
+        return anchor_audit(
+            t, sev, root_hash, cid,
+            registry_address=registry_addr,
+            private_key=_sepolia_signer,
+        )
 
     print("\n[run] live source/bytecode/Tier-1/Gemini-Tier-2/guard/rootHash"
           " -> IPFS pin -> Sepolia anchor …", flush=True)
@@ -124,7 +136,8 @@ def main() -> int:
     try:
         final = run_audit(
             target, tier=2, chain_id=CHAIN_ID, source=source,
-            contract_name=contract_name, pin=_pin, anchor=_anchor, do_anchor=True,
+            contract_name=contract_name, provider=RetryingGemini(),
+            pin=_pin, anchor=_anchor, do_anchor=True,
         )
     except RuntimeError as e:
         blocked = str(e)
