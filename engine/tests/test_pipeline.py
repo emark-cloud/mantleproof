@@ -14,7 +14,7 @@ from datetime import UTC, datetime
 
 import pytest
 
-from mantleproof.checks.base import HonestyLabel, Severity
+from mantleproof.checks.base import CheckResult, HonestyLabel, Severity
 from mantleproof.persistence.anchor import severity_to_uint8
 from mantleproof.persistence.ipfs import _pin_payload
 from mantleproof.pipeline import build_report, compute_root_hash, run_audit
@@ -106,6 +106,31 @@ def test_build_report_tier2_degrades_on_unverified_source():
     )
     assert report["tier2_skipped"] == "unverified_source"
     assert report["hallucination_guard"]["masked_count"] == 0
+
+
+def test_caveat_round_trips_into_report_and_changes_root_hash():
+    """Caveat is a first-class finding field — it flows into the canonical
+    JSON, is hashed into rootHash, and the IPFS-pinned report carries it
+    verbatim. Two reports identical except for caveat text must produce
+    different rootHashes."""
+    base = CheckResult(
+        "usdy_check_v1", Severity.LOW, HonestyLabel.VERIFIED,
+        "non-rebasing wrapper observation", {}, "",
+    )
+    with_caveat = CheckResult(
+        "usdy_check_v1", Severity.LOW, HonestyLabel.VERIFIED,
+        "non-rebasing wrapper observation", {}, "",
+        caveat="wstETH-style wrapper, documented at docs.ondo.finance",
+    )
+    rep_a, rh_a, _ = build_report(
+        _TARGET, tier=1, chain_id=5000, tier1=[base], now=_FIXED,
+    )
+    rep_b, rh_b, _ = build_report(
+        _TARGET, tier=1, chain_id=5000, tier1=[with_caveat], now=_FIXED,
+    )
+    assert rep_a["findings"][0]["caveat"] == ""
+    assert rep_b["findings"][0]["caveat"] == "wstETH-style wrapper, documented at docs.ondo.finance"
+    assert rh_a != rh_b  # caveat text is hashed into the rootHash preimage
 
 
 # --- tier 1 -----------------------------------------------------------------

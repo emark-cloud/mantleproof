@@ -170,3 +170,44 @@ def test_inputs_are_not_mutated_and_note_is_public():
     assert original.finding == "fake $5,000,000"  # untouched
     assert original.label is HonestyLabel.VERIFIED
     assert out.public_note == "Hallucination guard fired: 1 masked"
+
+
+# --- caveat field (do-not-flag allowlist surfaces downgrade reason) --------
+
+def test_parse_findings_extracts_caveat():
+    body = (
+        '[{"check_id":"x","severity":"low","label":"VERIFIED",'
+        '"finding":"non-rebasing wrapper","suggested_fix":"none",'
+        '"caveat":"wstETH-style wrapper (Ondo docs)"}]'
+    )
+    out = parse_findings(body)
+    assert out[0].caveat == "wstETH-style wrapper (Ondo docs)"
+
+
+def test_parse_findings_caveat_defaults_empty():
+    body = '[{"check_id":"x","severity":"low","label":"VERIFIED","finding":"f"}]'
+    out = parse_findings(body)
+    assert out[0].caveat == ""
+
+
+def test_parse_findings_caveat_null_becomes_empty():
+    # An LLM emitting JSON `null` must NOT show up as the literal "None"
+    # string in the canonical report.
+    body = (
+        '[{"check_id":"x","severity":"low","label":"VERIFIED",'
+        '"finding":"f","caveat":null}]'
+    )
+    out = parse_findings(body)
+    assert out[0].caveat == ""
+
+
+def test_caveat_is_not_masked_by_guard():
+    # Caveats are qualitative explanations, not quantitative claims.
+    # Even with $/% in the text, the guard MUST NOT mask the caveat field.
+    f = CheckResult(
+        "tier2_reasoning_v1", Severity.LOW, HonestyLabel.VERIFIED,
+        "ok finding", {}, "", "wstETH-style wrapper docs: yield via 1 wstETH ~= 1.10 stETH",
+    )
+    out = apply_guard([f], source="contract C {}", bytecode=b"", tier1=[])
+    assert out.findings[0].caveat == f.caveat  # untouched verbatim
+    assert out.masked_count == 0

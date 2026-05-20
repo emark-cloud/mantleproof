@@ -68,6 +68,33 @@ def test_system_prompt_enforces_grounded_json_only():
     assert "ADDITIONAL" in sys  # must not restate Tier-1
 
 
+def test_system_prompt_carries_severity_rubric():
+    """HIGH must require concrete exploit path + loss vector — industry
+    consensus (Sherlock / Code4rena / OpenZeppelin / Immunefi)."""
+    sys, _ = build_prompt("contract C {}", b"", [], skills={})
+    assert "Severity rubric" in sys
+    assert "concrete" in sys.lower() and "exploit path" in sys.lower()
+    assert "loss" in sys.lower()
+    # The bias rule that drops a tier when path/loss aren't articulated:
+    assert "drop the finding one tier" in sys.lower()
+
+
+def test_system_prompt_advertises_caveat_field_in_json_schema():
+    sys, _ = build_prompt("contract C {}", b"", [], skills={})
+    assert '"caveat"' in sys
+    assert "downgraded" in sys.lower()
+
+
+def test_user_prompt_carries_intentional_design_allowlist():
+    _, user = build_prompt("contract C {}", b"", [], skills={})
+    assert "DO-NOT-FLAG-AS-HIGH" in user
+    assert "wstETH-style" in user and "LayerZero OFT" in user
+    assert "USDC-style compliance" in user
+    assert "downgrade" in user.lower() and "caveat" in user
+    # Generic rule — if docs say intended, downgrade-and-explain (not drop):
+    assert "Do NOT silently" in user and "lower tier" in user
+
+
 def test_user_prompt_includes_all_inputs():
     tier1 = [
         CheckResult(

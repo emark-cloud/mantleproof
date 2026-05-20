@@ -323,7 +323,7 @@ function FlowStep({ n, title, children }: { n: string; title: string; children: 
 
 /* -------------------------------- Demos -------------------------------- */
 
-const DEMO_BLURBS: Record<string, { agent: string; verdict: "APPROVED" | "DECLINED"; story: string }> = {
+const DEMO_BLURBS: Record<string, { agent: string; verdict: "APPROVED" | "DECLINED" | "FLAGGED"; story: string }> = {
   "0x1892f77e335C133Ce4a7B28555f13bA74cBB76fA": {
     agent: "deployer-agent",
     verdict: "DECLINED",
@@ -342,6 +342,24 @@ const DEMO_BLURBS: Record<string, { agent: string; verdict: "APPROVED" | "DECLIN
     story:
       "The canonical Merchant Moe LBRouter v2.2 — the contract the agent was about to call. The audit came back clean; the agent posted a real single-sided WMNT addLiquidity transaction on Mantle and recorded APPROVED in the DecisionLog.",
   },
+  "0xE6829d9a7eE3040e1276Fa75293Bde931859e8fA": {
+    agent: "production scan",
+    verdict: "FLAGGED",
+    story:
+      "Live scan of cmETH — mETH Protocol's restaked-mETH receipt on Mantle. Tier-2 returned MEDIUM after the design-pattern allowlist suppressed the by-design OFT yield-preservation observation; the remaining findings are blocklist DoS vectors, one with an intent caveat explaining the trade-off. Guard fired 0 masks.",
+  },
+  "0x5bE26527e817998A7206475496fDE1E68957c5a6": {
+    agent: "production scan",
+    verdict: "FLAGGED",
+    story:
+      "Live scan of USDYW — Ondo's wrapped USDY on Mantle. Tier-2 examined the contract and judged it does NOT match the wstETH-style allowlist (no on-chain wrap/unwrap mechanics for the underlying USDY) — so the allowlist was correctly NOT applied. 2 findings, severity HIGH. Guard fired 0 masks; read the findings before drawing conclusions.",
+  },
+  "0x211Cc4DD073734dA055fbF44a2b4667d5E5fE5d2": {
+    agent: "production scan",
+    verdict: "FLAGGED",
+    story:
+      "Live scan of Ethena sUSDe (StakedUSDeOFT, LayerZero-bridged). Tier-2 returned MEDIUM after the allowlist dropped the by-design OFT 1:1 observation; surfaced two grounded MEDIUM concerns about role-key compromise (rogue blackLister, rogue rateLimiter) with named attack paths. Guard fired 0 masks.",
+  },
 };
 
 function Demos() {
@@ -356,9 +374,9 @@ function Demos() {
 
   return (
     <section className="px-6 py-12 max-w-5xl mx-auto">
-      <SectionLabel>Three live demos — Mantle mainnet, independently verifiable</SectionLabel>
+      <SectionLabel>Six audits on Mantle mainnet — independently verifiable</SectionLabel>
       <h2 className="font-sans text-xl md:text-2xl text-text-primary mt-2 mb-6">
-        Three agent-to-agent flows, three on-chain receipts
+        Three agent-to-agent flows + three live scans of real Mantle protocols
       </h2>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
         {KNOWN_TARGETS.map((t, i) => {
@@ -385,7 +403,7 @@ function Demos() {
             >
               <div className="flex items-center gap-2">
                 <span className="font-mono text-[10px] uppercase tracking-wider text-text-muted">
-                  Demo {i + 1} · {blurb.agent}
+                  {i < 3 ? `Demo ${i + 1}` : `Audit ${i + 1}`} · {blurb.agent}
                 </span>
                 <span className="ml-auto text-[10px] font-mono uppercase tracking-wider text-text-muted flex items-center gap-1">
                   {integrityOk && (

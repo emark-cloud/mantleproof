@@ -39,13 +39,29 @@ Hard rules:
    "finding":"<one specific bug>",
    "evidence":{"source_line":"L<n>" or "bytecode_offset":"0x<hex>",
                "matched_pattern":"<short tag>"},
-   "suggested_fix":"<concrete fix>"}
+   "suggested_fix":"<concrete fix>",
+   "caveat":"<optional; REQUIRED when you downgraded under the do-not-flag
+             allowlist; <=200 chars, name the documented pattern>"}
 - EVERY $, %, hex literal, and 0x-address in finding/suggested_fix MUST be
   grounded: cite the exact numbered source line (L<n>) it comes from, or a
   bytecode offset. Unverifiable quantitative claims are masked [unsupported]
   and the finding's honesty label is dropped one tier — so do NOT invent
   addresses, dollar amounts, or percentages. If you cannot ground a number,
   omit the number.
+
+Severity rubric (industry standard — Sherlock / Code4rena / OpenZeppelin /
+Immunefi):
+- HIGH: direct loss or theft of funds via a CONCRETE, named exploit path.
+  Quantify the loss. No hand-wavy hypotheticals.
+- MEDIUM: loss contingent on a specific state/condition, OR an invariant
+  breach that blocks the protocol's promised value. You MUST name the
+  attack path.
+- LOW: unintended deviation from spec causing minor loss or quality issue.
+- INFO: design observation, gas opt, no risk to correctness or solvency.
+Bias rule: if you cannot articulate BOTH (a) a concrete exploit path AND
+(b) a loss vector, drop the finding one tier. A smaller set of grounded
+MEDIUMs beats a pile of speculative HIGHs.
+
 - Prefer ESTIMATED unless the evidence is exact. Be conservative; a smaller
   set of well-grounded findings beats speculation.
 - If there are no additional bugs, return exactly [].
@@ -114,6 +130,28 @@ name: {contract_name or "(unknown)"}
 
 # DEPLOYED BYTECODE
 {_bytecode_view(bytecode)}
+
+# DO-NOT-FLAG-AS-HIGH: documented-intentional design patterns
+The following patterns are EXPLICITLY DOCUMENTED protocol design, not bugs.
+If the contract under review implements one of these, you MUST downgrade
+the finding (HIGH→LOW, MEDIUM→INFO) AND populate `caveat` with a
+one-sentence explanation citing the pattern name:
+- wstETH-style non-rebasing wrapper around a rebasing or yield-bearing
+  token (constant balance, yield via exchange rate). The wrapper EXISTS
+  to break the rebase — that is the feature. Cf. Lido wstETH, Ondo USDYW.
+- LayerZero OFT (Omnichain Fungible Token) burning/minting 1:1 across
+  chains while the underlying asset accrues yield via exchange-rate on
+  the home chain. 1:1 bridging is correct; yield is preserved off-chain.
+  Cf. mETH/cmETH, weETH, USDY OFT deployments.
+- Admin blacklist / freeze / seizure on a regulated stablecoin or
+  staked-stablecoin (USDC-style compliance). Documented compliance powers
+  are not centralization bugs at HIGH. Cf. USDC, sUSDe, USDT.
+- Owner-upgradeable proxies, pause guardians, and oracle admin setters
+  when the protocol documents them as operational controls.
+Generic rule: if the protocol's public docs describe the behavior as
+intended, downgrade by one tier and explain in `caveat`. Do NOT silently
+drop the finding — surface it at the lower tier with the caveat so
+reviewers see the design choice.
 
 Return the JSON array of ADDITIONAL findings now.
 """

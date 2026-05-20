@@ -123,6 +123,9 @@ def parse_findings(raw_text: str) -> list[CheckResult]:
                 if isinstance(ev, dict)
                 else {},
                 suggested_fix=str(item.get("suggested_fix", "")),
+                # `or ""` rather than default=""; an LLM JSON `null` value
+                # otherwise stringifies to the literal "None".
+                caveat=str(item.get("caveat") or ""),
             )
         )
     return out

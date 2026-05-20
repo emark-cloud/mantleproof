@@ -46,6 +46,11 @@ class CheckResult:
     finding: str
     evidence: dict[str, str] = field(default_factory=dict)
     suggested_fix: str = ""
+    # Set when a finding was downgraded under the prompt's "do-not-flag"
+    # allowlist (e.g. wstETH-style wrapper, LayerZero OFT yield preservation,
+    # USDC-style documented compliance). Qualitative — outside the
+    # hallucination guard's quantitative-claim scope by design.
+    caveat: str = ""
 
     def to_dict(self) -> dict:
         return {
@@ -55,4 +60,5 @@ class CheckResult:
             "finding": self.finding,
             "evidence": self.evidence,
             "suggested_fix": self.suggested_fix,
+            "caveat": self.caveat,
         }

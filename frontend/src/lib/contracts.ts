@@ -94,4 +94,19 @@ export const KNOWN_TARGETS: readonly { address: `0x${string}`; label: string; pr
     label: "Merchant Moe LBRouter v2.2 (Demo 3)",
     provenance: "yield-agent target — canonical mainnet protocol",
   },
+  {
+    address: "0xE6829d9a7eE3040e1276Fa75293Bde931859e8fA",
+    label: "cmETH — restaked mETH receipt (Audit 4)",
+    provenance: "live production audit — mETH Protocol's LayerZero-bridged restaking token on Mantle",
+  },
+  {
+    address: "0x5bE26527e817998A7206475496fDE1E68957c5a6",
+    label: "USDYW — Ondo wrapped RWA (Audit 5)",
+    provenance: "live production audit — Ondo's wrapped USDY on Mantle",
+  },
+  {
+    address: "0x211Cc4DD073734dA055fbF44a2b4667d5E5fE5d2",
+    label: "sUSDe — Ethena staked USDe OFT (Audit 6)",
+    provenance: "live production audit — Ethena yield-bearing stable bridged via LayerZero",
+  },
 ] as const;

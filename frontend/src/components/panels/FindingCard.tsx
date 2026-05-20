@@ -93,12 +93,22 @@ export function FindingCard({ finding }: { finding: Finding }) {
         )}
       </div>
       {finding.suggested_fix && (
-        <div className="px-4 py-3">
+        <div className="px-4 py-3 row-divider">
           <div className="font-mono text-[10px] uppercase tracking-wider text-text-muted mb-1">
             Suggested fix
           </div>
           <p className="font-mono text-[12px] text-text-secondary whitespace-pre-wrap">
             {finding.suggested_fix}
+          </p>
+        </div>
+      )}
+      {finding.caveat && (
+        <div className="px-4 py-3 bg-sev-info/5 border-l-2 border-sev-info">
+          <div className="font-mono text-[10px] uppercase tracking-wider text-sev-info mb-1">
+            Caveat — intentional design
+          </div>
+          <p className="font-sans text-[12px] text-text-secondary whitespace-pre-wrap leading-relaxed">
+            {finding.caveat}
           </p>
         </div>
       )}

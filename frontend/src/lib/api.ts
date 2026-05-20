@@ -48,6 +48,10 @@ export interface Finding {
   source_lines?: string[];
   bytecode_offset?: string;
   matched_pattern?: string;
+  // Optional. Set by the engine when a finding was downgraded under the
+  // Tier-2 "do-not-flag" allowlist (intentional design pattern). Surfaced
+  // verbatim in the UI; never masked by the hallucination guard.
+  caveat?: string;
 }
 
 /** The engine's summary object packed by pipeline.py's _summarize. */
