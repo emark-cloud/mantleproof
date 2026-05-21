@@ -186,7 +186,7 @@ function Hero() {
           label="risk checks"
         />
         <Stat
-          big="4"
+          big="3"
           label="ways to query"
         />
       </div>
