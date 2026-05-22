@@ -194,7 +194,10 @@ def test_post_surfaces_settle_failure_after_anchor(monkeypatch):
 
 
 def test_post_503_when_paywall_not_configured(monkeypatch):
-    monkeypatch.delenv("X402_PAYTO_ADDRESS", raising=False)
+    # Force the unconfigured state with an empty env var — this overrides the
+    # repo .env file in pydantic-settings' precedence, so the test holds
+    # regardless of whether X402_PAYTO_ADDRESS is set in .env.
+    monkeypatch.setenv("X402_PAYTO_ADDRESS", "")
     from mantleproof.settings import get_settings
 
     get_settings.cache_clear()  # type: ignore[attr-defined]

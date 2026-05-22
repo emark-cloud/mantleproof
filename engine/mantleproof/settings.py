@@ -54,7 +54,15 @@ class Settings(BaseSettings):
     ipfs_gateway: str = "https://gateway.pinata.cloud/ipfs/"
 
     # --- x402 (settles USDC on Base) ---
+    # Facilitator selection (verify + settle of the USDC payment leg):
+    #   "x402org" — the free x402.org facilitator; **Base Sepolia only** (testnet).
+    #   "cdp"     — Coinbase Developer Platform; settles **Base mainnet**. Needs
+    #               cdp_api_key_id + cdp_api_key_secret; the CDP host is fixed so
+    #               x402_facilitator_url is ignored in this mode.
+    x402_facilitator: Literal["x402org", "cdp"] = "x402org"
     x402_facilitator_url: str = "https://x402.org/facilitator"
+    cdp_api_key_id: str = ""
+    cdp_api_key_secret: str = ""
     base_rpc_url: str = "https://mainnet.base.org"
     x402_payto_address: str = ""
     x402_usdc_address: str = ""

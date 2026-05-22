@@ -29,6 +29,11 @@ dev = [
   "black>=24.10",
   "mypy>=1.13",
 ]
+# CDP x402 facilitator (Base mainnet). Optional: only needed when
+# x402_facilitator=cdp. CI / default x402org mode does not import it.
+cdp = [
+  "cdp-sdk>=1.40",
+]
 
 [tool.setuptools.packages.find]
 include = ["mantleproof*"]

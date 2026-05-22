@@ -10,7 +10,8 @@
     "test": "echo \"no tests yet (scaffold)\" && exit 0",
     "demo:deployer": "tsx src/deployer-agent.ts",
     "demo:trading": "tsx src/trading-agent.ts",
-    "demo:yield": "tsx src/yield-agent.ts"
+    "demo:yield": "tsx src/yield-agent.ts",
+    "x402:audit": "tsx src/x402-audit.ts"
   },
   "dependencies": {
     "dotenv": "^16.4.5",

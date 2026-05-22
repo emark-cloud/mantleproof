@@ -2,12 +2,16 @@
 
 from __future__ import annotations
 
+from types import SimpleNamespace
+
 import httpx
 import pytest
 
+from mantleproof.x402 import facilitator as fac_mod
 from mantleproof.x402.builder import build_payment_requirements
 from mantleproof.x402.facilitator import (
     _payload_for_verify,
+    _resolve,
     settle,
     verify,
 )
@@ -69,9 +73,10 @@ def test_verify_unwraps_facilitator_response(monkeypatch):
     )
     captured: dict = {}
 
-    def fake_post(url, json, timeout):  # noqa: A002 — match httpx signature
+    def fake_post(url, json, headers, timeout):  # noqa: A002 — match httpx signature
         captured["url"] = url
         captured["body"] = json
+        captured["headers"] = headers
         return _resp(
             200,
             url,
@@ -153,3 +158,61 @@ def test_verify_raises_on_facilitator_5xx(monkeypatch):
     monkeypatch.setattr(httpx, "post", lambda *_a, **_k: _resp(503, text="oops"))
     with pytest.raises(httpx.HTTPStatusError):
         verify(pay, req)
+
+
+# --- facilitator selection (_resolve) — x402org testnet vs CDP mainnet --------
+
+
+def _fake_settings(**kw) -> SimpleNamespace:
+    base = dict(
+        x402_facilitator="x402org",
+        x402_facilitator_url="https://x402.org/facilitator",
+        cdp_api_key_id="",
+        cdp_api_key_secret="",
+    )
+    base.update(kw)
+    return SimpleNamespace(**base)
+
+
+def test_resolve_x402org_is_plain_unauthenticated(monkeypatch):
+    monkeypatch.setattr(fac_mod, "get_settings", lambda: _fake_settings())
+    url, headers = _resolve("verify", None)
+    assert url == "https://x402.org/facilitator/verify"
+    assert headers == {}
+
+
+def test_resolve_explicit_url_override_bypasses_settings(monkeypatch):
+    """The test-injection seam: an explicit URL is honored verbatim with no
+    auth — even when settings say cdp."""
+    monkeypatch.setattr(
+        fac_mod,
+        "get_settings",
+        lambda: _fake_settings(
+            x402_facilitator="cdp", cdp_api_key_id="x", cdp_api_key_secret="y"
+        ),
+    )
+    url, headers = _resolve("settle", "https://fac.example/")
+    assert url == "https://fac.example/settle"
+    assert headers == {}
+
+
+def test_resolve_cdp_without_keys_raises(monkeypatch):
+    monkeypatch.setattr(
+        fac_mod, "get_settings", lambda: _fake_settings(x402_facilitator="cdp")
+    )
+    with pytest.raises(RuntimeError, match="CDP_API_KEY"):
+        _resolve("verify", None)
+
+
+def test_resolve_cdp_targets_cdp_host_with_bearer(monkeypatch):
+    monkeypatch.setattr(
+        fac_mod,
+        "get_settings",
+        lambda: _fake_settings(
+            x402_facilitator="cdp", cdp_api_key_id="kid", cdp_api_key_secret="ksecret"
+        ),
+    )
+    monkeypatch.setattr(fac_mod, "_cdp_bearer", lambda kid, ksec, path: f"JWT[{path}]")
+    url, headers = _resolve("settle", None)
+    assert url == "https://api.cdp.coinbase.com/platform/v2/x402/settle"
+    assert headers == {"Authorization": "Bearer JWT[/platform/v2/x402/settle]"}

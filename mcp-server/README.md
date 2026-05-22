@@ -13,8 +13,9 @@ Every audit returned by these tools is:
 
 > Status: `getAudit` is live against Mantle mainnet today. `auditContract` is
 > cache-first (returns the latest anchored audit if one exists). `requestAudit`
-> (paid Tier-2 via x402) is gated on the paywall endpoint deployment — until
-> that ships, the tool refuses honestly rather than fabricating a payment.
+> drives the live x402 paywall — verified end-to-end with a real-USDC paid
+> audit on Base + Mantle mainnet (2026-05-22). It surfaces the 402 payment
+> requirements; an x402-aware wallet completes the EIP-3009 dance.
 
 ## Tools
 
@@ -22,7 +23,7 @@ Every audit returned by these tools is:
 |---|---|---|
 | `getAudit(address)` | ✅ live | Read-only lookup against `MantleProofRegistry.getAudit(address)` joined with the IPFS report + keccak integrity check. Free, no signer needed. |
 | `auditContract(address, tier)` | ✅ cache hit · ⏳ paid | Return the latest cached audit; if none exists, point the agent at `requestAudit`. |
-| `requestAudit(address, tier)` | ⏳ gated on x402 paywall (T11) | Pay 0.50 USDC on Base (eip155:8453), audit anchors on Mantle (eip155:5000). Both txHashes returned. Refuses today rather than fabricating a receipt. |
+| `requestAudit(address, tier)` | ✅ live x402 | Pay 0.50 USDC on Base (eip155:8453); audit anchors on Mantle (eip155:5000); both txHashes returned. Surfaces the 402 payment requirements — never fabricates a receipt; an x402-aware wallet signs the EIP-3009 authorization. |
 
 ### Output shape
 

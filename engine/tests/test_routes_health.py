@@ -61,7 +61,9 @@ def test_health_degraded_when_rpc_fails(monkeypatch):
 
 def test_health_degraded_when_registry_unset(monkeypatch):
     monkeypatch.setattr(routes_health, "_live_rpc_ping", lambda: 1)
-    monkeypatch.delenv("MANTLEPROOF_REGISTRY_ADDRESS", raising=False)
+    # Empty env var overrides the repo .env file in pydantic-settings'
+    # precedence — delenv alone leaves the .env value in force.
+    monkeypatch.setenv("MANTLEPROOF_REGISTRY_ADDRESS", "")
 
     from mantleproof.settings import get_settings
 
