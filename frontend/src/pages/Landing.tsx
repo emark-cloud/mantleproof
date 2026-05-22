@@ -188,17 +188,23 @@ function Hero() {
         <Stat
           big="3"
           label="ways to query"
+          tip="On-chain getAudit() — trustless read · MCP server — agent-native read · REST + x402 — paid, triggers a fresh audit."
         />
       </div>
     </section>
   );
 }
 
-function Stat({ big, label }: { big: string; label: string }) {
+function Stat({ big, label, tip }: { big: string; label: string; tip?: string }) {
+  const labelNode = (
+    <span className="block text-[10px] uppercase tracking-wider text-text-muted mt-1">
+      {label}
+    </span>
+  );
   return (
     <div>
       <div className="text-xl md:text-xxl text-text-primary tabular-nums leading-none">{big}</div>
-      <div className="text-[10px] uppercase tracking-wider text-text-muted mt-1">{label}</div>
+      {tip ? <Tip text={tip}>{labelNode}</Tip> : labelNode}
     </div>
   );
 }
@@ -468,20 +474,49 @@ function Install() {
   const mcp = `# stdio MCP server — Claude Desktop / Cursor
 npx -y mantleproof-mcp
 # tools: getAudit, auditContract, requestAudit`;
-  const x402 = `# x402 paywall — USDC on Base, anchor on Mantle
+  const x402 = `# x402 paywall — pay 0.50 USDC on Base
 curl -X POST https://mantleproof.xyz/x402/audit/0x... \\
   -H 'X-PAYMENT: <base64 EIP-3009 transferWithAuthorization>'`;
 
   return (
     <section className="px-6 py-12 max-w-5xl mx-auto">
-      <SectionLabel>Install · use</SectionLabel>
-      <h2 className="font-sans text-xl md:text-2xl text-text-primary mt-2 mb-6">
+      <SectionLabel>The three query surfaces</SectionLabel>
+      <h2 className="font-sans text-xl md:text-2xl text-text-primary mt-2 mb-3">
         Three ways an agent queries MantleProof
       </h2>
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
-        <CodeBlock title="On-chain (free, read-only)" body={cast} />
-        <CodeBlock title="MCP (stdio, agent-to-agent)" body={mcp} />
-        <CodeBlock title="REST + x402 (paid)" body={x402} />
+      <p className="font-sans text-sm text-text-secondary mb-6 max-w-3xl leading-relaxed">
+        One audit engine, one canonical result — three access patterns. The
+        first two <span className="text-text-primary">read</span> an
+        already-published audit; the third can{" "}
+        <span className="text-text-primary">create</span> a new one. Pick the
+        surface by how much you want to trust, and by whether the contract has
+        been audited yet.
+      </p>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 items-stretch">
+        <QueryMethod
+          n="1"
+          name="On-chain"
+          call="getAudit()"
+          purpose="Read a published audit straight from the registry contract and recompute the proof yourself — no MantleProof server in the loop. This is the trust anchor: the engine cannot lie about an audit you can verify from public chain + IPFS data."
+          meta={["read-only", "trustless", "free"]}
+          body={cast}
+        />
+        <QueryMethod
+          n="2"
+          name="MCP server"
+          call="npx mantleproof-mcp"
+          purpose="Drop MantleProof into an AI agent (Claude Desktop, Cursor) as a tool. The agent looks up an audit mid-conversation and gets the same canonical result, formatted to reason over."
+          meta={["read-only", "agent-native", "free"]}
+          body={mcp}
+        />
+        <QueryMethod
+          n="3"
+          name="REST + x402"
+          call="POST /x402/audit"
+          purpose="No audit exists yet? Pay 0.50 USDC on Base to trigger a fresh Tier-2 audit. It anchors on Mantle and is cached — so every later read on surfaces 1 and 2 is free for everyone."
+          meta={["read + create", "paid", "USDC on Base"]}
+          body={x402}
+        />
       </div>
       <div className="mt-3 text-[11px] font-mono text-text-muted">
         mantleproof-mcp will be published to npm at submission. On-chain + REST
@@ -491,20 +526,50 @@ curl -X POST https://mantleproof.xyz/x402/audit/0x... \\
   );
 }
 
-function CodeBlock({ title, body }: { title: string; body: string }) {
+function QueryMethod({
+  n,
+  name,
+  call,
+  purpose,
+  meta,
+  body,
+}: {
+  n: string;
+  name: string;
+  call: string;
+  purpose: string;
+  meta: string[];
+  body: string;
+}) {
   return (
     <div className="panel flex flex-col">
-      <div className="px-3 py-2 row-divider flex items-center justify-between">
-        <div className="font-mono text-[10px] uppercase tracking-wider text-text-muted">
-          {title}
+      <div className="px-3 py-2.5 row-divider">
+        <div className="flex items-baseline justify-between gap-2">
+          <span className="font-mono text-[11px] uppercase tracking-wider text-accent">
+            {n} · {name}
+          </span>
+          <CopyButton
+            label="copy"
+            text={body}
+            className="font-mono text-[10px] text-text-muted hover:text-accent"
+          />
         </div>
-        <CopyButton
-          label="copy"
-          text={body}
-          className="font-mono text-[10px] text-text-muted hover:text-accent"
-        />
+        <div className="font-mono text-[11px] text-text-secondary mt-0.5">{call}</div>
+        <p className="font-sans text-[12px] text-text-secondary mt-2 leading-relaxed">
+          {purpose}
+        </p>
+        <div className="flex flex-wrap gap-1.5 mt-2.5">
+          {meta.map((m) => (
+            <span
+              key={m}
+              className="font-mono text-[9px] uppercase tracking-wider text-text-muted border border-border-faint px-1.5 py-0.5"
+            >
+              {m}
+            </span>
+          ))}
+        </div>
       </div>
-      <pre className="px-3 py-3 text-[11px] text-text-secondary font-mono whitespace-pre-wrap break-all leading-relaxed">
+      <pre className="px-3 py-3 text-[11px] text-text-secondary font-mono whitespace-pre-wrap break-all leading-relaxed flex-1">
         {body}
       </pre>
     </div>
