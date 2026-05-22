@@ -49,10 +49,6 @@ class Settings(BaseSettings):
     anthropic_api_key: str = ""
     zai_api_key: str = ""
 
-    # --- Persistence ---
-    database_url: str = "postgresql+psycopg2://postgres:postgres@localhost:5432/mantleproof"
-    redis_url: str = "redis://localhost:6379/0"
-
     # --- IPFS ---
     pinata_jwt: str = ""
     ipfs_gateway: str = "https://gateway.pinata.cloud/ipfs/"

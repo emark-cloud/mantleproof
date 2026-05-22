@@ -32,7 +32,6 @@ Build guide: [`CLAUDE.md`](CLAUDE.md) · Tasks: [`TODO.md`](TODO.md)
 ```bash
 pnpm install
 cd engine && python -m venv .venv && . .venv/bin/activate && pip install -e ".[dev]"
-docker-compose up -d
 cp .env.example .env   # fill in keys — see docs/setup-checklist.md
 ```
 

@@ -158,7 +158,6 @@ audit findings reference contract addresses, not payment chains.
 # Setup
 pnpm install
 cd engine && python -m venv .venv && . .venv/bin/activate && pip install -e ".[dev]"
-docker-compose up -d                       # postgres + redis
 
 # Typecheck / lint / test
 pnpm -r typecheck

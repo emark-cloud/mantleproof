@@ -17,8 +17,6 @@
     "contracts:deploy:sepolia": "pnpm --filter @mantleproof/contracts exec hardhat run scripts/deploy.ts --network mantleSepolia",
     "contracts:deploy:mainnet": "pnpm --filter @mantleproof/contracts exec hardhat run scripts/deploy.ts --network mantle",
     "frontend:dev": "pnpm --filter @mantleproof/frontend dev",
-    "mcp:build": "pnpm --filter mantleproof-mcp build",
-    "compose:up": "docker-compose up -d",
-    "compose:down": "docker-compose down"
+    "mcp:build": "pnpm --filter mantleproof-mcp build"
   }
 }
