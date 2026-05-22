@@ -518,6 +518,23 @@ curl -X POST https://mantleproof.xyz/x402/audit/0x... \\
           body={x402}
         />
       </div>
+
+      <div className="panel mt-4 px-4 py-3 border-l-2 border-accent-dim">
+        <div className="font-mono text-[10px] uppercase tracking-wider text-accent-dim mb-1">
+          The registry is a commons — by design
+        </div>
+        <p className="font-sans text-[12px] text-text-secondary leading-relaxed">
+          Surface 3 charges to <span className="text-text-primary">create</span>{" "}
+          an audit, never to read one. The first agent to need a contract
+          checked pays 0.50 USDC once; the audit is then anchored on Mantle and
+          pinned to IPFS — public by construction, since trustless verification
+          (surface 1) depends on it. Every agent, human, and judge after the
+          first reads it free. Each paid audit compounds a shared registry every
+          agent draws on — the growing commons is the product, not a side
+          effect.
+        </p>
+      </div>
+
       <div className="mt-3 text-[11px] font-mono text-text-muted">
         mantleproof-mcp will be published to npm at submission. On-chain + REST
         are live now against Mantle mainnet.
@@ -619,6 +636,25 @@ const FAQ_ITEMS: { q: string; a: React.ReactNode }[] = [
         200 response — payment receipt on Base, audit anchor on Mantle.
         Cross-chain is fine because audit findings reference contract addresses,
         not payment chains. Self-hosting a Mantle facilitator is roadmap.
+      </>
+    ),
+  },
+  {
+    q: "If I pay for an audit, why can everyone else read it free?",
+    a: (
+      <>
+        Because a paywalled audit oracle is a contradiction. Trustless
+        verification — reading <code className="text-accent">getAudit()</code>{" "}
+        straight from the registry and recomputing the proof — only works if the
+        rootHash and the IPFS report are public, so an audit is public the
+        moment it is anchored. The 0.50 USDC on the x402 surface pays to{" "}
+        <span className="text-text-primary">produce</span> a new audit, never to
+        read an existing one. The first agent to need an unaudited contract
+        funds it once; every agent after gets it free. The payer isn't
+        subsidising strangers — it is buying a timely safety decision at the
+        moment that decision has value, and the audit it leaves behind compounds
+        the very registry it relies on. MantleProof is infrastructure; the
+        registry is a commons by design.
       </>
     ),
   },
