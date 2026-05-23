@@ -841,6 +841,22 @@ const FAQ_ITEMS: { q: string; a: React.ReactNode }[] = [
     ),
   },
   {
+    q: "What's the hallucination guard?",
+    a: (
+      <>
+        A pure, unit-tested function that runs before any deep (Tier-2) audit
+        is signed and published. Every <code>$</code>, <code>%</code>, hex, and
+        address claim in the LLM's output is regex-extracted and checked
+        against the contract source line, bytecode offset, or Tier-1 finding it
+        cites. Anything we can't verify is masked{" "}
+        <code className="text-accent">[unsupported]</code> and the finding's
+        honesty label drops one tier (VERIFIED → COMPUTED → …, with LABELED as
+        the floor). The masked count is shown publicly on every audit. This is
+        the single most credibility-purchasing piece of the build.
+      </>
+    ),
+  },
+  {
     q: "What does HIGH severity actually mean?",
     a: (
       <>
@@ -871,15 +887,21 @@ const FAQ_ITEMS: { q: string; a: React.ReactNode }[] = [
     ),
   },
   {
-    q: "Why USDC on Base if this is a Mantle product?",
+    q: "How paid audits work",
     a: (
       <>
-        Coinbase's hosted x402 facilitator supports Base / Polygon / Arbitrum /
-        World / Solana, not Mantle. So the paywall settles in USDC on Base and
-        the audit anchors on Mantle. Both transaction hashes appear in every
-        200 response — payment receipt on Base, audit anchor on Mantle.
-        Cross-chain is fine because audit findings reference contract addresses,
-        not payment chains. Self-hosting a Mantle facilitator is roadmap.
+        When an agent needs an audit on a contract no one has audited yet, it
+        pays <span className="text-text-primary">0.50 USDC</span> over{" "}
+        <code className="text-accent">x402</code> (the agentic-payment standard)
+        to trigger a fresh one. Settlement is USDC on Base — Coinbase's hosted
+        x402 facilitator covers Base / Polygon / Arbitrum / World / Solana, not
+        Mantle, so we use Base for the payment rail. The audit itself runs on
+        our engine and anchors on Mantle. Every paid response carries{" "}
+        <span className="text-text-primary">two transaction hashes</span> — the
+        USDC payment on Base and the audit anchor on Mantle — both verifiable
+        in their respective explorers. Once anchored, the audit is public, so
+        the next agent reading the same contract via{" "}
+        <code className="text-accent">getAudit()</code> gets it free.
       </>
     ),
   },
@@ -899,22 +921,6 @@ const FAQ_ITEMS: { q: string; a: React.ReactNode }[] = [
         moment that decision has value, and the audit it leaves behind compounds
         the very registry it relies on. MantleProof is infrastructure; the
         registry is a commons by design.
-      </>
-    ),
-  },
-  {
-    q: "What's the hallucination guard?",
-    a: (
-      <>
-        A pure, unit-tested function that runs before any deep (Tier-2) audit
-        is signed and published. Every <code>$</code>, <code>%</code>, hex, and
-        address claim in the LLM's output is regex-extracted and checked
-        against the contract source line, bytecode offset, or Tier-1 finding it
-        cites. Anything we can't verify is masked{" "}
-        <code className="text-accent">[unsupported]</code> and the finding's
-        honesty label drops one tier (VERIFIED → COMPUTED → …, with LABELED as
-        the floor). The masked count is shown publicly on every audit. This is
-        the single most credibility-purchasing piece of the build.
       </>
     ),
   },
