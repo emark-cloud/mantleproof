@@ -15,14 +15,25 @@ describe("MantleProofAgent (Path A wrapper)", () => {
     return { agent, id, rep, owner, auditor, inftOwner, stranger };
   }
 
-  it("stores constructor refs and reads identity/reputation through", async () => {
-    const { agent, id, rep, inftOwner } = await deploy();
+  it("stores constructor refs; agentOwner reads through; reputation()/agentURI() are defunct (T38)", async () => {
+    const { agent, id, inftOwner } = await deploy();
     expect(await agent.agentTokenId()).to.equal(7n);
     await id.setAgent(7, inftOwner.address, "ipfs://card");
-    await rep.postFeedback(7, 42, "good");
     expect(await agent.agentOwner()).to.equal(inftOwner.address);
-    expect(await agent.agentURI()).to.equal("ipfs://card");
-    expect(await agent.reputation()).to.equal(42n);
+
+    // T38: the deployed wrapper was compiled against the old fictional
+    // IReputationRegistry/IIdentityRegistry interface, so its reputation()
+    // and agentURI() views call selectors that don't exist on Mantle's
+    // canonical v2 registries — they revert on-chain at runtime. Source
+    // now matches that reality. Real reputation lives in the official
+    // registry's getSummary(agentId, getClients(agentId), "", "") — see
+    // docs/erc8004-abi-notes.md.
+    await expect(agent.reputation()).to.be.revertedWith(
+      /MantleProofAgent\.reputation: defunct on-chain/,
+    );
+    await expect(agent.agentURI()).to.be.revertedWith(
+      /MantleProofAgent\.agentURI: defunct on-chain/,
+    );
   });
 
   it("setAuditor is owner-only; updateMemoryRoot is auditor-only and compounds", async () => {

@@ -69,13 +69,37 @@ contract MantleProofAgent is IMantleProofAgent, Ownable {
         return identityRegistry.ownerOf(agentTokenId);
     }
 
-    /// @notice Reputation score read through the official Reputation Registry.
-    function reputation() external view returns (int256) {
-        return reputationRegistry.reputationOf(agentTokenId);
+    /// @notice DEFUNCT on-chain — reverts unconditionally.
+    /// @dev The deployed implementation called `IReputationRegistry.reputationOf(uint256)`
+    ///      against the official Mantle Reputation Registry. That selector is
+    ///      FICTIONAL — it does not exist on the canonical v2 contract — so
+    ///      every on-chain call to this view reverts at runtime. The interface
+    ///      was rewritten 2026-05-23 (T38, see `IEIP8004.sol`); this view
+    ///      now reverts in source as well so the source matches the
+    ///      deployed reality and any future re-deploy can't silently
+    ///      reintroduce the bug. Real reputation lives in the official
+    ///      Reputation Registry — read it directly:
+    ///        `IReputationRegistry(reputationRegistry).getSummary(
+    ///            agentTokenId,
+    ///            IReputationRegistry(reputationRegistry).getClients(agentTokenId),
+    ///            "", ""
+    ///        )`
+    ///      The frontend reads `getSummary` from the official registry (T41).
+    function reputation() external pure returns (int256) {
+        revert(
+            "MantleProofAgent.reputation: defunct on-chain (T38). Read getSummary(agentTokenId, getClients(agentTokenId), '', '') on the official Reputation Registry."
+        );
     }
 
-    /// @notice tokenURI of MantleProof's registration file (capabilities/endpoints).
-    function agentURI() external view returns (string memory) {
-        return identityRegistry.agentURI(agentTokenId);
+    /// @notice DEFUNCT on-chain — reverts unconditionally.
+    /// @dev The deployed implementation called `IIdentityRegistry.agentURI(uint256)`.
+    ///      That selector is FICTIONAL — the canonical name is ERC-721
+    ///      `tokenURI(uint256)`. Same bug class as `reputation()` above;
+    ///      same remediation: read `tokenURI(agentTokenId)` directly from
+    ///      the official Identity Registry.
+    function agentURI() external pure returns (string memory) {
+        revert(
+            "MantleProofAgent.agentURI: defunct on-chain (T38). Read tokenURI(agentTokenId) on the official Identity Registry."
+        );
     }
 }

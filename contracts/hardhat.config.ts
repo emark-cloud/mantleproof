@@ -11,10 +11,30 @@ const accounts = process.env.DEPLOYER_PRIVATE_KEY
 
 const config: HardhatUserConfig = {
   solidity: {
-    version: "0.8.28",
-    settings: {
-      optimizer: { enabled: true, runs: 200 },
-      evmVersion: "cancun",
+    compilers: [
+      {
+        version: "0.8.28",
+        settings: {
+          optimizer: { enabled: true, runs: 200 },
+          evmVersion: "cancun",
+        },
+      },
+    ],
+    // Test mocks for ERC-8004 v2 mirror the canonical contracts' wide
+    // function signatures (giveFeedback has 8 args, readAllFeedback returns
+    // 7 dynamic arrays) which trip solc's stack-too-deep limit without
+    // viaIR. Production contracts compile with the project default
+    // (optimizer + EVM cancun); only the test stand-ins use viaIR so the
+    // shipped bytecode is unchanged.
+    overrides: {
+      "contracts/test/MockReputationRegistry.sol": {
+        version: "0.8.28",
+        settings: {
+          optimizer: { enabled: true, runs: 200 },
+          evmVersion: "cancun",
+          viaIR: true,
+        },
+      },
     },
   },
   networks: {
