@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import json
 import pathlib
+import time
 from collections.abc import Callable
 from datetime import UTC, datetime
 from functools import lru_cache
@@ -72,6 +73,8 @@ def _load_metrics_ref() -> dict[str, Any] | None:
         "validation_set_size": dataset.get("samples"),
         "computed_at": m.get("computed_at"),
         "dataset_sha256": dataset.get("sha256"),
+        # T35: Tier-1 latency over the validation set (offline, no LLM).
+        "latency_ms": m.get("latency_ms"),
     }
 
 
@@ -183,11 +186,16 @@ def run_audit(
       - `now`: clock injection for deterministic rootHash in tests
 
     Returns the final report dict (incl. `root_hash`, and `ipfs_cid`/`anchor_tx`
-    when those steps ran).
+    when those steps ran). Top-level ``timing_ms`` block is added **after** the
+    rootHash is computed — observability data must not perturb the canonical
+    preimage (a re-run of the same audit must produce the same rootHash).
     """
     clock = now or (lambda: datetime.now(UTC))
+    timing: dict[str, float | None] = {}
+    t_total = time.perf_counter()
 
     # 1. resolve verified source + bytecode (live only when not supplied).
+    t = time.perf_counter()
     if source is None:
         from mantleproof.source.mantlescan import MantlescanClient
 
@@ -208,9 +216,12 @@ def run_audit(
             bytecode = get_code(target, get_settings().active_rpc_url)
         except Exception:  # noqa: BLE001 — source-first; degrade to no bytecode
             bytecode = b""
+    timing["source_fetch_ms"] = round((time.perf_counter() - t) * 1000, 1)
 
     # 2. Tier-1 union (self-target guard via address).
+    t = time.perf_counter()
     tier1 = run_tier1(source, bytecode, chain_id, address=target)
+    timing["tier1_ms"] = round((time.perf_counter() - t) * 1000, 1)
 
     # 3-4. Tier-2 reasoning + hallucination guard (tier=2 only).
     guarded_findings: list[CheckResult] | None = None
@@ -218,10 +229,13 @@ def run_audit(
     per_finding: list[int] = []
     provider_name = ""
     tier2_status = ""
+    timing["tier2_ms"] = None
+    timing["guard_ms"] = None
     if tier == 2:
         if not source:
             tier2_status = "unverified_source"
         else:
+            t = time.perf_counter()
             out = run_tier2(
                 target,
                 chain_id=chain_id,
@@ -230,14 +244,17 @@ def run_audit(
                 bytecode=bytecode,
                 provider=provider,
             )
+            timing["tier2_ms"] = round((time.perf_counter() - t) * 1000, 1)
             tier2_status = out.get("status", "")
             provider_name = out.get("provider", "")
             if tier2_status == "ok":
+                t = time.perf_counter()
                 parsed = parse_findings(out["raw_text"])
                 g = apply_guard(parsed, source=source, bytecode=bytecode, tier1=tier1)
                 guarded_findings = g.findings
                 masked, drops = g.masked_count, g.dropped_labels
                 per_finding = g.per_finding_masked
+                timing["guard_ms"] = round((time.perf_counter() - t) * 1000, 1)
 
     # 5. assemble the canonical report + rootHash.
     report, root_hash, severity = build_report(
@@ -261,16 +278,26 @@ def run_audit(
         from mantleproof.persistence.ipfs import pin_json
 
         pin_fn = pin_json
+    t = time.perf_counter()
     cid = pin_fn(report)
+    timing["ipfs_pin_ms"] = round((time.perf_counter() - t) * 1000, 1)
     report["ipfs_cid"] = cid
     report["ipfs_uri"] = f"ipfs://{cid}"
 
+    timing["anchor_ms"] = None
     if do_anchor:
         anchor_fn = anchor
         if anchor_fn is None:
             from mantleproof.persistence.anchor import anchor_audit
 
             anchor_fn = anchor_audit
+        t = time.perf_counter()
         report["anchor_tx"] = anchor_fn(target, severity, root_hash, f"ipfs://{cid}")
+        timing["anchor_ms"] = round((time.perf_counter() - t) * 1000, 1)
+
+    timing["total_ms"] = round((time.perf_counter() - t_total) * 1000, 1)
+    # Added post-hash on purpose — timing varies per-run and must not change
+    # the canonical rootHash for an otherwise-identical audit.
+    report["timing_ms"] = timing
 
     return report

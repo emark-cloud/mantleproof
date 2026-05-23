@@ -161,8 +161,22 @@ def test_run_audit_tier1_offline(usdy_pos):
     mref = report["metrics_ref"]
     assert mref is None or {
         "url", "precision", "recall", "f1",
-        "validation_set_size", "computed_at", "dataset_sha256",
+        "validation_set_size", "computed_at", "dataset_sha256", "latency_ms",
     } <= set(mref)
+    # T35: per-audit timing breakdown sits OUTSIDE the rootHash preimage
+    # (observability, not finding content). Must be present, must include all
+    # six phase keys + total. tier1/source/ipfs are always populated;
+    # tier2/guard/anchor may be None depending on the path taken.
+    assert "timing_ms" in report
+    t = report["timing_ms"]
+    assert {
+        "source_fetch_ms", "tier1_ms", "tier2_ms", "guard_ms",
+        "ipfs_pin_ms", "anchor_ms", "total_ms",
+    } == set(t)
+    assert isinstance(t["tier1_ms"], float) and t["tier1_ms"] >= 0
+    assert isinstance(t["total_ms"], float) and t["total_ms"] >= t["tier1_ms"]
+    assert t["tier2_ms"] is None and t["guard_ms"] is None  # tier=1 path
+    assert t["anchor_ms"] is None  # do_anchor=False
     assert _HEX32.match(report["root_hash"])
     assert report["ipfs_cid"] == "bafyfakecid"
     assert report["ipfs_uri"] == "ipfs://bafyfakecid"

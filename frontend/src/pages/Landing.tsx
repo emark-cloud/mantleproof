@@ -239,6 +239,7 @@ type Metrics = {
     tp: number; fp: number; tn: number; fn: number;
     n_pos: number; n_neg: number;
   }>;
+  latency_ms?: { p50: number; p95: number; p99: number; samples: number };
 };
 
 const BAR_WIDTH = 12;
@@ -300,6 +301,40 @@ function Coverage() {
               tip={`Dataset: ${Object.entries(data.dataset.by_kind).map(([k, v]) => `${v} ${k}`).join(", ")}`}
             />
           </div>
+
+          {/* T35: Tier-1 latency over the same validation set. Stays
+              honest — labeled as Tier-1 only (no LLM in the measurement). */}
+          {data.latency_ms ? (
+            <div className="font-mono text-[12px] text-text-secondary border-t border-border-faint pt-4">
+              <div className="text-text-muted uppercase tracking-wider text-[10px] mb-2">
+                Tier-1 latency over the validation set
+              </div>
+              <div className="grid grid-cols-3 md:grid-cols-4 gap-6">
+                <div>
+                  <div className="text-text-primary tabular-nums text-lg">
+                    {data.latency_ms.p50}<span className="text-text-muted text-xs ml-1">ms</span>
+                  </div>
+                  <div className="text-text-muted text-[10px] uppercase tracking-wider mt-1">p50</div>
+                </div>
+                <div>
+                  <div className="text-text-primary tabular-nums text-lg">
+                    {data.latency_ms.p95}<span className="text-text-muted text-xs ml-1">ms</span>
+                  </div>
+                  <div className="text-text-muted text-[10px] uppercase tracking-wider mt-1">p95</div>
+                </div>
+                <div>
+                  <div className="text-text-primary tabular-nums text-lg">
+                    {data.latency_ms.p99}<span className="text-text-muted text-xs ml-1">ms</span>
+                  </div>
+                  <div className="text-text-muted text-[10px] uppercase tracking-wider mt-1">p99</div>
+                </div>
+                <div>
+                  <div className="text-text-primary tabular-nums text-lg">{data.latency_ms.samples}</div>
+                  <div className="text-text-muted text-[10px] uppercase tracking-wider mt-1">samples</div>
+                </div>
+              </div>
+            </div>
+          ) : null}
 
           {/* Per-check ASCII stacked bars: precision · recall side by side */}
           <div className="font-mono text-[12px] text-text-secondary">

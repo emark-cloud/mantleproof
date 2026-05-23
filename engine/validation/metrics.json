@@ -56,7 +56,7 @@
       "tp": 1
     }
   },
-  "computed_at": "2026-05-23T17:06:54.786935Z",
+  "computed_at": "2026-05-23T17:30:46.543836Z",
   "dataset": {
     "by_kind": {
       "bait": 2,
@@ -67,6 +67,12 @@
     "positives": 8,
     "samples": 14,
     "sha256": "93ee833ca33d6708ad831ecdb94583055ddfcaf4082446ce0eee3721699a5d26"
+  },
+  "latency_ms": {
+    "p50": 0.9,
+    "p95": 10.8,
+    "p99": 23.9,
+    "samples": 14
   },
   "overall": {
     "f1": 1.0,

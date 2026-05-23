@@ -41,8 +41,10 @@ import hashlib
 import json
 import pathlib
 import sys
+import time
 from dataclasses import dataclass
 from datetime import UTC, datetime
+from statistics import quantiles
 
 # Allow `python scripts/measure_metrics.py` from the engine dir.
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
@@ -112,6 +114,27 @@ def _safe_div(num: float, den: float) -> float:
     return round(num / den, 4) if den else 0.0
 
 
+def _latency_percentiles(values: list[float]) -> dict[str, float | int]:
+    """p50/p95/p99 over a list of per-run ms latencies. Stdlib only."""
+    n = len(values)
+    if n == 0:
+        return {"p50": 0.0, "p95": 0.0, "p99": 0.0, "samples": 0}
+    sorted_v = sorted(values)
+    # statistics.quantiles needs >= 2 points; for N=1 just repeat the value.
+    if n == 1:
+        v = sorted_v[0]
+        return {"p50": v, "p95": v, "p99": v, "samples": 1}
+    # Use n=100 cut points → index 49 = p50, 94 = p95, 98 = p99 (one less than
+    # the percentile because quantiles returns n-1 cut points).
+    cuts = quantiles(sorted_v, n=100, method="inclusive")
+    return {
+        "p50": round(cuts[49], 1),
+        "p95": round(cuts[94], 1),
+        "p99": round(cuts[98], 1),
+        "samples": n,
+    }
+
+
 def _dataset_sha256(samples: tuple[Sample, ...]) -> str:
     """Stable fingerprint = sha256 of sorted name|sha256(source)."""
     h = hashlib.sha256()
@@ -133,12 +156,18 @@ def main() -> int:
     n_pos = sum(1 for s in SAMPLES if s.expected_checks)
     n_neg = sum(1 for s in SAMPLES if not s.expected_checks)
 
+    # T35: per-run latency (Tier-1 union only — Tier-2 would need live LLM and
+    # break offline reproducibility). Captured as ms with one decimal.
+    latencies: list[float] = []
+
     for sample in SAMPLES:
         if not sample.path.exists():
             print(f"ERROR: missing sample source: {sample.path}", file=sys.stderr)
             return 2
         source = sample.path.read_text()
+        t = time.perf_counter()
         findings = run_tier1(source, b"", CHAIN_ID, address=None)
+        latencies.append(round((time.perf_counter() - t) * 1000, 1))
         fired = {f.check_id for f in findings}
         for cid in CHECK_IDS:
             expected = cid in sample.expected_checks
@@ -175,6 +204,8 @@ def main() -> int:
     overall_prec = _safe_div(tot_tp, tot_tp + tot_fp)
     overall_rec = _safe_div(tot_tp, tot_tp + tot_fn)
 
+    latency_ms = _latency_percentiles(latencies)
+
     metrics = {
         "schema": "mantleproof/metrics/v1",
         "computed_at": datetime.now(UTC).isoformat().replace("+00:00", "Z"),
@@ -199,6 +230,10 @@ def main() -> int:
             "fn": tot_fn,
         },
         "by_check": by_check,
+        # T35: Tier-1 latency over the validation set (offline, no LLM).
+        # "samples" is the per-run count; the headline p50/p95/p99 are stable
+        # given fixed input but vary across hosts (CI vs local).
+        "latency_ms": latency_ms,
     }
 
     payload = json.dumps(metrics, indent=2, sort_keys=True) + "\n"
@@ -219,6 +254,10 @@ def main() -> int:
     print(
         f"[metrics] overall  precision={overall_prec}  recall={overall_rec}  "
         f"f1={f1}  (tp={tot_tp} fp={tot_fp} tn={tot_tn} fn={tot_fn})"
+    )
+    print(
+        f"[metrics] latency  p50={latency_ms['p50']}ms  p95={latency_ms['p95']}ms  "
+        f"p99={latency_ms['p99']}ms  (N={latency_ms['samples']}, Tier-1 only)"
     )
     print(f"\n{'check':<22} {'P':>6} {'R':>6} {'F1':>6} {'TP':>4} {'FP':>4} {'TN':>4} {'FN':>4}")
     print("-" * 64)
