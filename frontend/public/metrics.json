@@ -1,0 +1,81 @@
+{
+  "by_check": {
+    "dex_check_v1": {
+      "f1": 1.0,
+      "fn": 0,
+      "fp": 0,
+      "n_neg": 12,
+      "n_pos": 2,
+      "precision": 1.0,
+      "recall": 1.0,
+      "tn": 12,
+      "tp": 2
+    },
+    "meth_check_v1": {
+      "f1": 1.0,
+      "fn": 0,
+      "fp": 0,
+      "n_neg": 12,
+      "n_pos": 2,
+      "precision": 1.0,
+      "recall": 1.0,
+      "tn": 12,
+      "tp": 2
+    },
+    "replay_check_v1": {
+      "f1": 1.0,
+      "fn": 0,
+      "fp": 0,
+      "n_neg": 12,
+      "n_pos": 2,
+      "precision": 1.0,
+      "recall": 1.0,
+      "tn": 12,
+      "tp": 2
+    },
+    "usde_check_v1": {
+      "f1": 1.0,
+      "fn": 0,
+      "fp": 0,
+      "n_neg": 13,
+      "n_pos": 1,
+      "precision": 1.0,
+      "recall": 1.0,
+      "tn": 13,
+      "tp": 1
+    },
+    "usdy_check_v1": {
+      "f1": 1.0,
+      "fn": 0,
+      "fp": 0,
+      "n_neg": 13,
+      "n_pos": 1,
+      "precision": 1.0,
+      "recall": 1.0,
+      "tn": 13,
+      "tp": 1
+    }
+  },
+  "computed_at": "2026-05-23T17:06:54.786935Z",
+  "dataset": {
+    "by_kind": {
+      "bait": 2,
+      "fixture_neg": 6,
+      "fixture_pos": 6
+    },
+    "negatives": 6,
+    "positives": 8,
+    "samples": 14,
+    "sha256": "93ee833ca33d6708ad831ecdb94583055ddfcaf4082446ce0eee3721699a5d26"
+  },
+  "overall": {
+    "f1": 1.0,
+    "fn": 0,
+    "fp": 0,
+    "precision": 1.0,
+    "recall": 1.0,
+    "tn": 62,
+    "tp": 8
+  },
+  "schema": "mantleproof/metrics/v1"
+}

@@ -20,8 +20,10 @@ end-to-end run on Sepolia (mainnet-cutover-gate condition b) is
 from __future__ import annotations
 
 import json
+import pathlib
 from collections.abc import Callable
 from datetime import UTC, datetime
+from functools import lru_cache
 from typing import Any
 
 from web3 import Web3
@@ -43,6 +45,34 @@ _SEV_ORDER = {Severity.HIGH: 0, Severity.MEDIUM: 1, Severity.LOW: 2, Severity.IN
 
 PinFn = Callable[[dict[str, Any]], str]
 AnchorFn = Callable[..., str]
+
+# T32: publishable P/R artifact (engine/validation/metrics.json). Loaded lazily,
+# cached process-wide; absent file → null `metrics_ref` (honest, never crash).
+_METRICS_PATH = pathlib.Path(__file__).resolve().parents[1] / "validation" / "metrics.json"
+
+
+@lru_cache(maxsize=1)
+def _load_metrics_ref() -> dict[str, Any] | None:
+    """Compact ``metrics_ref`` block embedded in every audit JSON.
+
+    Only the headline numbers + dataset fingerprint + computed_at are surfaced
+    here — consumers fetch the full per-check breakdown via the artifact URL.
+    """
+    try:
+        m = json.loads(_METRICS_PATH.read_text())
+    except (OSError, json.JSONDecodeError):
+        return None
+    overall = m.get("overall", {})
+    dataset = m.get("dataset", {})
+    return {
+        "url": "/metrics.json",
+        "precision": overall.get("precision"),
+        "recall": overall.get("recall"),
+        "f1": overall.get("f1"),
+        "validation_set_size": dataset.get("samples"),
+        "computed_at": m.get("computed_at"),
+        "dataset_sha256": dataset.get("sha256"),
+    }
 
 
 def _overall_severity(findings: list[CheckResult]) -> Severity:
@@ -105,6 +135,10 @@ def build_report(
         "sub_detectors_available": {
             cid: list(SUB_DETECTORS[cid]) for cid in sorted(SUB_DETECTORS)
         },
+        # T32: pointer to the published precision/recall artifact. Null when the
+        # artifact is absent (honest, e.g. fresh checkout before scripts/
+        # measure_metrics.py has been run). Same shape on every audit.
+        "metrics_ref": _load_metrics_ref(),
         "generated_at": now.astimezone(UTC).isoformat(),
     }
     if tier == 2:

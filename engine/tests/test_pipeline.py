@@ -156,6 +156,13 @@ def test_run_audit_tier1_offline(usdy_pos):
     for f in report["findings"]:
         assert f["sub_detector"], f"finding from {f['check_id']} missing sub_detector"
         assert f["stage"] in {"configuration", "economic", "exploitation"}
+    # T32: metrics_ref present (None when artifact absent, dict when present).
+    assert "metrics_ref" in report
+    mref = report["metrics_ref"]
+    assert mref is None or {
+        "url", "precision", "recall", "f1",
+        "validation_set_size", "computed_at", "dataset_sha256",
+    } <= set(mref)
     assert _HEX32.match(report["root_hash"])
     assert report["ipfs_cid"] == "bafyfakecid"
     assert report["ipfs_uri"] == "ipfs://bafyfakecid"

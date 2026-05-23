@@ -12,7 +12,7 @@
  */
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { useQueries } from "@tanstack/react-query";
+import { useQueries, useQuery } from "@tanstack/react-query";
 import { useReadContracts } from "wagmi";
 import { EngineStatusFooter } from "../components/composite/EngineStatusFooter";
 import { SeverityBadge } from "../components/primitives/SeverityBadge";
@@ -57,6 +57,7 @@ export default function Landing() {
       <NavBar />
       <main className="flex-1">
         <Hero />
+        <Coverage />
         <Dimensions />
         <Tier2Flow />
         <Demos />
@@ -209,38 +210,178 @@ function Stat({ big, label, tip }: { big: string; label: string; tip?: string })
   );
 }
 
+/* ------------------------------ Coverage ------------------------------- */
+
+/**
+ * Coverage — published precision/recall over the labeled validation set
+ * (T32). The artifact ships at /metrics.json; the engine embeds the same
+ * headline numbers in every audit JSON via `metrics_ref`. Forta-style
+ * reproducibility: every number here is regenerable via
+ * `python engine/scripts/measure_metrics.py`.
+ *
+ * Honest disclosure: when the artifact is absent (fresh checkout, script
+ * never run) the section degrades to a one-line "metrics artifact pending"
+ * note rather than fabricating numbers.
+ */
+type Metrics = {
+  schema: string;
+  computed_at: string;
+  dataset: {
+    positives: number;
+    negatives: number;
+    samples: number;
+    sha256: string;
+    by_kind: Record<string, number>;
+  };
+  overall: { precision: number; recall: number; f1: number; tp: number; fp: number; tn: number; fn: number };
+  by_check: Record<string, {
+    precision: number; recall: number; f1: number;
+    tp: number; fp: number; tn: number; fn: number;
+    n_pos: number; n_neg: number;
+  }>;
+};
+
+const BAR_WIDTH = 12;
+function bar(frac: number): string {
+  const filled = Math.max(0, Math.min(BAR_WIDTH, Math.round(frac * BAR_WIDTH)));
+  return "█".repeat(filled) + "░".repeat(BAR_WIDTH - filled);
+}
+
+function Coverage() {
+  const { data, isLoading } = useQuery<Metrics>({
+    queryKey: ["metrics"],
+    queryFn: async () => {
+      const r = await fetch("/metrics.json", { cache: "no-cache" });
+      if (!r.ok) throw new Error(`metrics.json: ${r.status}`);
+      return (await r.json()) as Metrics;
+    },
+    staleTime: 60_000,
+    retry: false,
+  });
+
+  return (
+    <section className="px-6 py-12 max-w-5xl mx-auto">
+      <SectionLabel>Coverage</SectionLabel>
+      <h2 className="font-sans text-xl md:text-2xl text-text-primary mt-2 mb-6">
+        Published precision and recall over a labeled validation set
+      </h2>
+
+      {isLoading ? (
+        <div className="panel p-6 font-mono text-sm text-text-secondary">
+          loading metrics…
+        </div>
+      ) : !data ? (
+        <div className="panel p-6 font-mono text-sm text-text-secondary">
+          metrics artifact pending — run{" "}
+          <span className="text-accent">python engine/scripts/measure_metrics.py</span>{" "}
+          to generate <span className="text-accent">/metrics.json</span>.
+        </div>
+      ) : (
+        <div className="panel p-6 space-y-6">
+          {/* Headline P/R/F1/N */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 font-mono">
+            <Stat
+              big={data.overall.precision.toFixed(2)}
+              label="precision (TP / TP+FP)"
+              tip={`${data.overall.tp} true positives · ${data.overall.fp} false positives across ${data.dataset.samples} labeled samples`}
+            />
+            <Stat
+              big={data.overall.recall.toFixed(2)}
+              label="recall (TP / TP+FN)"
+              tip={`${data.overall.tp} true positives · ${data.overall.fn} false negatives across ${data.dataset.samples} labeled samples`}
+            />
+            <Stat
+              big={data.overall.f1.toFixed(2)}
+              label="F1 (harmonic mean)"
+            />
+            <Stat
+              big={String(data.dataset.samples)}
+              label={`samples (${data.dataset.positives} pos · ${data.dataset.negatives} neg)`}
+              tip={`Dataset: ${Object.entries(data.dataset.by_kind).map(([k, v]) => `${v} ${k}`).join(", ")}`}
+            />
+          </div>
+
+          {/* Per-check ASCII stacked bars: precision · recall side by side */}
+          <div className="font-mono text-[12px] text-text-secondary">
+            <div className="text-text-muted uppercase tracking-wider text-[10px] mb-2">
+              per check — precision · recall
+            </div>
+            <div className="space-y-1">
+              {Object.entries(data.by_check).map(([cid, m]) => (
+                <div key={cid} className="grid grid-cols-[160px_1fr_1fr_120px] gap-3 items-center">
+                  <span className="text-accent">{cid}</span>
+                  <span>
+                    <span className="text-accent-dim">{bar(m.precision)}</span>{" "}
+                    <span className="text-text-primary tabular-nums">{m.precision.toFixed(2)}</span>
+                  </span>
+                  <span>
+                    <span className="text-accent-dim">{bar(m.recall)}</span>{" "}
+                    <span className="text-text-primary tabular-nums">{m.recall.toFixed(2)}</span>
+                  </span>
+                  <span className="text-text-muted">
+                    {m.n_pos} pos · {m.n_neg} neg
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Honest disclosure — Blockaid/Forta-style */}
+          <div className="font-mono text-[11px] text-text-muted border-t border-border-faint pt-4">
+            Measured against N={data.dataset.samples} labeled samples
+            ({data.dataset.by_kind.fixture_pos ?? 0} positive fixtures +{" "}
+            {data.dataset.by_kind.fixture_neg ?? 0} negative fixtures +{" "}
+            {data.dataset.by_kind.bait ?? 0} mainnet bait contracts).
+            Dataset sha256{" "}
+            <span className="text-text-secondary">{data.dataset.sha256.slice(0, 12)}…</span>,
+            computed{" "}
+            <span className="text-text-secondary">{data.computed_at.slice(0, 19).replace("T", " ")}Z</span>.
+            Re-run:{" "}
+            <span className="text-accent">python engine/scripts/measure_metrics.py</span>.
+          </div>
+        </div>
+      )}
+    </section>
+  );
+}
+
 /* ----------------------------- Dimensions ------------------------------ */
 
-const DIMENSIONS: { name: string; breaks: string; example: string }[] = [
+const DIMENSIONS: { name: string; breaks: string; example: string; slugs: string[] }[] = [
   {
     name: "USDY / mUSD",
     breaks: "Rebase + RWA oracle + blocklist semantics",
     example:
       "Balance snapshot cached then reused after a state transition (misses the rebase); non-RWA oracle for price; treating USDY ≠ mUSD 1:1.",
+    slugs: ["usdy.balance_snapshot", "usdy.wrong_oracle", "usdy.par_assumption", "usdy.unguarded_transfer"],
   },
   {
     name: "mETH (bridged L2)",
     breaks: "L1 staking + L2 wrapped token + exchange-rate accounting",
     example:
       "balance-proportional math (mETH accrues via exchange rate, not balances); missing L1 Oracle read; cmETH conflation; Validator-Queue assumptions post-Liquidity-Buffer.",
+    slugs: ["meth.balance_proportional", "meth.no_rate_read", "meth.cmeth_conflation", "meth.stale_redemption"],
   },
   {
     name: "USDe / sUSDe",
     breaks: "Cooldown-aware redemption + non-1:1 conversion + depeg",
     example:
       "sUSDe redeem path without cooldown logic; assumption of 1:1 convertibility; missing depeg-event handling.",
+    slugs: ["usde.cooldown_unawareness", "usde.par_assumption", "usde.no_depeg_handling"],
   },
   {
     name: "Merchant Moe LB v2.2 (+ Uniswap V3 secondary)",
     breaks: "Discrete bins, constant-sum within bin, ERC-1155 LP, variable fee",
     example:
       "mint/burn without bin-id validation (positions locked in wrong bins); reading a static fee on an LB pool (volatility-accumulator-driven); ERC-1155 hooks that assume V3 NFT semantics.",
+    slugs: ["dex.lb_bin_bounds", "dex.lb_static_fee", "dex.lb_v3_fee_accounting", "dex.v3_no_slippage"],
   },
   {
     name: "EIP-712 chain-id replay",
     breaks: "Domain separator missing chainId / hardcoded mainnet copy-paste",
     example:
       "Hardcoded chainId=1 in a Mantle deploy; typehash omitting chainId; signature reuse across L1/L2; hardcoded 2300-gas ETH transfer.",
+    slugs: ["replay.no_chainid", "replay.eip712_missing_chainid", "replay.hardcoded_2300_gas"],
   },
 ];
 
@@ -255,11 +396,28 @@ function Dimensions() {
         {DIMENSIONS.map((d) => (
           <div
             key={d.name}
-            className="grid grid-cols-1 md:grid-cols-[220px_240px_1fr] gap-3 px-4 py-3"
+            className="grid grid-cols-1 md:grid-cols-[220px_220px_1fr] gap-3 px-4 py-3"
           >
-            <div className="font-mono text-sm text-accent">{d.name}</div>
+            <div>
+              <div className="font-mono text-sm text-accent">{d.name}</div>
+              <div className="font-mono text-[10px] text-text-muted mt-1">
+                {d.slugs.length} sub-detectors
+              </div>
+            </div>
             <div className="font-mono text-[12px] text-text-secondary">{d.breaks}</div>
-            <div className="font-sans text-[13px] text-text-secondary leading-snug">{d.example}</div>
+            <div className="space-y-2">
+              <div className="font-sans text-[13px] text-text-secondary leading-snug">{d.example}</div>
+              <div className="flex flex-wrap gap-1.5">
+                {d.slugs.map((slug) => (
+                  <span
+                    key={slug}
+                    className="font-mono text-[10px] px-1.5 py-0.5 border border-border-faint text-text-secondary"
+                  >
+                    {slug}
+                  </span>
+                ))}
+              </div>
+            </div>
           </div>
         ))}
       </div>
