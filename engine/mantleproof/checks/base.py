@@ -51,10 +51,26 @@ class CheckResult:
     # USDC-style documented compliance). Qualitative — outside the
     # hallucination guard's quantitative-claim scope by design.
     caveat: str = ""
+    # T33: dimension-scoped slug a consuming agent branches on
+    # (e.g. ``usdy.balance_snapshot``). Empty for Tier-2 findings the LLM emits
+    # without a taxonomy mapping. See checks/taxonomy.py.
+    sub_detector: str = ""
+    # T34: lifecycle stage tag (configuration | economic | exploitation) — lets
+    # the deployer-agent prioritize. Deterministically derived from the slug.
+    stage: str = ""
+
+    def __post_init__(self) -> None:
+        # Auto-fill stage from the slug so check sites only pass `sub_detector`.
+        # Importing here avoids a circular import with checks/taxonomy.py.
+        if self.sub_detector and not self.stage:
+            from mantleproof.checks.taxonomy import stage_of
+            self.stage = stage_of(self.sub_detector)
 
     def to_dict(self) -> dict:
         return {
             "check_id": self.check_id,
+            "sub_detector": self.sub_detector,
+            "stage": self.stage,
             "severity": self.severity.value,
             "label": self.label.value,
             "finding": self.finding,

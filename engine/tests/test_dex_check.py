@@ -22,6 +22,9 @@ def test_dex_lb_positive_triggers(load_contract):
     )
     assert bin_finding.severity is Severity.HIGH
     assert bin_finding.evidence["engine"] == "merchant_moe_lb"
+    # T33/T34: every finding carries a dex.* slug + a known stage.
+    assert all(r.sub_detector.startswith("dex.") for r in results)
+    assert all(r.stage in {"configuration", "economic", "exploitation"} for r in results)
 
 
 def test_dex_lb_negative_clean(load_contract):

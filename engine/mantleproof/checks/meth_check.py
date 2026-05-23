@@ -88,6 +88,7 @@ def run(
                 "mETH/cmETH integration detected in bytecode but source is "
                 "unverified — Tier 1 deep checks skipped.",
                 ev,
+                sub_detector="meth.bytecode_only",
             )
         ]
 
@@ -106,6 +107,7 @@ def run(
                 {**ev, "matched_pattern": "meth_balance_proportional"},
                 "Value mETH via the mETH exchange rate (bridged Oracle read or "
                 "an accepted recent rate snapshot), not balanceOf proportions.",
+                sub_detector="meth.balance_proportional",
             )
         )
     elif has(low, *_ACCOUNTING_VERBS) and not rate_aware:
@@ -118,6 +120,7 @@ def run(
                 "Bridged L2 mETH value ≠ token balance.",
                 {**ev, "matched_pattern": "meth_no_exchange_rate"},
                 "Read the mETH exchange rate before pricing positions.",
+                sub_detector="meth.no_rate_read",
             )
         )
 
@@ -133,6 +136,7 @@ def run(
                 {**ev, "matched_pattern": "meth_cmeth_conflation"},
                 "Track and price cmETH on its own oracle; never assign mETH "
                 "and cmETH amounts to each other.",
+                sub_detector="meth.cmeth_conflation",
             )
         )
 
@@ -150,6 +154,7 @@ def run(
                 {**ev, "matched_pattern": "meth_validator_queue_assumption"},
                 "Account for the Liquidity Buffer (Aave) redemption route, not "
                 "Validator-Queue exit timing.",
+                sub_detector="meth.stale_redemption",
             )
         )
 

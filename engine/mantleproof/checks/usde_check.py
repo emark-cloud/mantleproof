@@ -68,6 +68,7 @@ def run(
                 "USDe/sUSDe integration detected in bytecode but source is "
                 "unverified — Tier 1 deep checks skipped.",
                 ev,
+                sub_detector="usde.bytecode_only",
             )
         ]
 
@@ -85,6 +86,7 @@ def run(
                 {**ev, "matched_pattern": "susde_no_cooldown"},
                 "Split redemption into cooldown initiation and a later "
                 "unstake; never assume immediate USDe on redeem.",
+                sub_detector="usde.cooldown_unawareness",
             )
         )
 
@@ -100,6 +102,7 @@ def run(
                 "convert via convertToAssets/previewRedeem, not at par.",
                 {**ev, "matched_pattern": "usde_susde_1to1"},
                 "Use ERC-4626 convertToAssets/previewRedeem for sUSDe↔USDe.",
+                sub_detector="usde.par_assumption",
             )
         )
 
@@ -116,6 +119,7 @@ def run(
                 {**ev, "matched_pattern": "usde_no_depeg_handling"},
                 "Price USDe via an oracle and handle depeg scenarios "
                 "explicitly.",
+                sub_detector="usde.no_depeg_handling",
             )
         )
 

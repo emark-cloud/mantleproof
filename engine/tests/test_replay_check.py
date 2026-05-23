@@ -20,6 +20,9 @@ def test_replay_positive_fixture_triggers(load_contract):
     assert "hardcoded_2300_gas" in pats
     high = next(r for r in results if r.evidence["matched_pattern"] == "no_block_chainid")
     assert high.severity is Severity.HIGH
+    # T33/T34: every finding carries a replay.* slug + a known stage.
+    assert all(r.sub_detector.startswith("replay.") for r in results)
+    assert all(r.stage in {"configuration", "economic", "exploitation"} for r in results)
 
 
 def test_replay_negative_fixture_clean(load_contract):

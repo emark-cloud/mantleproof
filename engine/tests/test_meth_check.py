@@ -24,6 +24,9 @@ def test_meth_positive_fixture_triggers(load_contract):
         r for r in results if r.evidence["matched_pattern"] == "meth_balance_proportional"
     )
     assert prop.severity is Severity.HIGH
+    # T33/T34: every finding carries a meth.* slug + a known stage.
+    assert all(r.sub_detector.startswith("meth.") for r in results)
+    assert all(r.stage in {"configuration", "economic", "exploitation"} for r in results)
 
 
 def test_meth_negative_fixture_clean(load_contract):

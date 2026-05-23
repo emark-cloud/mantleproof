@@ -25,6 +25,9 @@ def test_usdy_positive_fixture_triggers(load_contract):
     assert snap and snap[0].severity is Severity.HIGH
     # and the generic spot-feed pricing flag.
     assert any(r.evidence.get("matched_pattern") == "non_rwa_oracle" for r in results)
+    # T33/T34: every finding carries a usdy.* slug + a known stage.
+    assert all(r.sub_detector.startswith("usdy.") for r in results)
+    assert all(r.stage in {"configuration", "economic", "exploitation"} for r in results)
 
 
 def test_usdy_negative_fixture_clean(load_contract):

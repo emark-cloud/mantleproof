@@ -92,6 +92,7 @@ def run(
                 "DEX (LB/Uniswap V3) integration detected in bytecode but "
                 "source is unverified — Tier 1 deep checks skipped.",
                 {"engine": "lb" if lb else "uniswap_v3"},
+                sub_detector="dex.bytecode_only",
             )
         ]
 
@@ -113,6 +114,7 @@ def run(
                     {**ev, "matched_pattern": "lb_no_bin_validation"},
                     "Validate target bin ids against getActiveId()/bin step "
                     "bounds before mint/burn.",
+                    sub_detector="dex.lb_bin_bounds",
                 )
             )
         if "fee" in low and not has(low, *_VAR_FEE):
@@ -127,6 +129,7 @@ def run(
                     {**ev, "matched_pattern": "lb_static_fee"},
                     "Read the variable fee parameters (getVariableFee / oracle "
                     "parameters), not a static fee.",
+                    sub_detector="dex.lb_static_fee",
                 )
             )
         if has(low, *_V3_FEEGROWTH):
@@ -141,6 +144,7 @@ def run(
                     {**ev, "matched_pattern": "lb_v3_feegrowth"},
                     "Use LB per-swap fee collection semantics, not V3 "
                     "feeGrowthInside accounting.",
+                    sub_detector="dex.lb_v3_fee_accounting",
                 )
             )
 
@@ -161,6 +165,7 @@ def run(
                     {**ev, "matched_pattern": "v3_mint_no_slippage"},
                     "Pass amount0Min/amount1Min and a deadline on mint / "
                     "increaseLiquidity.",
+                    sub_detector="dex.v3_no_slippage",
                 )
             )
 

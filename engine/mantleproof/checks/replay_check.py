@@ -70,6 +70,7 @@ def run(
                 {**ev, "matched_pattern": "no_block_chainid"},
                 "Encode block.chainid into the domain separator and rebuild it "
                 "when the chain id changes (OZ EIP712 pattern).",
+                sub_detector="replay.no_chainid",
             )
         )
     elif fields is not None and "chainid" not in fields:
@@ -83,6 +84,7 @@ def run(
                 {**ev, "matched_pattern": "domain_missing_chainid"},
                 "Add `uint256 chainId` to the EIP712Domain typehash and "
                 "include block.chainid in the encoded domain.",
+                sub_detector="replay.eip712_missing_chainid",
             )
         )
 
@@ -97,6 +99,7 @@ def run(
                 {**ev, "matched_pattern": "hardcoded_2300_gas"},
                 "Use a call with a sensible gas budget and check the return "
                 "value; do not hardcode 2300.",
+                sub_detector="replay.hardcoded_2300_gas",
             )
         )
 

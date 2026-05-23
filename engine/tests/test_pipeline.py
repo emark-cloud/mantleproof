@@ -142,10 +142,20 @@ def test_run_audit_tier1_offline(usdy_pos):
         _TARGET, tier=1, chain_id=5000, source=usdy_pos, bytecode=b"",
         pin=pin, do_anchor=False, now=lambda: _FIXED,
     )
-    assert report["schema"] == "mantleproof/audit/v1"
+    assert report["schema"] == "mantleproof/audit/v1.1"
     assert report["tier"] == 1
     assert report["severity"] == "high"
     assert report["summary"]["total"] == 3
+    # T33: every check's full taxonomy is enumerated for consuming agents.
+    assert "sub_detectors_available" in report
+    assert "usdy_check_v1" in report["sub_detectors_available"]
+    assert {sd["slug"] for sd in report["sub_detectors_available"]["usdy_check_v1"]} >= {
+        "usdy.balance_snapshot", "usdy.wrong_oracle", "usdy.par_assumption",
+    }
+    # T33+T34: every Tier-1 finding from a known dimension has slug + stage.
+    for f in report["findings"]:
+        assert f["sub_detector"], f"finding from {f['check_id']} missing sub_detector"
+        assert f["stage"] in {"configuration", "economic", "exploitation"}
     assert _HEX32.match(report["root_hash"])
     assert report["ipfs_cid"] == "bafyfakecid"
     assert report["ipfs_uri"] == "ipfs://bafyfakecid"

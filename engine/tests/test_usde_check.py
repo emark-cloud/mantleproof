@@ -22,6 +22,9 @@ def test_usde_positive_fixture_triggers(load_contract):
     assert "usde_susde_1to1" in pats
     cd = next(r for r in results if r.evidence["matched_pattern"] == "susde_no_cooldown")
     assert cd.severity is Severity.HIGH
+    # T33/T34: every finding carries a usde.* slug + a known stage.
+    assert all(r.sub_detector.startswith("usde.") for r in results)
+    assert all(r.stage in {"configuration", "economic", "exploitation"} for r in results)
 
 
 def test_usde_negative_fixture_clean(load_contract):

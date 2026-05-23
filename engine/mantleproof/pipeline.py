@@ -27,12 +27,16 @@ from typing import Any
 from web3 import Web3
 
 from mantleproof.checks.base import CheckResult, Severity
+from mantleproof.checks.taxonomy import SUB_DETECTORS
 from mantleproof.llm.provider import LLMProvider
 from mantleproof.tier1 import run_tier1, summarize
 from mantleproof.tier2.hallucination_guard import apply_guard, parse_findings
 from mantleproof.tier2.runner import run_tier2
 
-SCHEMA = "mantleproof/audit/v1"
+# T32/T33/T34/T35 schema bump: adds metrics_ref, timing_ms, sub_detector + stage
+# on every finding, sub_detectors_available per dimension. Additive — v1 readers
+# keep working since the new fields are ignorable.
+SCHEMA = "mantleproof/audit/v1.1"
 
 # Highest severity first; also used to roll the overall report severity up.
 _SEV_ORDER = {Severity.HIGH: 0, Severity.MEDIUM: 1, Severity.LOW: 2, Severity.INFO: 3}
@@ -94,6 +98,13 @@ def build_report(
         "severity": severity.value,
         "summary": summarize(findings),
         "findings": [f.to_dict() for f in findings],
+        # T33: enumerate every check's full sub-detector taxonomy so consuming
+        # agents can branch on what *could have* fired, not only what did
+        # (GoPlus exposes the full check list whether or not each fires).
+        # Sorted for deterministic preimage / rootHash stability.
+        "sub_detectors_available": {
+            cid: list(SUB_DETECTORS[cid]) for cid in sorted(SUB_DETECTORS)
+        },
         "generated_at": now.astimezone(UTC).isoformat(),
     }
     if tier == 2:

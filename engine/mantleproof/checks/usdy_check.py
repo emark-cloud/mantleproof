@@ -91,6 +91,7 @@ def run(
                 "unverified — Tier 1 deep checks skipped; Tier 2 will reason "
                 "over bytecode.",
                 ev,
+                sub_detector="usdy.bytecode_only",
             )
         ]
 
@@ -109,6 +110,7 @@ def run(
                 {**ev, "matched_pattern": "balance_snapshot_to_storage"},
                 "Read balanceOf live at point of use, or track shares and "
                 "convert via the current rate; never persist a raw balance.",
+                sub_detector="usdy.balance_snapshot",
             )
         )
 
@@ -126,6 +128,7 @@ def run(
                 {**ev, "matched_pattern": "non_rwa_oracle"},
                 "Price USDY via RWADynamicRateOracle.getPrice() / the Ondo "
                 "rate; reserve spot feeds for non-RWA assets.",
+                sub_detector="usdy.wrong_oracle",
             )
         )
 
@@ -143,6 +146,7 @@ def run(
                     {**ev, "matched_pattern": "usdy_musd_1to1"},
                     "Convert between USDY and mUSD via their respective rates; "
                     "never treat the amounts as interchangeable.",
+                    sub_detector="usdy.par_assumption",
                 )
             )
 
@@ -158,6 +162,7 @@ def run(
                 {**ev, "matched_pattern": "unguarded_blocklist_transfer"},
                 "Wrap transfers in try/catch or pre-check blocklist status and "
                 "fail gracefully.",
+                sub_detector="usdy.unguarded_transfer",
             )
         )
 
