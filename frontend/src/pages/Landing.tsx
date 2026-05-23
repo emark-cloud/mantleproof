@@ -790,6 +790,34 @@ function QueryMethod({
 
 const FAQ_ITEMS: { q: string; a: React.ReactNode }[] = [
   {
+    q: "How does this differ from Aderyn-MCP, GoPlus, Forta, Blockaid?",
+    a: (
+      <div className="space-y-2">
+        <p>
+          <code className="text-accent">Aderyn-MCP</code> is a Solidity static
+          analyzer for developers at write time. MantleProof is a runtime oracle
+          for agents at execution time. Different consumer, different surface
+          (MCP + on-chain <code className="text-accent">getAudit()</code> + x402).
+        </p>
+        <p>
+          <code className="text-accent">GoPlus</code> is a centralized token /
+          address risk API. MantleProof is Mantle-native (USDY/mUSD, mETH, USDe,
+          Merchant Moe LB, EIP-712 replay), on-chain anchored, and signs every
+          verdict.
+        </p>
+        <p>
+          <code className="text-accent">Forta</code> monitors live transactions;
+          MantleProof audits contracts before they are touched.
+        </p>
+        <p>
+          <code className="text-accent">Blockaid</code> simulates transactions
+          inside wallets. MantleProof audits the contract source + bytecode and
+          publishes a signed verdict an agent can read on-chain.
+        </p>
+      </div>
+    ),
+  },
+  {
     q: "What does HIGH severity actually mean?",
     a: (
       <>

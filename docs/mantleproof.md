@@ -27,6 +27,57 @@ Three layers, each a defensible piece of the submission:
 
 ---
 
+## Related work — how MantleProof differs from adjacent tools
+
+*Research note, 2026-05-23.* Four tools surface in the same conversational
+neighborhood as MantleProof. None of them solve the same problem; the
+differences are worth pinning down so a judge skimming the field for sixty
+seconds doesn't lump us in with any of them.
+
+**Aderyn-MCP** (Cyfrin) is a Solidity static analyzer for developers, exposed
+over MCP so a coding agent (Claude Code, Cursor) can run it at write time. Its
+consumer is a human-in-the-loop at edit time; its surface is the editor. MantleProof's
+consumer is another autonomous agent at execution time; its surface is an
+on-chain `getAudit(address)` view, an MCP server with a `requestAudit` tool
+that triggers a fresh paid audit, and an x402 REST endpoint. Different
+consumer, different time, different invariants — Aderyn-MCP doesn't sign its
+findings or pin them anywhere; MantleProof every audit has a keccak256
+`rootHash` on Mantle and the canonical JSON on IPFS.
+
+**GoPlus** is a centralized token / address risk API used by wallets and
+CEXes. It scores arbitrary token addresses on a generic dimension set
+(honeypot, mintable, blacklist) across many chains. MantleProof is the
+opposite of generic: five purpose-built dimensions for the actual high-value
+contracts on Mantle's L2 (USDY/mUSD, mETH bridged, USDe/sUSDe, Merchant Moe
+Liquidity Book v2.2, EIP-712 cross-chain replay). It's also non-centralized in
+the readback path — anyone can `cast call getAudit(target)` against a Mantle
+RPC and re-derive the rootHash from the IPFS JSON without trusting our
+backend.
+
+**Forta** monitors live transactions on EVM chains, surfacing alerts when an
+in-flight tx matches a registered detector. It's a runtime watchtower. MantleProof
+audits contracts *before they're touched* — the deployer agent runs `payForAudit`
++ `submitAudit` before the deploy tx; the trading agent reads `getAudit` before
+the swap. Two different points on the contract lifecycle: Forta watches what's
+already happening; MantleProof informs what's about to happen.
+
+**Blockaid** simulates transactions inside wallets to surface phishing and
+known-bad approvals to a human user before they click sign. It works at the
+wallet boundary on individual txs. MantleProof works at the contract boundary
+on the contract's source + bytecode and publishes a signed verdict that an
+agent (not a human) reads via on-chain view or MCP. The closest overlap is
+intent ("don't let the user do something bad") but the actor is different
+(autonomous agent vs. wallet UI), the artifact is different (signed on-chain
+audit vs. ephemeral wallet warning), and the timing is different (pre-deploy /
+pre-interaction vs. mid-flight tx).
+
+The honest one-line summary: **MantleProof is to autonomous agents on Mantle
+what a credit bureau is to a lender** — a signed, on-chain, dimension-scored
+report on a counterparty contract that an agent can query, cite in its
+on-chain decision, and stake a position behind.
+
+---
+
 ## 2. Architecture
 
 ```
