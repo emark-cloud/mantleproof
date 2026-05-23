@@ -188,6 +188,10 @@ export interface CacheItem {
   audit_count: number;
   block_number: number;
   tx_hash: string;
+  /** Verified-source contract name, populated best-effort by the walker
+   * from the pinned IPFS report. `null` when the report wasn't fetchable
+   * or didn't carry a name — search by address still works in that case. */
+  contract_name?: string | null;
 }
 
 export interface CacheResponse {

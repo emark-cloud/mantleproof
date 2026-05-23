@@ -229,3 +229,87 @@ def test_chunked_get_logs_rejects_nonpositive_chunk_size():
 
     with pytest.raises(ValueError):
         cache_warmer._chunked_get_logs(lambda f, t: [], 0, 10, chunk_size=0)
+
+
+# --- contract_name extraction (best-effort, drives the panel's name search) --
+
+
+def _single_log(target: str, block: int = 100, tx: str = "0xt") -> dict:
+    return {
+        "blockNumber": block,
+        "transactionHash": tx,
+        "topics": ["0xevt", _topic_addr(target)],
+    }
+
+
+def test_walker_pulls_contract_name_from_get_report():
+    """When `get_report` returns a dict with `contract_name`, the row carries
+    it through to the persisted snapshot — that's what powers name search."""
+    logs = [_single_log(TARGET_HI)]
+    head = _audit(TARGET_HI, Severity.HIGH)
+
+    def get_report(cid, expected):
+        assert cid == head.ipfs_cid
+        assert expected == head.root_hash
+        return {"contract_name": "USDeOFT", "tier": 2}
+
+    result = cache_warmer.walk_audits(
+        chain_id=5000, registry_address=REGISTRY,
+        from_block=0, to_block=200,
+        get_logs=lambda *_: logs,
+        get_audit=lambda _a: head,
+        get_report=get_report,
+    )
+    assert result.snapshot.rows[0].contract_name == "USDeOFT"
+
+
+def test_walker_contract_name_defaults_none_when_report_missing():
+    """No `get_report` provided (default no-op) → contract_name stays None.
+    A missing report does NOT drop the row — the cache is still useful for
+    address search; only name search degrades."""
+    logs = [_single_log(TARGET_INFO)]
+    head = _audit(TARGET_INFO, Severity.INFO)
+
+    result = cache_warmer.walk_audits(
+        chain_id=5000, registry_address=REGISTRY,
+        from_block=0, to_block=200,
+        get_logs=lambda *_: logs,
+        get_audit=lambda _a: head,
+    )
+    assert result.snapshot.rows[0].contract_name is None
+
+
+def test_walker_swallows_get_report_exceptions():
+    """A raising `get_report` (e.g. IPFS gateway down) must not break the
+    cache build — the row still ships with contract_name=None."""
+    logs = [_single_log(TARGET_HI)]
+    head = _audit(TARGET_HI, Severity.HIGH)
+
+    def boom(_cid, _expected):
+        raise RuntimeError("gateway down")
+
+    result = cache_warmer.walk_audits(
+        chain_id=5000, registry_address=REGISTRY,
+        from_block=0, to_block=200,
+        get_logs=lambda *_: logs,
+        get_audit=lambda _a: head,
+        get_report=boom,
+    )
+    assert len(result.snapshot.rows) == 1
+    assert result.snapshot.rows[0].contract_name is None
+
+
+def test_walker_ignores_non_string_contract_name():
+    """If the report has a non-string `contract_name` (or empty), the row's
+    field stays None — honest empty, never a misleading stringified value."""
+    logs = [_single_log(TARGET_HI)]
+    head = _audit(TARGET_HI, Severity.HIGH)
+
+    result = cache_warmer.walk_audits(
+        chain_id=5000, registry_address=REGISTRY,
+        from_block=0, to_block=200,
+        get_logs=lambda *_: logs,
+        get_audit=lambda _a: head,
+        get_report=lambda _c, _e: {"contract_name": 123, "tier": 2},
+    )
+    assert result.snapshot.rows[0].contract_name is None

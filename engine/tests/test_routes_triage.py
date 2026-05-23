@@ -116,7 +116,9 @@ def test_cache_cold_returns_empty(monkeypatch, tmp_path):
     assert body["freshness_s"] is None
 
 
-def test_cache_severity_filter_and_sort(monkeypatch, tmp_path):
+def test_cache_filter_and_sort_newest_first(monkeypatch, tmp_path):
+    """`/api/cache` returns rows newest-first (block_number desc); the severity
+    filter still narrows the band."""
     _patch_data_dir(monkeypatch, tmp_path)
     from mantleproof.triage.store import CacheRow, CacheSnapshot
 
@@ -125,27 +127,25 @@ def test_cache_severity_filter_and_sort(monkeypatch, tmp_path):
         "timestamp": 1,
         "submitter": "0xs",
         "audit_count": 1,
-        "block_number": 1,
         "tx_hash": "0xtx",
         "root_hash": "0xrh",
     }
     rows = (
-        CacheRow(target="0x1", severity="info", severity_uint8=0, **base),
-        CacheRow(target="0x2", severity="high", severity_uint8=3, **base),
-        CacheRow(target="0x3", severity="low", severity_uint8=1, **base),
+        CacheRow(target="0x1", severity="info", severity_uint8=0, block_number=10, **base),
+        CacheRow(target="0x2", severity="high", severity_uint8=3, block_number=30, **base),
+        CacheRow(target="0x3", severity="low", severity_uint8=1, block_number=20, **base),
     )
     CacheStore(data_dir=tmp_path).save(
         CacheSnapshot(chain_id=5000, last_block=100, rows=rows)
     )
     client = TestClient(create_app())
-    r = client.get("/api/cache")
-    body = r.json()
-    # high should come first when no filter (severity desc).
-    assert body["items"][0]["target"] == "0x2"
-    # Filter narrows the band.
-    r2 = client.get("/api/cache?severity=info")
-    assert len(r2.json()["items"]) == 1
-    assert r2.json()["items"][0]["target"] == "0x1"
+    body = client.get("/api/cache").json()
+    # Newest first, regardless of severity: 0x2 (block 30) > 0x3 (block 20) > 0x1 (block 10).
+    assert [it["target"] for it in body["items"]] == ["0x2", "0x3", "0x1"]
+    # Severity filter still works orthogonally.
+    r2 = client.get("/api/cache?severity=info").json()
+    assert len(r2["items"]) == 1
+    assert r2["items"][0]["target"] == "0x1"
 
 
 def test_pure_build_feed_response_cold_state():
@@ -155,17 +155,20 @@ def test_pure_build_feed_response_cold_state():
     assert out["freshness_s"] is None
 
 
-def test_pure_build_cache_response_severity_sort():
+def test_pure_build_cache_response_newest_first():
+    """Pure builder: rows come out newest first by block_number; audit_count
+    breaks ties (a re-anchor at the same block stays above the older head)."""
     payload = {
         "chain_id": 5000,
         "last_block": 1,
         "rows": [
             {"target": "0x1", "severity": "info", "audit_count": 5, "block_number": 1},
-            {"target": "0x2", "severity": "high", "audit_count": 1, "block_number": 1},
+            {"target": "0x2", "severity": "high", "audit_count": 1, "block_number": 9},
+            {"target": "0x3", "severity": "high", "audit_count": 2, "block_number": 9},
         ],
     }
     out = routes_cache.build_cache_response(payload, 0, limit=10, severity=None)
-    assert out["items"][0]["target"] == "0x2"  # high outranks info
+    assert [it["target"] for it in out["items"]] == ["0x3", "0x2", "0x1"]
 
 
 # --- /api/queries --------------------------------------------------------------

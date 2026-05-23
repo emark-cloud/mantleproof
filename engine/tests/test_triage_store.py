@@ -161,6 +161,38 @@ def test_serialize_is_pure_json(tmp_path):
     assert rebuilt.rows[0] == CACHE_ROW
 
 
+def test_cache_deserialize_back_compat_no_contract_name(tmp_path):
+    """An old cache.json written before `contract_name` existed must still
+    load — the field defaults to None when the JSON key is missing."""
+    legacy_row = {
+        "target": CACHE_ROW.target,
+        "root_hash": CACHE_ROW.root_hash,
+        "severity": CACHE_ROW.severity,
+        "severity_uint8": CACHE_ROW.severity_uint8,
+        "ipfs_cid": CACHE_ROW.ipfs_cid,
+        "timestamp": CACHE_ROW.timestamp,
+        "submitter": CACHE_ROW.submitter,
+        "audit_count": CACHE_ROW.audit_count,
+        "block_number": CACHE_ROW.block_number,
+        "tx_hash": CACHE_ROW.tx_hash,
+        # contract_name intentionally absent
+    }
+    payload = {"chain_id": 5000, "last_block": 1, "rows": [legacy_row]}
+    snap = CacheStore.deserialize(payload)
+    assert snap.rows[0].contract_name is None
+    assert snap.rows[0].target == CACHE_ROW.target
+
+
+def test_cache_contract_name_round_trip(tmp_path):
+    """A populated contract_name round-trips through serialize/deserialize."""
+    named = replace(CACHE_ROW, contract_name="USDeOFT")
+    store = CacheStore(data_dir=tmp_path)
+    store.save(CacheSnapshot(chain_id=5000, last_block=1, rows=(named,)))
+    loaded = store.load()
+    assert loaded is not None
+    assert loaded.rows[0].contract_name == "USDeOFT"
+
+
 # --- ReceiptStore — x402 paid-audit receipts (keyed by rootHash) -------------
 
 RECEIPT = X402ReceiptRow(

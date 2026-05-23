@@ -58,6 +58,10 @@ class CacheRow:
     audit_count: int
     block_number: int
     tx_hash: str
+    # Verified-source contract name, pulled best-effort from the pinned IPFS
+    # report at walker time. Optional + defaulted so old snapshots without
+    # this field still deserialize cleanly. Drives the panel's name search.
+    contract_name: str | None = None
 
 
 @dataclass(frozen=True, slots=True)

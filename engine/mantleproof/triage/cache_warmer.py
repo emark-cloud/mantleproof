@@ -100,6 +100,15 @@ class WalkResult:
 
 GetLogsFn = Callable[[int, int, str, str], list[dict[str, Any]]]
 GetAuditFn = Callable[[str], OnChainAudit | None]
+# Best-effort IPFS report fetch — used only to read out `contract_name`.
+# Returning `None` (or any failure) leaves contract_name unset; the walker
+# never raises on this seam.
+GetReportFn = Callable[[str, str], dict[str, Any] | None]
+
+
+def _noop_get_report(_cid: str, _expected: str) -> dict[str, Any] | None:
+    """Default: skip the IPFS round-trip entirely. Live wrappers override."""
+    return None
 
 
 def walk_audits(
@@ -110,6 +119,7 @@ def walk_audits(
     to_block: int,
     get_logs: GetLogsFn,
     get_audit: GetAuditFn,
+    get_report: GetReportFn = _noop_get_report,
 ) -> WalkResult:
     """Pure: read events, dedupe, fetch heads, return a snapshot.
 
@@ -151,6 +161,19 @@ def walk_audits(
             log.info("cache_warmer: head missing for %s, dropping", target)
             n_dropped += 1
             continue
+        # Pull contract_name from the pinned report (best-effort: a missing /
+        # tampered / unreachable report leaves `contract_name = None` — the
+        # row still ships, the panel still renders, search just won't match
+        # that row by name). Never block the cache on IPFS.
+        contract_name: str | None = None
+        try:
+            report = get_report(head.ipfs_cid, head.root_hash)
+            if isinstance(report, dict):
+                raw = report.get("contract_name")
+                if isinstance(raw, str) and raw.strip():
+                    contract_name = raw.strip()
+        except Exception as exc:  # noqa: BLE001 — IPFS is best-effort here
+            log.info("cache_warmer: report fetch failed for %s: %s", target, exc)
         rows.append(
             CacheRow(
                 target=head.target,
@@ -163,6 +186,7 @@ def walk_audits(
                 audit_count=head.audit_count,
                 block_number=block,
                 tx_hash=tx,
+                contract_name=contract_name,
             )
         )
 
@@ -244,6 +268,19 @@ def refresh(
     def _get_audit(target: str) -> OnChainAudit | None:
         return read_audit(target)
 
+    def _get_report(cid: str, expected: str) -> dict[str, Any] | None:
+        """Best-effort: pull the pinned report so the row gets a contract_name.
+        Any IPFS failure -> None -> name search degrades cleanly (the row
+        still ships, address search still works)."""
+        from mantleproof.persistence.ipfs_fetch import fetch_report
+
+        try:
+            fr = fetch_report(cid, expected)
+        except Exception as exc:  # noqa: BLE001
+            log.info("cache_warmer: IPFS fetch_report failed for %s: %s", cid, exc)
+            return None
+        return fr.report if fr else None
+
     result = walk_audits(
         chain_id=chain_id,
         registry_address=s.mantleproof_registry_address,
@@ -251,6 +288,7 @@ def refresh(
         to_block=to_block,
         get_logs=_get_logs,
         get_audit=_get_audit,
+        get_report=_get_report,
     )
 
     target_store = store or CacheStore()

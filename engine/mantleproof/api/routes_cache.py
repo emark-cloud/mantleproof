@@ -1,9 +1,9 @@
-"""GET /api/cache — anchored-audit priority cache (T29).
+"""GET /api/cache — anchored-audit index (T29).
 
-Reads the `CacheStore` JSON file. Sorted by ``severity desc, audit_count
-desc, block desc`` — the dashboard panel renders this as the "top-200"
-table (we don't have 200; the file contains exactly what's been
-anchored). Filter ``?severity=high`` short-circuits to one band.
+Reads the `CacheStore` JSON file and returns rows **newest first** (by anchor
+``block_number``, descending). Filter ``?severity=high`` short-circuits to
+one band. The PriorityCachePanel renders this as a chronological list — the
+most recently anchored audits at the top.
 
 Same honesty rules as /api/feed: cold cache → ``items: []`` with null
 freshness, not a 501.
@@ -18,9 +18,6 @@ from fastapi import APIRouter, Query
 from mantleproof.triage.store import CacheStore
 
 router = APIRouter()
-
-
-_SEVERITY_RANK: dict[str, int] = {"high": 3, "medium": 2, "low": 1, "info": 0}
 
 
 def build_cache_response(
@@ -42,12 +39,10 @@ def build_cache_response(
     rows = list(snap_payload.get("rows", []))
     if severity:
         rows = [r for r in rows if r.get("severity") == severity]
+    # Newest anchor first; ties broken by audit_count so a re-anchor at the
+    # same block stays above its older self.
     rows.sort(
-        key=lambda r: (
-            _SEVERITY_RANK.get(str(r.get("severity")), -1),
-            int(r.get("audit_count", 0)),
-            int(r.get("block_number", 0)),
-        ),
+        key=lambda r: (int(r.get("block_number", 0)), int(r.get("audit_count", 0))),
         reverse=True,
     )
     rows = rows[:limit]
