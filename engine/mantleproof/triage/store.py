@@ -288,3 +288,113 @@ class FeedStore:
 
     def freshness_s(self, now: float | None = None) -> int | None:
         return _freshness_s(self.path, now=now)
+
+
+# --------------------------------------------------------------------------- #
+# ReceiptStore — x402 paid-audit receipts. Keyed by rootHash (case-           #
+# insensitive); newer ``recorded_at`` wins. Matched to one audit *by          #
+# rootHash*, not target, so a re-audited contract's stale receipt never       #
+# mis-attaches to a newer audit.                                              #
+# --------------------------------------------------------------------------- #
+
+
+@dataclass(frozen=True, slots=True)
+class X402ReceiptRow:
+    """One paid-audit receipt — the cross-chain pair (Base payment, Mantle
+    anchor) that produced ``root_hash``. Persisted post-200 by the x402 route
+    so the ``/api/audit`` envelope can surface who funded the audit."""
+
+    root_hash: str            # 0x-prefixed lowercase — primary key (case-insensitive)
+    target: str               # checksum address audited
+    payer: str | None         # Base address that funded the audit (None on settle err)
+    payment_chain: str        # e.g. "base"
+    payment_chain_id: int     # 8453 (Base mainnet) / 84532 (Sepolia)
+    payment_tx: str | None    # Base settle tx (None when settle failed)
+    anchor_chain: str         # "mantle"
+    anchor_chain_id: int      # 5000 / 5003
+    anchor_tx: str | None     # Mantle submitAudit tx — normalized to 0x-prefix
+    amount_base_units: str    # token base units (USDC: 6 decimals — "500000" = 0.50)
+    asset: str                # ERC-20 contract on the payment chain (e.g. Base USDC)
+    severity: str             # at-a-glance: info|low|medium|high
+    settle_error: str | None  # surfaced honestly if post-anchor settlement failed
+    recorded_at: int          # unix seconds — freshness / tiebreak
+
+
+@dataclass(frozen=True, slots=True)
+class ReceiptSnapshot:
+    rows: tuple[X402ReceiptRow, ...] = field(default_factory=tuple)
+
+
+class ReceiptStore:
+    """JSON-file store of x402 paid-audit receipts.
+
+    Keyed by ``root_hash.lower()``: every successful paid audit upserts one
+    row (newer ``recorded_at`` wins). ``find_by_root_hash`` is the read path
+    ``routes_audit`` uses to attach a receipt to the canonical envelope.
+
+    Receipts span two chains by definition (payment on Base, anchor on
+    Mantle), so the snapshot carries no single ``chain_id`` / ``last_block``
+    — both chain ids live on each row.
+    """
+
+    FILENAME = "x402_receipts.json"
+
+    def __init__(self, data_dir: Path | None = None) -> None:
+        self.data_dir = (data_dir or DEFAULT_DATA_DIR).resolve()
+        self.path = self.data_dir / self.FILENAME
+
+    # ---- Pure helpers ------------------------------------------------------
+
+    @staticmethod
+    def serialize(snap: ReceiptSnapshot) -> dict[str, Any]:
+        return {"rows": [asdict(r) for r in snap.rows]}
+
+    @staticmethod
+    def deserialize(payload: dict[str, Any]) -> ReceiptSnapshot:
+        rows = tuple(
+            X402ReceiptRow(**{k: r.get(k) for k in X402ReceiptRow.__dataclass_fields__})
+            for r in payload.get("rows", [])
+        )
+        return ReceiptSnapshot(rows=rows)
+
+    @staticmethod
+    def upsert(
+        rows: Iterable[X402ReceiptRow], new_row: X402ReceiptRow
+    ) -> tuple[X402ReceiptRow, ...]:
+        """Replace any same-rootHash row with ``new_row``; sort by
+        ``recorded_at`` desc so the most-recent receipt is first."""
+        key = new_row.root_hash.lower()
+        out = [r for r in rows if r.root_hash.lower() != key]
+        out.append(new_row)
+        out.sort(key=lambda r: r.recorded_at, reverse=True)
+        return tuple(out)
+
+    # ---- Disk I/O ----------------------------------------------------------
+
+    def load(self) -> ReceiptSnapshot | None:
+        raw = _read_json(self.path)
+        if raw is None:
+            return None
+        return self.deserialize(raw)
+
+    def save(self, snap: ReceiptSnapshot) -> None:
+        _atomic_write_json(self.path, self.serialize(snap))
+
+    def freshness_s(self, now: float | None = None) -> int | None:
+        return _freshness_s(self.path, now=now)
+
+    def record(self, row: X402ReceiptRow) -> None:
+        """Load → upsert → save. One call per successful paid audit."""
+        snap = self.load() or ReceiptSnapshot()
+        self.save(ReceiptSnapshot(rows=self.upsert(snap.rows, row)))
+
+    def find_by_root_hash(self, root_hash: str) -> X402ReceiptRow | None:
+        """Case-insensitive lookup. ``None`` if no file or no match."""
+        snap = self.load()
+        if snap is None:
+            return None
+        target = root_hash.lower()
+        for r in snap.rows:
+            if r.root_hash.lower() == target:
+                return r
+        return None

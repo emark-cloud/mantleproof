@@ -162,3 +162,70 @@ def test_audit_submitted_topic_is_keccak_of_signature():
 
     expected = "0x" + keccak(b"AuditSubmitted(address,bytes32,uint8,string)").hex()
     assert cache_warmer._audit_submitted_topic() == expected
+
+
+# --- _chunked_get_logs — wraps a single-call RPC to survive drpc's range cap
+
+
+def test_chunked_get_logs_single_call_when_within_chunk():
+    """Range that fits in one chunk → exactly one underlying call."""
+    calls: list[tuple[int, int]] = []
+
+    def single(f, t):
+        calls.append((f, t))
+        return [{"blockNumber": f}]
+
+    out = cache_warmer._chunked_get_logs(single, 100, 199, chunk_size=1000)
+    assert calls == [(100, 199)]
+    assert out == [{"blockNumber": 100}]
+
+
+def test_chunked_get_logs_splits_wide_range_and_concatenates():
+    """Wide range → N calls of ``chunk_size`` blocks each (last truncated),
+    results concatenated in order."""
+    calls: list[tuple[int, int]] = []
+
+    def single(f, t):
+        calls.append((f, t))
+        return [{"blockNumber": f}, {"blockNumber": t}]
+
+    out = cache_warmer._chunked_get_logs(single, 0, 24, chunk_size=10)
+    # Chunks: 0..9, 10..19, 20..24 — inclusive bounds, last is short.
+    assert calls == [(0, 9), (10, 19), (20, 24)]
+    assert out == [
+        {"blockNumber": 0}, {"blockNumber": 9},
+        {"blockNumber": 10}, {"blockNumber": 19},
+        {"blockNumber": 20}, {"blockNumber": 24},
+    ]
+
+
+def test_chunked_get_logs_empty_range_makes_no_calls():
+    """``from > to`` is a no-op (matches walker semantics for fresh-install
+    edge cases)."""
+    calls: list[tuple[int, int]] = []
+
+    def single(f, t):
+        calls.append((f, t))
+        return [{"x": 1}]
+
+    out = cache_warmer._chunked_get_logs(single, 100, 50, chunk_size=10)
+    assert calls == []
+    assert out == []
+
+
+def test_chunked_get_logs_single_block_range_issues_one_call():
+    calls: list[tuple[int, int]] = []
+
+    def single(f, t):
+        calls.append((f, t))
+        return []
+
+    cache_warmer._chunked_get_logs(single, 42, 42, chunk_size=10)
+    assert calls == [(42, 42)]
+
+
+def test_chunked_get_logs_rejects_nonpositive_chunk_size():
+    import pytest
+
+    with pytest.raises(ValueError):
+        cache_warmer._chunked_get_logs(lambda f, t: [], 0, 10, chunk_size=0)

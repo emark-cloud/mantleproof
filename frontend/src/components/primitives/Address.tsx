@@ -3,14 +3,11 @@
  * hover tooltip with full address, optional external explorer link.
  *
  * Self-contained: uses `navigator.clipboard` when available, falls back to a
- * textarea hack on older browsers. No external copy library.
+ * textarea hack on older browsers. No external copy library. The explorer
+ * URL comes from the shared `lib/explorers.ts` (Mantle + Base).
  */
 import { useState } from "react";
-
-const SCAN_BASE: Record<number, string> = {
-  5000: "https://mantlescan.xyz/address",
-  5003: "https://5003.testnet.routescan.io/address",
-};
+import { addressUrl } from "../../lib/explorers";
 
 function shorten(addr: string, head = 6, tail = 4): string {
   if (!addr || !addr.startsWith("0x") || addr.length < head + tail + 4) return addr;
@@ -48,7 +45,7 @@ export function Address({
   className?: string;
 }) {
   const [copied, setCopied] = useState(false);
-  const scan = SCAN_BASE[chainId];
+  const scan = addressUrl(chainId, value);
   const handleCopy = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -69,7 +66,7 @@ export function Address({
       {copied && <span className="text-accent text-xs">copied</span>}
       {withScanLink && scan && (
         <a
-          href={`${scan}/${value}`}
+          href={scan}
           target="_blank"
           rel="noreferrer"
           className="text-text-muted hover:text-accent"

@@ -48,8 +48,38 @@ def _audit_submitted_topic() -> str:
 # install doesn't try to walk the chain since genesis.
 DEFAULT_WINDOW_BLOCKS = 50_000
 
+# Per-call ``eth_getLogs`` block cap. Public Mantle RPCs (drpc et al.) reject
+# requests wider than ~10k blocks with HTTP 400; chunking keeps the wrapper
+# usable for any ``window_blocks`` without callers having to know the cap.
+MAX_LOGS_RANGE = 9_500
+
 # Severity name → uint8 (mirrors `IMantleProofRegistry.Severity`).
 _SEVERITY_UINT8: dict[str, int] = {"info": 0, "low": 1, "medium": 2, "high": 3}
+
+
+def _chunked_get_logs(
+    single_call: Callable[[int, int], list[dict[str, Any]]],
+    from_block: int,
+    to_block: int,
+    chunk_size: int = MAX_LOGS_RANGE,
+) -> list[dict[str, Any]]:
+    """Pure: split ``[from_block, to_block]`` into ``chunk_size``-block
+    windows, call ``single_call(from, to)`` per chunk, concatenate the
+    results. ``single_call`` is the layer that talks to the RPC (or, in
+    tests, returns fakes). Inclusive bounds on both ends.
+
+    A single-block range (``from == to``) still issues one call; an empty
+    range (``from > to``) issues none.
+    """
+    out: list[dict[str, Any]] = []
+    if chunk_size < 1:
+        raise ValueError(f"chunk_size must be >= 1, got {chunk_size}")
+    cur = from_block
+    while cur <= to_block:
+        end = min(cur + chunk_size - 1, to_block)
+        out.extend(single_call(cur, end))
+        cur = end + 1
+    return out
 
 
 @dataclass(frozen=True)
@@ -181,19 +211,20 @@ def refresh(
     ) -> list[dict[str, Any]]:
         # web3.py accepts hex-string topics at runtime; cast to satisfy the
         # static `_Hash32 | None` shape without coercing into HexBytes.
-        params = cast(
-            FilterParams,
-            {
-                "address": Web3.to_checksum_address(address),
-                "topics": [topic0],
-                "fromBlock": from_blk,
-                "toBlock": to_blk,
-            },
-        )
-        raw = w3.eth.get_logs(params)
-        out: list[dict[str, Any]] = []
-        for entry in raw:
-            out.append(
+        checksum_addr = Web3.to_checksum_address(address)
+
+        def _one_chunk(f_blk: int, t_blk: int) -> list[dict[str, Any]]:
+            params = cast(
+                FilterParams,
+                {
+                    "address": checksum_addr,
+                    "topics": [topic0],
+                    "fromBlock": f_blk,
+                    "toBlock": t_blk,
+                },
+            )
+            raw = w3.eth.get_logs(params)
+            return [
                 {
                     "blockNumber": int(entry["blockNumber"]),
                     "transactionHash": entry["transactionHash"].hex()
@@ -204,8 +235,11 @@ def refresh(
                         for t in entry.get("topics", [])
                     ],
                 }
-            )
-        return out
+                for entry in raw
+            ]
+
+        # Chunked so any ``window_blocks`` works, even past drpc's per-call cap.
+        return _chunked_get_logs(_one_chunk, from_blk, to_blk)
 
     def _get_audit(target: str) -> OnChainAudit | None:
         return read_audit(target)

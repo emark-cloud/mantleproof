@@ -22,6 +22,7 @@ defaults wire ``read_audit`` + ``fetch_report``.
 from __future__ import annotations
 
 from collections.abc import Callable
+from dataclasses import asdict
 from typing import Any
 
 import httpx
@@ -30,6 +31,7 @@ from web3 import Web3
 
 from mantleproof.persistence.ipfs_fetch import ReportFetchResult, fetch_report
 from mantleproof.persistence.registry_reader import OnChainAudit, read_audit
+from mantleproof.triage.store import ReceiptStore, X402ReceiptRow
 
 router = APIRouter()
 
@@ -43,6 +45,12 @@ _EXPLORER_BY_CHAIN: dict[int, str] = {
 
 ReaderFn = Callable[[str], OnChainAudit | None]
 FetcherFn = Callable[[str, str], ReportFetchResult]
+ReceiptLookupFn = Callable[[str], X402ReceiptRow | None]
+
+
+def _default_load_receipt(root_hash: str) -> X402ReceiptRow | None:
+    """Default: read from the on-disk ReceiptStore. Monkeypatchable in tests."""
+    return ReceiptStore().find_by_root_hash(root_hash)
 
 
 def _explorer_address(chain_id: int, address: str) -> str:
@@ -64,10 +72,12 @@ def build_audit_response(
     audit: OnChainAudit,
     fetch: ReportFetchResult | None,
     ipfs_error: str | None = None,
+    x402_receipt: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Pure: assemble the public ``/api/audit`` JSON from the on-chain + IPFS pieces.
 
-    Shape is stable — MCP server + frontend consume it directly.
+    Shape is stable — MCP server + frontend consume it directly. ``x402`` is
+    always present; ``None`` when no paid-audit receipt matches this rootHash.
     """
     integrity: dict[str, Any] = {
         "expected_root_hash": audit.root_hash,
@@ -100,6 +110,7 @@ def build_audit_response(
         "explorer": {
             "target": _explorer_address(chain_id, address),
         },
+        "x402": x402_receipt,
     }
 
 
@@ -108,6 +119,7 @@ async def get_audit(
     address: str,
     reader: ReaderFn | None = None,
     fetcher: FetcherFn | None = None,
+    receipt_loader: ReceiptLookupFn | None = None,
 ) -> dict[str, Any]:
     try:
         target = _normalize_address(address)
@@ -140,10 +152,23 @@ async def get_audit(
         # Surface honestly; the on-chain anchor is still authoritative.
         ipfs_error = f"{type(exc).__name__}: {exc}"
 
+    # Attach the x402 paid-audit receipt if one was recorded for this exact
+    # rootHash. Best-effort: a corrupt/missing store file never breaks
+    # /api/audit — the on-chain audit is authoritative on its own.
+    load_receipt = receipt_loader or _default_load_receipt
+    x402_receipt: dict[str, Any] | None = None
+    try:
+        row = load_receipt(audit.root_hash)
+        if row is not None:
+            x402_receipt = asdict(row)
+    except Exception:  # noqa: BLE001 — corrupt store must not break /api/audit
+        x402_receipt = None
+
     return build_audit_response(
         target,
         chain_id=chain_id,
         audit=audit,
         fetch=fetch_result,
         ipfs_error=ipfs_error,
+        x402_receipt=x402_receipt,
     )

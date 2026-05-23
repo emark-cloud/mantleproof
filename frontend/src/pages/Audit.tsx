@@ -15,6 +15,7 @@ import { Address } from "../components/primitives/Address";
 import { Timestamp } from "../components/primitives/Timestamp";
 import { StatusDot } from "../components/primitives/StatusDot";
 import { FindingCard } from "../components/panels/FindingCard";
+import { X402ReceiptPanel } from "../components/panels/X402ReceiptPanel";
 import { getAudit, type AuditResponse } from "../lib/api";
 import { KNOWN_TARGETS, MANTLE_CHAIN_ID } from "../lib/contracts";
 
@@ -121,6 +122,8 @@ function ResolvedAudit({ data }: { data: Extract<AuditResponse, { audited: true 
           </div>
         )}
       </section>
+
+      {data.x402 && <X402ReceiptPanel receipt={data.x402} />}
 
       <section className="flex items-center gap-2 flex-wrap font-mono text-[11px]">
         {ipfsHttp && (

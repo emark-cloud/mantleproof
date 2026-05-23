@@ -13,6 +13,9 @@ from mantleproof.triage.store import (
     FeedRow,
     FeedSnapshot,
     FeedStore,
+    ReceiptSnapshot,
+    ReceiptStore,
+    X402ReceiptRow,
 )
 
 CACHE_ROW = CacheRow(
@@ -156,3 +159,76 @@ def test_serialize_is_pure_json(tmp_path):
     re_parsed = json.loads(text)
     rebuilt = CacheStore.deserialize(re_parsed)
     assert rebuilt.rows[0] == CACHE_ROW
+
+
+# --- ReceiptStore — x402 paid-audit receipts (keyed by rootHash) -------------
+
+RECEIPT = X402ReceiptRow(
+    root_hash="0x13e8d5d54a4635aaa6b7af77c661cf5fbe8ac8953eda4e58337d2fbd92f39316",
+    target="0x5d3a1Ff2b6BAb83b63cd9AD0787074081a52ef34",
+    payer="0x4354d518eD2060b315995E68268f019C074fc1f3",
+    payment_chain="base",
+    payment_chain_id=8453,
+    payment_tx="0x98c5137d815b9cad381d959cde0a01d07a0d8c1f11a88669721f008848700cd1",
+    anchor_chain="mantle",
+    anchor_chain_id=5000,
+    anchor_tx="0xbffe7ca550eb965f999730eab0d7f559fcabd35dcbf35e4aa17c9479e95930ff",
+    amount_base_units="500000",
+    asset="0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+    severity="high",
+    settle_error=None,
+    recorded_at=1_716_000_000,
+)
+
+
+def test_receipt_round_trip(tmp_path):
+    store = ReceiptStore(data_dir=tmp_path)
+    store.save(ReceiptSnapshot(rows=(RECEIPT,)))
+    loaded = store.load()
+    assert loaded is not None
+    assert loaded.rows[0] == RECEIPT
+
+
+def test_receipt_upsert_dedupes_by_root_hash(tmp_path):
+    """Same rootHash twice → one row, newer recorded_at wins."""
+    newer = replace(RECEIPT, recorded_at=RECEIPT.recorded_at + 100, settle_error="late")
+    out = ReceiptStore.upsert((RECEIPT,), newer)
+    assert len(out) == 1
+    assert out[0] == newer
+
+
+def test_receipt_upsert_keeps_distinct_root_hashes(tmp_path):
+    other = replace(
+        RECEIPT,
+        root_hash="0x" + "ab" * 32,
+        recorded_at=RECEIPT.recorded_at - 10,
+    )
+    out = ReceiptStore.upsert((RECEIPT,), other)
+    assert len(out) == 2
+    # newest recorded_at first
+    assert out[0].recorded_at >= out[1].recorded_at
+
+
+def test_receipt_find_by_root_hash_case_insensitive(tmp_path):
+    store = ReceiptStore(data_dir=tmp_path)
+    store.save(ReceiptSnapshot(rows=(RECEIPT,)))
+    upper = store.find_by_root_hash(RECEIPT.root_hash.upper())
+    lower = store.find_by_root_hash(RECEIPT.root_hash.lower())
+    assert upper == RECEIPT
+    assert lower == RECEIPT
+    assert store.find_by_root_hash("0x" + "ff" * 32) is None
+
+
+def test_receipt_find_returns_none_when_store_missing(tmp_path):
+    assert ReceiptStore(data_dir=tmp_path).find_by_root_hash(RECEIPT.root_hash) is None
+
+
+def test_receipt_record_load_round_trip(tmp_path):
+    store = ReceiptStore(data_dir=tmp_path)
+    store.record(RECEIPT)
+    snap = store.load()
+    assert snap is not None and snap.rows == (RECEIPT,)
+    # Re-record same rootHash with newer recorded_at → still one row.
+    store.record(replace(RECEIPT, recorded_at=RECEIPT.recorded_at + 1))
+    snap2 = store.load()
+    assert snap2 is not None and len(snap2.rows) == 1

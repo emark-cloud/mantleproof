@@ -73,6 +73,30 @@ export interface ReportEnvelope {
   [k: string]: unknown;
 }
 
+/**
+ * x402 paid-audit receipt — populated when an audit was funded via the
+ * `POST /x402/audit/{address}` paywall. Field names mirror the engine's
+ * `X402ReceiptRow` byte-for-byte. ``payment_tx`` / ``payer`` are nullable
+ * when settlement failed after the audit anchored — surfaced honestly via
+ * ``settle_error``, never hidden.
+ */
+export interface X402Receipt {
+  root_hash: string;
+  target: string;
+  payer: string | null;
+  payment_chain: string;
+  payment_chain_id: number;
+  payment_tx: string | null;
+  anchor_chain: string;
+  anchor_chain_id: number;
+  anchor_tx: string | null;
+  amount_base_units: string;
+  asset: string;
+  severity: string;
+  settle_error: string | null;
+  recorded_at: number;
+}
+
 export interface AuditAuditedResponse {
   audited: true;
   target: string;
@@ -82,6 +106,9 @@ export interface AuditAuditedResponse {
   report: ReportEnvelope | null;
   ipfs_error: string | null;
   explorer: { target: string };
+  /** Always present in the envelope; `null` when no x402 receipt matches the
+   * audit's rootHash (free-pipeline audit, or paid receipt not yet indexed). */
+  x402: X402Receipt | null;
 }
 
 export interface AuditUnauditedResponse {

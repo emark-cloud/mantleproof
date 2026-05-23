@@ -10,11 +10,20 @@ from __future__ import annotations
 import base64
 import json
 
+import pytest
 from fastapi.testclient import TestClient
 
 from mantleproof.api import routes_x402
 from mantleproof.main import create_app
 from mantleproof.x402.facilitator import SettleResult, VerifyResult
+
+
+@pytest.fixture(autouse=True)
+def _disable_default_receipt_recorder(monkeypatch):
+    """Neutralize disk writes from the default recorder. Tests that assert
+    recording explicitly re-patch ``_default_record_receipt`` or inject
+    ``record_fn`` via the route parameter."""
+    monkeypatch.setattr(routes_x402, "_default_record_receipt", lambda *_a, **_k: None)
 
 # Use the same EIP-55 checksum target the audit-route tests do.
 TARGET = "0x1892f77e335C133Ce4a7B28555f13bA74cBB76fA"
@@ -210,3 +219,86 @@ def test_post_400_on_bad_address():
     client = TestClient(create_app())
     r = client.post("/x402/audit/not-an-address")
     assert r.status_code == 400
+
+
+# --- x402 receipt persistence ------------------------------------------------
+
+
+def _patch_success(monkeypatch, anchor_tx: str, settle_tx: str | None, settle_err=None):
+    """Wire verify/settle/pipeline so the route hits the 200 path."""
+    monkeypatch.setattr(
+        routes_x402, "verify",
+        lambda _p, _r: VerifyResult(
+            is_valid=True, invalid_reason=None, payer="0xpayer", raw={"isValid": True}
+        ),
+    )
+    monkeypatch.setattr(
+        routes_x402, "settle",
+        lambda _p, _r: SettleResult(
+            success=settle_tx is not None,
+            transaction=settle_tx,
+            network="base",
+            payer="0xpayer",
+            error_reason=settle_err,
+            raw={},
+        ),
+    )
+    monkeypatch.setattr(
+        routes_x402, "_default_run_pipeline",
+        lambda target: {
+            "schema": "mantleproof/audit/v1",
+            "target": target,
+            "chain_id": 5000,
+            "severity": "high",
+            "root_hash": "0x" + "55" * 32,
+            "anchor_tx": anchor_tx,
+            "ipfs_cid": "bafkreireceipt",
+        },
+    )
+
+
+def test_post_records_x402_receipt_on_success(monkeypatch):
+    """The successful 200 must call the recorder with the same x402 block the
+    response carries — that's how /api/audit later surfaces the paying agent."""
+    _enable_paywall(monkeypatch)
+    _patch_success(monkeypatch, anchor_tx="0x" + "66" * 32, settle_tx="0x" + "77" * 32)
+
+    captured: dict = {}
+
+    def fake_record(target, audit, x402_block):
+        captured["target"] = target
+        captured["audit"] = audit
+        captured["x402"] = dict(x402_block)
+
+    monkeypatch.setattr(routes_x402, "_default_record_receipt", fake_record)
+
+    client = TestClient(create_app())
+    r = client.post(f"/x402/audit/{TARGET}", headers={"X-PAYMENT": _valid_payment_b64()})
+    assert r.status_code == 200
+    assert captured["target"] == TARGET
+    assert captured["audit"]["root_hash"] == "0x" + "55" * 32
+    assert captured["x402"]["payment_tx"] == "0x" + "77" * 32
+    assert captured["x402"]["anchor_tx"] == "0x" + "66" * 32
+    assert captured["x402"]["payer"] == "0xpayer"
+    assert captured["x402"]["payment_chain"] == "base"
+    assert captured["x402"]["anchor_chain"] == "mantle"
+    assert captured["x402"]["settle_error"] is None
+
+
+def test_post_persistence_failure_does_not_break_200(monkeypatch):
+    """A raising recorder must NOT break the paid-audit 200. The audit is
+    anchored on chain regardless; honesty over disk."""
+    _enable_paywall(monkeypatch)
+    _patch_success(monkeypatch, anchor_tx="0x" + "88" * 32, settle_tx="0x" + "99" * 32)
+
+    def boom(*_a, **_k):
+        raise RuntimeError("disk gone")
+
+    monkeypatch.setattr(routes_x402, "_default_record_receipt", boom)
+
+    client = TestClient(create_app())
+    r = client.post(f"/x402/audit/{TARGET}", headers={"X-PAYMENT": _valid_payment_b64()})
+    assert r.status_code == 200
+    body = r.json()
+    assert body["x402"]["anchor_tx"] == "0x" + "88" * 32
+    assert body["x402"]["payment_tx"] == "0x" + "99" * 32

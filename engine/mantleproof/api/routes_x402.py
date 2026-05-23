@@ -26,6 +26,8 @@ the audit is already on-chain and the user can read it for free via
 
 from __future__ import annotations
 
+import logging
+import time
 from collections.abc import Callable
 from typing import Any
 
@@ -33,6 +35,7 @@ from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import JSONResponse
 
 from mantleproof.api.routes_audit import _normalize_address
+from mantleproof.triage.store import ReceiptStore, X402ReceiptRow
 from mantleproof.x402.builder import build_402_body
 from mantleproof.x402.facilitator import (
     SettleResult,
@@ -50,6 +53,46 @@ router = APIRouter()
 PipelineFn = Callable[[str], dict[str, Any]]
 VerifyFn = Callable[[PaymentPayload, PaymentRequirements], VerifyResult]
 SettleFn = Callable[[PaymentPayload, PaymentRequirements], SettleResult]
+# Persist the cross-chain receipt so the frontend's /api/audit envelope can
+# show who funded the audit. Best-effort; never breaks the 200.
+RecordFn = Callable[[str, dict[str, Any], dict[str, Any]], None]
+
+
+def _normalize_tx(h: str | None) -> str | None:
+    """Pure: lowercase + ``0x``-prefix any tx hash for stable matching.
+    Pipeline ``anchor_tx`` arrives raw-hex (no prefix); the facilitator's
+    ``payment_tx`` arrives prefixed — both go in as ``0x``-lowercase."""
+    if not h:
+        return None
+    s = h.lower()
+    return s if s.startswith("0x") else "0x" + s
+
+
+def _default_record_receipt(
+    target: str, audit: dict[str, Any], x402_block: dict[str, Any]
+) -> None:
+    """Persist a paid-audit receipt mirroring the wire ``x402_block``.
+
+    Pure-ish (one disk write via ReceiptStore). Wired by default; tests
+    monkeypatch this name to inject a tmp data_dir or assert the call.
+    """
+    row = X402ReceiptRow(
+        root_hash=str(audit.get("root_hash") or "").lower(),
+        target=target,
+        payer=x402_block.get("payer"),
+        payment_chain=str(x402_block.get("payment_chain") or "base"),
+        payment_chain_id=int(x402_block.get("payment_chain_id") or 0),
+        payment_tx=_normalize_tx(x402_block.get("payment_tx")),
+        anchor_chain=str(x402_block.get("anchor_chain") or "mantle"),
+        anchor_chain_id=int(x402_block.get("anchor_chain_id") or 0),
+        anchor_tx=_normalize_tx(x402_block.get("anchor_tx")),
+        amount_base_units=str(x402_block.get("amount_base_units") or ""),
+        asset=str(x402_block.get("asset") or ""),
+        severity=str(audit.get("severity") or ""),
+        settle_error=x402_block.get("settle_error"),
+        recorded_at=int(time.time()),
+    )
+    ReceiptStore().record(row)
 
 
 def _default_run_pipeline(target: str) -> dict[str, Any]:
@@ -83,6 +126,7 @@ async def x402_audit(
     run_pipeline: PipelineFn | None = None,
     verify_fn: VerifyFn | None = None,
     settle_fn: SettleFn | None = None,
+    record_fn: RecordFn | None = None,
 ) -> Any:
     try:
         target = _normalize_address(address)
@@ -183,23 +227,36 @@ async def x402_audit(
         settle_error = f"facilitator /settle threw: {exc}"
 
     # 6. Compose the cross-chain envelope. Anchor tx comes from the pipeline.
+    x402_block: dict[str, Any] = {
+        "payment_chain": "base",
+        "payment_chain_id": 8453,
+        "payment_tx": settle_tx,  # nullable when settle_error is set
+        "anchor_chain": "mantle",
+        "anchor_chain_id": audit.get("chain_id"),
+        "anchor_tx": audit.get("anchor_tx"),
+        "amount_base_units": requirements.maxAmountRequired,
+        "asset": requirements.asset,
+        "payer": settle_payer,
+        "settle_error": settle_error,
+    }
     response: dict[str, Any] = {
         "audited": True,
         "target": target,
         "audit": audit,
-        "x402": {
-            "payment_chain": "base",
-            "payment_chain_id": 8453,
-            "payment_tx": settle_tx,  # nullable when settle_error is set
-            "anchor_chain": "mantle",
-            "anchor_chain_id": audit.get("chain_id"),
-            "anchor_tx": audit.get("anchor_tx"),
-            "amount_base_units": requirements.maxAmountRequired,
-            "asset": requirements.asset,
-            "payer": settle_payer,
-            "settle_error": settle_error,
-        },
+        "x402": x402_block,
     }
+
+    # 6b. Persist the receipt so /api/audit can surface who funded the audit.
+    # Best-effort: a store-write failure must NOT break the 200 — the audit
+    # is anchored on chain regardless, and the receipt can always be
+    # re-derived from the live response.
+    recorder = record_fn or _default_record_receipt
+    try:
+        recorder(target, audit, x402_block)
+    except Exception as exc:  # noqa: BLE001 — never break the paid 200
+        logging.getLogger(__name__).warning(
+            "x402 receipt persist failed (audit still anchored): %s", exc
+        )
 
     if settle_tx:
         return JSONResponse(

@@ -29,6 +29,7 @@ import {
   AuditHistoryRow,
   type AuditHistoryEntry,
 } from "../components/panels/AuditHistoryRow";
+import { X402ReceiptPanel } from "../components/panels/X402ReceiptPanel";
 import { EngineStatusFooter } from "../components/composite/EngineStatusFooter";
 
 export default function Contract() {
@@ -187,6 +188,8 @@ function AuditedView({
           </div>
         )}
       </section>
+
+      {data.x402 && <X402ReceiptPanel receipt={data.x402} />}
 
       <section>
         <div className="flex items-baseline justify-between mb-2">
