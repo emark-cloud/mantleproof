@@ -9,6 +9,7 @@ import { Link, useParams } from "react-router-dom";
 import { useQueries } from "@tanstack/react-query";
 import { AgentIdentityHeader } from "../components/composite/AgentIdentityHeader";
 import { EngineStatusFooter } from "../components/composite/EngineStatusFooter";
+import { FeedbackPanel } from "../components/composite/FeedbackPanel";
 import { SeverityBadge } from "../components/primitives/SeverityBadge";
 import { getAudit } from "../lib/api";
 import {
@@ -58,6 +59,8 @@ export default function Agent() {
       </nav>
       <main className="flex-1 px-4 py-4 max-w-4xl w-full mx-auto flex flex-col gap-4">
         <AgentIdentityHeader tokenId={idn} />
+
+        <FeedbackPanel tokenId={idn} />
 
         <section className="panel px-4 py-4">
           <h2 className="font-mono text-xs uppercase tracking-wider text-text-primary mb-2">

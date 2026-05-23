@@ -32,6 +32,19 @@ export const TREASURY_ADDRESS =
 export const MANTLE_CHAIN_ID = Number(import.meta.env.VITE_CHAIN_ID ?? 5000);
 export const AGENT_TOKEN_ID = 96n; // MantleProof's own ERC-8004 identity (T5).
 
+/**
+ * Canonical ERC-8004 v2 Reputation Registry on Mantle mainnet 5000.
+ * Verified live 2026-05-23 in T37 (`docs/erc8004-abi-notes.md`) — both
+ * `getVersion()=="2.0.0"` and `getIdentityRegistry()` matches the
+ * canonical Identity Registry. We DO NOT deploy this contract; we read
+ * MantleProof's reputation from it directly (T41 — replaces the defunct
+ * `MantleProofAgent.reputation()` view, which was compiled against a
+ * fictional interface and reverts on-chain at runtime).
+ */
+export const REPUTATION_REGISTRY_ADDRESS =
+  (import.meta.env.VITE_REPUTATION_REGISTRY_ADDRESS as `0x${string}`) ??
+  ("0x8004BAa17C55a88189AE136b182e5fdA19dE9b63" as const);
+
 /* --------------------------------- ABIs --------------------------------- */
 
 // Minimal read ABI — mirrors `engine/mantleproof/persistence/registry_reader.py`
@@ -44,13 +57,32 @@ export const registryAbi = parseAbi([
   "event AuditSubmitted(address indexed target, bytes32 indexed rootHash, uint8 severity, string ipfsCID)",
 ]);
 
+// `agentAbi` deliberately omits `reputation()` and `agentURI()` — both views
+// were compiled against the fictional pre-T38 IEIP8004 interface and revert
+// on-chain (see contracts/contracts/MantleProofAgent.sol). The frontend
+// reads reputation from REPUTATION_REGISTRY_ADDRESS directly via
+// `reputationRegistryAbi` below; identity tokenURI is read from the
+// canonical Identity Registry (T41).
 export const agentAbi = parseAbi([
   "function memoryRoot() view returns (bytes32)",
   "function auditsPerformed() view returns (uint256)",
   "function agentTokenId() view returns (uint256)",
   "function agentOwner() view returns (address)",
-  "function reputation() view returns (uint256)",
-  "function agentURI() view returns (string)",
+]);
+
+/**
+ * Minimal read ABI for the canonical ERC-8004 v2 Reputation Registry.
+ * Mirrors `engine/mantleproof/reputation/feedback.py` + the verified
+ * Phase-0 ABI in `docs/erc8004-abi-notes.md`. Critical: `getSummary`
+ * REQUIRES non-empty `clientAddresses` (reverts otherwise) — callers
+ * MUST first call `getClients(agentId)` and pass the result.
+ */
+export const reputationRegistryAbi = parseAbi([
+  "function getClients(uint256 agentId) view returns (address[])",
+  "function getLastIndex(uint256 agentId, address clientAddress) view returns (uint64)",
+  "function readFeedback(uint256 agentId, address clientAddress, uint64 feedbackIndex) view returns (int128 value, uint8 valueDecimals, string tag1, string tag2, bool isRevoked)",
+  "function getSummary(uint256 agentId, address[] clientAddresses, string tag1, string tag2) view returns (uint64 count, int128 summaryValue, uint8 summaryValueDecimals)",
+  "function getVersion() pure returns (string)",
 ]);
 
 export const decisionLogAbi = parseAbi([

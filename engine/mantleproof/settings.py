@@ -38,6 +38,17 @@ class Settings(BaseSettings):
     #     the registry address is read from .env, not contracts/deployments/) ---
     mantleproof_registry_address: str = ""
 
+    # --- ERC-8004 identity tokenId for MantleProof itself (T5; 96 on Mantle
+    #     mainnet, 0 on Sepolia where the identity was never re-registered).
+    #     Consumed by the T39+ reputation flow when the demo wallet calls
+    #     `giveFeedback(<this>, …)` on the official Reputation Registry.
+    #     NO `mantleproof_feedback_signer_private_key` setting exists by
+    #     design: v2 `giveFeedback` has no signed-auth requirement, so the
+    #     engine never needs a feedback signing key (see
+    #     `docs/erc8004-abi-notes.md` T37 plan-correction). The payer's own
+    #     wallet signs the tx envelope. ---
+    mantleproof_agent_token_id: int = 96
+
     # --- Explorer (Etherscan API V2 — one etherscan.io key, chainId-routed,
     #     covers Mantle 5000 + 5003. V1 mantlescan endpoints are shut down) ---
     etherscan_api_key: str = ""

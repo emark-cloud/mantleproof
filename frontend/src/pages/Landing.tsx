@@ -529,6 +529,16 @@ function Tier2Flow() {
           <span className="text-text-primary">guard fired: N masked</span>) — we
           never hide what was caught.
         </p>
+        <p className="font-sans text-[12px] text-text-secondary mt-3 leading-relaxed">
+          MantleProof itself carries on-chain reputation: paying agents leave
+          ERC-8004 feedback about us through Mantle's canonical{" "}
+          <span className="text-accent">Reputation Registry</span>. The live
+          score is read from chain — see{" "}
+          <Link to="/agent/96" className="text-accent hover:underline">
+            /agent/96
+          </Link>
+          . Negative feedback from real customers is possible and correct.
+        </p>
       </div>
     </section>
   );

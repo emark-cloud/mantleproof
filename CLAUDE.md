@@ -121,8 +121,13 @@ only **4** contracts and register/call into Mantle's official registries:
 
 - `MantleProofRegistry.sol` — append-only audit registry (our own).
 - `MantleProofAgent.sol` — **thin wrapper** around Mantle's official ERC-8004 identity:
-  tracks per-audit `memoryRoot`, `auditsPerformed`, reputation; calls Mantle's official
-  Reputation Registry on each audit.
+  tracks per-audit `memoryRoot` + `auditsPerformed`. Reputation lives on the **official
+  Reputation Registry** (read directly — `MantleProofAgent.reputation()` / `agentURI()`
+  in the deployed bytecode were compiled against a fictional pre-T38 interface and
+  revert on-chain; T38 marked them defunct in source). Paying agents leave on-chain
+  ERC-8004 feedback about MantleProof through the official registry's
+  `giveFeedback(96, …)` — first live mainnet receipt 2026-05-23 (T40). MantleProof
+  itself never signs feedback or holds a feedback-signer key.
 - `MantleProofLicense.sol` — pay-per-audit / subscription, 80/20 split.
 - `TreasurySplit.sol` — 20% treasury share.
 - plus `DecisionLog.sol` (demos) and `MockUSDC.sol` (tests).
