@@ -46,6 +46,7 @@ REGISTRY_ABI = [
                     {"name": "ipfsCID", "type": "string"},
                     {"name": "timestamp", "type": "uint64"},
                     {"name": "submitter", "type": "address"},
+                    {"name": "tier", "type": "uint8"},
                 ],
                 "name": "",
                 "type": "tuple",
@@ -88,12 +89,12 @@ def _canonical_keccak(report: dict) -> str:
     """
     preimage = {
         k: v for k, v in report.items()
-        if k not in ("root_hash", "ipfs_cid", "ipfs_uri", "anchor_tx")
+        if k not in ("root_hash", "ipfs_cid", "ipfs_uri", "anchor_tx", "timing_ms")
     }
     canonical = json.dumps(
         preimage, sort_keys=True, separators=(",", ":"), ensure_ascii=False
     )
-    return "0x" + Web3.keccak(text=canonical).hex().lstrip("0x")
+    return "0x" + Web3.keccak(text=canonical).hex().removeprefix("0x")
 
 
 def main() -> int:
@@ -148,7 +149,7 @@ def main() -> int:
         address=Web3.to_checksum_address(registry_addr), abi=REGISTRY_ABI
     )
     rec = registry.functions.getAudit(Web3.to_checksum_address(target)).call()
-    on_root = "0x" + rec[0].hex().lstrip("0x")
+    on_root = "0x" + rec[0].hex().removeprefix("0x")
     on_sev = rec[1]
     on_cid = rec[2]
     on_submitter = rec[4]
@@ -186,7 +187,7 @@ def main() -> int:
     # 6+7. agent memoryRoot + auditsPerformed
     agent = w3.eth.contract(address=Web3.to_checksum_address(agent_addr), abi=AGENT_ABI)
     audits = agent.functions.auditsPerformed().call()
-    mem = "0x" + agent.functions.memoryRoot().call().hex().lstrip("0x")
+    mem = "0x" + agent.functions.memoryRoot().call().hex().removeprefix("0x")
     print(f"[agent]    auditsPerformed={audits} memoryRoot={mem}")
     checks.append(("agent.auditsPerformed >= 1", audits >= 1))
     checks.append(("agent.memoryRoot != 0x0", int(mem, 16) != 0))

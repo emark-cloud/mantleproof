@@ -49,6 +49,10 @@ export interface Deployment {
     TreasurySplit: Address;
     MantleProofLicense: Address;
     DecisionLog: Address;
+    /** T43 (docs/update.md §3) — sibling pool holding Tier 2 stakes for 30 days.
+     *  Optional in the type for back-compat with pre-T43 deployment files; the
+     *  disputer-agent + verifier scripts assert presence at use time. */
+    StakingPool?: Address;
   };
 }
 
@@ -100,6 +104,9 @@ export const LICENSE_ABI = parseAbi([
 // parseAbi's human-readable form rejects bare `tuple(...)` returns; use the
 // structured ABI form for getAudit's `Report` struct. Other entries stay
 // human-readable for legibility.
+// T43: Report gains `tier` (uint8); AuditSubmitted event gains `tier`; new
+// submitDispute / disputeCount / getDisputesForRoot / DisputeSubmitted +
+// DisputeResolved.
 export const REGISTRY_ABI = [
   {
     type: "function",
@@ -116,13 +123,20 @@ export const REGISTRY_ABI = [
           { name: "ipfsCID", type: "string" },
           { name: "timestamp", type: "uint64" },
           { name: "submitter", type: "address" },
+          { name: "tier", type: "uint8" },
         ],
       },
     ],
   },
   ...parseAbi([
     "function isAudited(address target) view returns (bool)",
-    "event AuditSubmitted(address indexed target, bytes32 indexed rootHash, uint8 severity, string ipfsCID)",
+    "function disputeCount() view returns (uint256)",
+    "function getDisputesForRoot(bytes32) view returns (uint256[])",
+    "function auditTier(bytes32) view returns (uint8)",
+    "function submitDispute(bytes32 rootHash, uint256 findingIndex, string counterClaimIpfs) payable returns (uint256)",
+    "event AuditSubmitted(address indexed target, bytes32 indexed rootHash, uint8 severity, string ipfsCID, uint8 tier)",
+    "event DisputeSubmitted(uint256 indexed disputeId, bytes32 indexed rootHash, uint256 findingIndex, address indexed disputer, string counterClaimIpfs, uint256 counterStake)",
+    "event DisputeResolved(uint256 indexed disputeId, bytes32 indexed rootHash, uint8 status, bytes32 reAuditRootHash)",
   ]),
 ] as const;
 
@@ -264,6 +278,7 @@ export interface AuditReport {
   ipfsCID: string;
   timestamp: bigint;
   submitter: Address;
+  tier: number; // 1 or 2 — post-T43 (docs/update.md)
 }
 
 const SEVERITY_NAMES = ["INFO", "LOW", "MEDIUM", "HIGH"] as const;

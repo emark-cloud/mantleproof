@@ -30,7 +30,9 @@ import {
   type AuditHistoryEntry,
 } from "../components/panels/AuditHistoryRow";
 import { X402ReceiptPanel } from "../components/panels/X402ReceiptPanel";
+import { DisputePanel } from "../components/composite/DisputePanel";
 import { EngineStatusFooter } from "../components/composite/EngineStatusFooter";
+import { StakeStatusBadge } from "../components/composite/StakeStatusBadge";
 
 export default function Contract() {
   const { address = "" } = useParams();
@@ -105,6 +107,10 @@ function AuditedView({
         <div className="flex items-center gap-3 flex-wrap">
           <SeverityBadge severity={sev} count={findings.length} />
           <Address value={target} chainId={chainId} withScanLink />
+          <StakeStatusBadge
+            rootHash={anchor.root_hash as `0x${string}`}
+            tier={report?.tier}
+          />
           <span className="ml-auto font-mono text-[11px] text-text-muted">
             published <Timestamp epochSeconds={anchor.timestamp} /> · {anchor.audit_count} audits
           </span>
@@ -208,10 +214,20 @@ function AuditedView({
               No findings — audit returned clean (severity {anchor.severity.toUpperCase()}).
             </div>
           ) : (
-            findings.map((f, i) => <FindingCard key={i} finding={f} />)
+            findings.map((f, i) => (
+              <FindingCard
+                key={i}
+                finding={f}
+                rootHash={anchor.root_hash as `0x${string}`}
+                findingIndex={i}
+                tier={report?.tier}
+              />
+            ))
           )}
         </div>
       </section>
+
+      <DisputePanel rootHash={anchor.root_hash as `0x${string}`} />
 
       <section>
         <h2 className="font-mono text-xs uppercase tracking-wider text-text-primary mb-2">

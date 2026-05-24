@@ -16,6 +16,8 @@ import { Timestamp } from "../components/primitives/Timestamp";
 import { StatusDot } from "../components/primitives/StatusDot";
 import { FindingCard } from "../components/panels/FindingCard";
 import { X402ReceiptPanel } from "../components/panels/X402ReceiptPanel";
+import { DisputePanel } from "../components/composite/DisputePanel";
+import { StakeStatusBadge } from "../components/composite/StakeStatusBadge";
 import { getAudit, type AuditResponse } from "../lib/api";
 import { KNOWN_TARGETS, MANTLE_CHAIN_ID } from "../lib/contracts";
 
@@ -103,7 +105,13 @@ function ResolvedAudit({ data }: { data: Extract<AuditResponse, { audited: true 
           tier {report?.tier ?? "?"} · {report?.provider ?? "—"}
         </Field>
         <Field k="Severity">
-          <SeverityBadge severity={anchor.severity} count={findings.length} />
+          <div className="flex items-center gap-2 flex-wrap">
+            <SeverityBadge severity={anchor.severity} count={findings.length} />
+            <StakeStatusBadge
+              rootHash={anchor.root_hash as `0x${string}`}
+              tier={report?.tier}
+            />
+          </div>
         </Field>
         <Field k="Integrity">
           {integrity.match === true ? (
@@ -155,9 +163,19 @@ function ResolvedAudit({ data }: { data: Extract<AuditResponse, { audited: true 
             No findings — audit clean.
           </div>
         ) : (
-          findings.map((f, i) => <FindingCard key={i} finding={f} />)
+          findings.map((f, i) => (
+            <FindingCard
+              key={i}
+              finding={f}
+              rootHash={anchor.root_hash as `0x${string}`}
+              findingIndex={i}
+              tier={report?.tier}
+            />
+          ))
         )}
       </section>
+
+      <DisputePanel rootHash={anchor.root_hash as `0x${string}`} />
     </>
   );
 }

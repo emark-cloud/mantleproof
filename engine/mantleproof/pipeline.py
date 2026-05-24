@@ -291,8 +291,21 @@ def run_audit(
             from mantleproof.persistence.anchor import anchor_audit
 
             anchor_fn = anchor_audit
+        # T43: Tier 2 audits forward 2 MNT into StakingPool.lockStake via the
+        # registry. Tier 1 audits MUST NOT forward value (the registry reverts
+        # InvalidStakeValue otherwise). The oracle signer's wallet pays.
+        from mantleproof.persistence.anchor import TIER2_STAKE_WEI
+
+        stake_value = TIER2_STAKE_WEI if tier == 2 else 0
         t = time.perf_counter()
-        report["anchor_tx"] = anchor_fn(target, severity, root_hash, f"ipfs://{cid}")
+        report["anchor_tx"] = anchor_fn(
+            target,
+            severity,
+            root_hash,
+            f"ipfs://{cid}",
+            tier=tier,
+            value=stake_value,
+        )
         timing["anchor_ms"] = round((time.perf_counter() - t) * 1000, 1)
 
     timing["total_ms"] = round((time.perf_counter() - t_total) * 1000, 1)

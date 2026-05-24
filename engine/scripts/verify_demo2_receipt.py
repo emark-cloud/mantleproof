@@ -58,6 +58,7 @@ REGISTRY_ABI = [
                     {"name": "ipfsCID", "type": "string"},
                     {"name": "timestamp", "type": "uint64"},
                     {"name": "submitter", "type": "address"},
+                    {"name": "tier", "type": "uint8"},
                 ],
                 "name": "",
                 "type": "tuple",
@@ -108,12 +109,12 @@ def _canonical_keccak(report: dict) -> str:
     default to True and silently produce a different preimage."""
     preimage = {
         k: v for k, v in report.items()
-        if k not in ("root_hash", "ipfs_cid", "ipfs_uri", "anchor_tx")
+        if k not in ("root_hash", "ipfs_cid", "ipfs_uri", "anchor_tx", "timing_ms")
     }
     canonical = json.dumps(
         preimage, sort_keys=True, separators=(",", ":"), ensure_ascii=False
     )
-    return "0x" + Web3.keccak(text=canonical).hex().lstrip("0x")
+    return "0x" + Web3.keccak(text=canonical).hex().removeprefix("0x")
 
 
 def main() -> int:  # noqa: C901, PLR0912, PLR0915
@@ -177,7 +178,7 @@ def main() -> int:  # noqa: C901, PLR0912, PLR0915
         address=Web3.to_checksum_address(registry_addr), abi=REGISTRY_ABI
     )
     rec = registry.functions.getAudit(Web3.to_checksum_address(target)).call()
-    on_root = "0x" + rec[0].hex().lstrip("0x")
+    on_root = "0x" + rec[0].hex().removeprefix("0x")
     on_sev = rec[1]
     on_cid = rec[2]
     on_submitter = rec[4]
@@ -214,7 +215,7 @@ def main() -> int:  # noqa: C901, PLR0912, PLR0915
     # 7+8. agent state
     agent = w3.eth.contract(address=Web3.to_checksum_address(agent_addr), abi=AGENT_ABI)
     audits = agent.functions.auditsPerformed().call()
-    mem = "0x" + agent.functions.memoryRoot().call().hex().lstrip("0x")
+    mem = "0x" + agent.functions.memoryRoot().call().hex().removeprefix("0x")
     print(f"[agent]    auditsPerformed={audits} memoryRoot={mem}")
     checks.append(("agent.auditsPerformed >= 2 (Demo 1 + Demo 2)", audits >= 2))
     checks.append(("agent.memoryRoot != 0x0", int(mem, 16) != 0))
@@ -236,13 +237,13 @@ def main() -> int:  # noqa: C901, PLR0912, PLR0915
         topics = log["topics"]
         if len(topics) < 4:
             continue
-        t0 = "0x" + topics[0].hex().lstrip("0x")
+        t0 = "0x" + topics[0].hex().removeprefix("0x")
         if t0.lower() != DECISION_TOPIC0.lower():
             continue
         # Indexed addresses are left-padded into bytes32
         ev_agent = "0x" + topics[1].hex()[-40:]
         ev_target = "0x" + topics[2].hex()[-40:]
-        ev_root = "0x" + topics[3].hex().lstrip("0x")
+        ev_root = "0x" + topics[3].hex().removeprefix("0x")
         if (
             ev_agent.lower() == agent_lc
             and ev_target.lower() == target_lc

@@ -10,6 +10,7 @@ import { useQueries } from "@tanstack/react-query";
 import { AgentIdentityHeader } from "../components/composite/AgentIdentityHeader";
 import { EngineStatusFooter } from "../components/composite/EngineStatusFooter";
 import { FeedbackPanel } from "../components/composite/FeedbackPanel";
+import { StakeAtRiskPanel } from "../components/composite/StakeAtRiskPanel";
 import { SeverityBadge } from "../components/primitives/SeverityBadge";
 import { getAudit } from "../lib/api";
 import {
@@ -61,6 +62,8 @@ export default function Agent() {
         <AgentIdentityHeader tokenId={idn} />
 
         <FeedbackPanel tokenId={idn} />
+
+        <StakeAtRiskPanel />
 
         <section className="panel px-4 py-4">
           <h2 className="font-mono text-xs uppercase tracking-wider text-text-primary mb-2">

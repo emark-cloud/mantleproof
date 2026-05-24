@@ -37,6 +37,19 @@ class Settings(BaseSettings):
     # --- On-chain anchor (engine stays decoupled from the contracts/ layout:
     #     the registry address is read from .env, not contracts/deployments/) ---
     mantleproof_registry_address: str = ""
+    # T43 (docs/update.md): sibling pool that holds Tier 2 audit stakes for the
+    # 30-day dispute window. Read live for stake/dispute UI; engine doesn't
+    # write to it directly — the registry's submitAudit forwards msg.value into
+    # the pool, and resolveDispute(RETRACTED) triggers slashByDispute from the
+    # registry. Only oracle-routed paths can mutate pool state.
+    mantleproof_staking_pool_address: str = ""
+    # Tier 2 stake amount in wei. Mirrors `MantleProofRegistry.TIER2_STAKE`
+    # (user-locked override of docs/update.md §3 50 MNT default → 2 MNT for
+    # the hackathon-window MNT-exposure cap).
+    tier2_stake_wei: int = 2 * 10**18
+    # Dispute stake window before `unlock()` is callable by anyone.
+    # Mirrors `StakingPool.UNLOCK_WINDOW`.
+    dispute_unlock_window_days: int = 30
 
     # --- ERC-8004 identity tokenId for MantleProof itself (T5; 96 on Mantle
     #     mainnet, 0 on Sepolia where the identity was never re-registered).

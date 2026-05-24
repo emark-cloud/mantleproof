@@ -28,7 +28,10 @@ async function main(): Promise<void> {
   const root = ethers.keccak256(ethers.toUtf8Bytes(`smoke-${Date.now()}`));
 
   const before = await agent.auditsPerformed();
-  const tx = await registry.connect(oracle).submitAudit(target, 3, root, "ipfs://smoke");
+  // Tier 1 smoke (no stake) — exercises the registry/agent wiring without
+  // requiring the oracle to hold 2 MNT. Tier 2 e2e is covered by T20 via the
+  // engine's pipeline.run_audit.
+  const tx = await registry.connect(oracle).submitAudit(target, 1, 3, root, "ipfs://smoke");
   const rcpt = await tx.wait();
   console.log(`[smoke] submitAudit tx=${rcpt?.hash}`);
 

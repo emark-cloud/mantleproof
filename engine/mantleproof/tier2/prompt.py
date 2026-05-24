@@ -95,6 +95,52 @@ def _bytecode_view(bytecode: bytes, *, limit: int = 4000) -> str:
     return f"0x{head}{note}\n(offsets above are byte offsets into runtime bytecode)"
 
 
+def _reaudit_block(original_audit: dict, counter_claim: dict, finding_index: int) -> str:
+    """Format the original audit + counter-claim for a dispute re-audit prompt.
+
+    Pure / network-free. Truncates the disputer's free-text claim to 4 kB to
+    keep the prompt bounded — the full IPFS document is still referenced by CID
+    so the model knows it was given a summary.
+    """
+    cid = counter_claim.get("cid") or counter_claim.get("ipfs_cid") or "(no cid)"
+    claim_text = str(counter_claim.get("claim") or counter_claim.get("text") or "")[:4000]
+    findings = original_audit.get("findings", [])
+    disputed = {}
+    if 0 <= finding_index < len(findings):
+        disputed = findings[finding_index]
+    original_json = json.dumps(disputed, indent=2)
+    return f"""\
+# ORIGINAL AUDIT — disputed finding (index {finding_index})
+{original_json}
+
+# COUNTER-CLAIM (filed by the disputer, IPFS CID: {cid})
+{claim_text}
+
+# DISPUTE RE-AUDIT INSTRUCTIONS
+You are re-evaluating the ORIGINAL FINDING above in light of the COUNTER-CLAIM.
+Same evidence rules apply: every quantitative claim must cite L<n> or
+bytecode_offset; ungrounded literals are masked [unsupported] and the honesty
+label drops one tier.
+
+Return EXACTLY ONE JSON object (NOT an array):
+{{"outcome":"DISMISSED|AMENDED|RETRACTED",
+  "rationale":"<one sentence explaining the verdict>",
+  "amended_finding":<finding object — REQUIRED when outcome=AMENDED, omit otherwise>,
+  "evidence":{{"source_line":"L<n>","matched_pattern":"<short tag>"}}}}
+
+Outcome rubric:
+- DISMISSED: counter-claim does not invalidate the finding. Honesty label of
+  the original finding upgrades one tier engine-side.
+- AMENDED: counter-claim partially invalidates the finding. Provide
+  `amended_finding` with the same shape as the original (severity may
+  downgrade; honesty label drops one tier engine-side).
+- RETRACTED: counter-claim invalidates the finding entirely. Stake transfers
+  to the disputer on-chain.
+
+Be conservative. If the counter-claim is weak or ungrounded, DISMISS.
+"""
+
+
 def build_prompt(
     source: str,
     bytecode: bytes,
@@ -103,19 +149,32 @@ def build_prompt(
     *,
     skills: dict[str, str] | None = None,
     contract_name: str = "",
+    original_audit: dict | None = None,
+    counter_claim: dict | None = None,
+    finding_index: int = 0,
 ) -> tuple[str, str]:
-    """Return `(system, user)`. Pure given `skills` (else loads bundled briefs)."""
+    """Return `(system, user)`. Pure given `skills` (else loads bundled briefs).
+
+    When ``original_audit`` and ``counter_claim`` are both set, the user prompt
+    gains an ORIGINAL-AUDIT + COUNTER-CLAIM block and the model is asked for a
+    single JSON object verdict instead of an array (dispute re-audit path —
+    docs/update.md §2.4). The system prompt is unchanged so the hallucination
+    guard's claim-extraction (T18) keeps working without modification.
+    """
     if skills is None:
         skills = load_skills()
     tier1_json = json.dumps([r.to_dict() for r in tier1], indent=2)
     skills_block = "\n\n".join(f"--- skill:{n} ---\n{txt}" for n, txt in skills.items())
     history = deployer_history or []
     history_block = "\n".join(f"- {h}" for h in history) if history else "(not provided)"
+    reaudit_section = ""
+    if original_audit is not None and counter_claim is not None:
+        reaudit_section = "\n" + _reaudit_block(original_audit, counter_claim, finding_index) + "\n"
 
     user = f"""\
 # TARGET CONTRACT
 name: {contract_name or "(unknown)"}
-
+{reaudit_section}
 # TIER-1 FINDINGS (already reported — find what these MISSED)
 {tier1_json}
 
@@ -153,6 +212,6 @@ intended, downgrade by one tier and explain in `caveat`. Do NOT silently
 drop the finding — surface it at the lower tier with the caveat so
 reviewers see the design choice.
 
-Return the JSON array of ADDITIONAL findings now.
+Return the JSON {("object" if original_audit is not None else "array")} now.
 """
     return _SYSTEM, user

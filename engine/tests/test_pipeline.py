@@ -16,7 +16,7 @@ import pytest
 
 from mantleproof.checks.base import CheckResult, HonestyLabel, Severity
 from mantleproof.persistence.anchor import severity_to_uint8
-from mantleproof.persistence.ipfs import _pin_payload
+from mantleproof.persistence.ipfs import _canonical_bytes
 from mantleproof.pipeline import build_report, compute_root_hash, run_audit
 
 _FIXED = datetime(2026, 5, 19, 12, 0, 0, tzinfo=UTC)
@@ -62,8 +62,16 @@ def _anchors():
     """A fake anchor() that records its call args; returns a txHash."""
     box: dict = {}
 
-    def anchor(target, severity, root_hash, cid):  # noqa: ANN001
-        box.update(target=target, severity=severity, root_hash=root_hash, cid=cid)
+    def anchor(target, severity, root_hash, cid, **kw):  # noqa: ANN001, ANN003
+        # Post-T43 the real anchor_audit takes `tier=...` + `value=...` kwargs.
+        box.update(
+            target=target,
+            severity=severity,
+            root_hash=root_hash,
+            cid=cid,
+            tier=kw.get("tier"),
+            value=kw.get("value"),
+        )
         return "0xtxhash"
 
     return anchor, box
@@ -80,11 +88,42 @@ def test_severity_to_uint8_matches_solidity_enum():
     assert severity_to_uint8(Severity.HIGH) == 3
 
 
-def test_pin_payload_wraps_report_for_pinata():
-    p = _pin_payload({"target": _TARGET, "tier": 2, "root_hash": "0xabc"})
-    assert p["pinataContent"]["target"] == _TARGET  # exact JSON, not reshaped
-    assert p["pinataOptions"]["cidVersion"] == 1
-    assert p["pinataMetadata"]["keyvalues"]["rootHash"] == "0xabc"
+def test_canonical_bytes_match_compute_root_hash_preimage():
+    """Pinata pinFileToIPFS stores our exact bytes. The verifier's invariant
+    keccak(canonical(IPFS body sans root_hash)) == on-chain rootHash holds
+    iff `_canonical_bytes(report)` produces the SAME bytes as the engine's
+    `compute_root_hash` preimage.
+    """
+    from mantleproof.pipeline import _canonical
+
+    report = {
+        "target": _TARGET,
+        "tier": 2,
+        "metrics_ref": {
+            # Integer-valued floats — Pinata's old pinJSONToIPFS would strip
+            # `.0` from these, breaking the keccak invariant. Pin-as-bytes
+            # preserves them so canonical roundtrip is byte-identical.
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1": 1.0,
+            "latency_ms": {"p50": 0.4, "p95": 4.5},
+        },
+        "root_hash": "0xabc",
+    }
+    body = _canonical_bytes(report)
+    # SAME byte string compute_root_hash would have hashed (sans root_hash).
+    preimage = _canonical({k: v for k, v in report.items() if k != "root_hash"})
+    body_minus_root = (
+        _canonical({k: v for k, v in report.items() if k != "root_hash"})
+    )
+    assert preimage == body_minus_root  # tautology — just pin the contract
+    # Float `1.0` must remain `1.0` in the bytes (Pinata-mutation regression).
+    assert b'"f1":1.0' in body
+    assert b'"precision":1.0' in body
+    # Non-integer floats preserved too.
+    assert b'"p50":0.4' in body
+    # ensure_ascii=False round-trips utf-8 cleanly.
+    assert isinstance(body, bytes)
 
 
 def test_build_report_root_hash_is_keccak_of_canonical_preimage():

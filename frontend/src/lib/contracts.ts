@@ -29,7 +29,24 @@ export const TREASURY_ADDRESS =
   (import.meta.env.VITE_TREASURY_ADDRESS as `0x${string}`) ??
   ("0x53459fb149CB1772ea389ACE325501DA2B28E437" as const);
 
+/**
+ * StakingPool — 6th contract added by T43 (docs/update.md §3). Holds Tier 2
+ * audit stakes (2 MNT each) for the 30-day dispute window; slashes to the
+ * disputer on a RETRACTED outcome. Reads only — no client-side writes (the
+ * registry's submitAudit forwards msg.value, resolveDispute triggers slashing).
+ *
+ * Address is the placeholder zero until the post-T43 redeploy lands; the env
+ * override is the canonical way to ship the live address.
+ */
+export const STAKING_POOL_ADDRESS =
+  (import.meta.env.VITE_STAKING_POOL_ADDRESS as `0x${string}`) ??
+  ("0x0000000000000000000000000000000000000000" as const);
+
 export const MANTLE_CHAIN_ID = Number(import.meta.env.VITE_CHAIN_ID ?? 5000);
+/** Tier 2 stake amount in wei — mirrors MantleProofRegistry.TIER2_STAKE. */
+export const TIER2_STAKE_WEI = 2n * 10n ** 18n;
+/** 30-day stake window — mirrors StakingPool.UNLOCK_WINDOW. */
+export const DISPUTE_UNLOCK_WINDOW_SECONDS = 30 * 24 * 60 * 60;
 export const AGENT_TOKEN_ID = 96n; // MantleProof's own ERC-8004 identity (T5).
 
 /**
@@ -49,13 +66,62 @@ export const REPUTATION_REGISTRY_ADDRESS =
 
 // Minimal read ABI — mirrors `engine/mantleproof/persistence/registry_reader.py`
 // so frontend & engine read the SAME on-chain shape.
+// T43 (docs/update.md): Report struct gains `tier`; new submitDispute/
+// resolveDispute/getDispute/getDisputesForRoot + events DisputeSubmitted /
+// DisputeResolved. The submitAudit signature gains `tier` + becomes payable.
 export const registryAbi = parseAbi([
   "function auditCount(address) view returns (uint256)",
   "function isAudited(address) view returns (bool)",
   "function oracleSigner() view returns (address)",
-  "function getAudit(address) view returns ((bytes32 rootHash, uint8 severity, string ipfsCID, uint64 timestamp, address submitter))",
-  "event AuditSubmitted(address indexed target, bytes32 indexed rootHash, uint8 severity, string ipfsCID)",
+  "function auditTarget(bytes32) view returns (address)",
+  "function auditTier(bytes32) view returns (uint8)",
+  "function disputeCount() view returns (uint256)",
+  "function getAudit(address) view returns ((bytes32 rootHash, uint8 severity, string ipfsCID, uint64 timestamp, address submitter, uint8 tier))",
+  "function getDispute(uint256) view returns ((bytes32 rootHash, uint256 findingIndex, address disputer, string counterClaimIpfs, uint256 counterStake, uint256 antiSpamFee, uint8 status, uint64 submittedAt, uint64 resolvedAt, bytes32 reAuditRootHash))",
+  "function getDisputesForRoot(bytes32) view returns (uint256[])",
+  "function submitDispute(bytes32 rootHash, uint256 findingIndex, string counterClaimIpfs) payable returns (uint256)",
+  "event AuditSubmitted(address indexed target, bytes32 indexed rootHash, uint8 severity, string ipfsCID, uint8 tier)",
+  "event DisputeSubmitted(uint256 indexed disputeId, bytes32 indexed rootHash, uint256 findingIndex, address indexed disputer, string counterClaimIpfs, uint256 counterStake)",
+  "event DisputeResolved(uint256 indexed disputeId, bytes32 indexed rootHash, uint8 status, bytes32 reAuditRootHash)",
 ]);
+
+/**
+ * Minimal read ABI for the StakingPool sibling contract (T43).
+ * Mirrors `engine/mantleproof/staking/reader.py`. Read-only on the frontend
+ * — locking is registry-internal, slashing is registry-routed, and `unlock`
+ * is permissionless but we don't surface it as a button in this UI.
+ */
+export const stakingPoolAbi = parseAbi([
+  "function stakeOf(bytes32 rootHash) view returns ((bytes32 rootHash, address auditor, uint256 amount, uint64 lockedAt, uint64 unlocksAt, uint8 status))",
+  "function isLocked(bytes32 rootHash) view returns (bool)",
+  "function treasury() view returns (address)",
+  "function registry() view returns (address)",
+  "event StakeLocked(bytes32 indexed rootHash, address indexed auditor, uint256 amount, uint64 unlocksAt)",
+  "event StakeSlashedByDispute(bytes32 indexed rootHash, address indexed beneficiary, uint256 portion, uint256 remainder)",
+  "event StakeReleased(bytes32 indexed rootHash, uint256 treasuryCut, uint256 retained)",
+]);
+
+/**
+ * DisputeStatus enum mirror (Solidity order):
+ *   0 = PENDING, 1 = DISMISSED, 2 = AMENDED, 3 = RETRACTED
+ */
+export const DISPUTE_STATUS_BY_UINT: Record<number, "pending" | "dismissed" | "amended" | "retracted"> = {
+  0: "pending",
+  1: "dismissed",
+  2: "amended",
+  3: "retracted",
+};
+
+/**
+ * StakingPool.Status enum mirror:
+ *   0 = LOCKED, 1 = RELEASED, 2 = SLASHED_DISPUTE, 3 = SLASHED_EXPLOIT (reserved)
+ */
+export const STAKE_STATUS_BY_UINT: Record<number, "locked" | "released" | "slashed_dispute" | "slashed_exploit"> = {
+  0: "locked",
+  1: "released",
+  2: "slashed_dispute",
+  3: "slashed_exploit",
+};
 
 // `agentAbi` deliberately omits `reputation()` and `agentURI()` — both views
 // were compiled against the fictional pre-T38 IEIP8004 interface and revert

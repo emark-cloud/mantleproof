@@ -65,6 +65,7 @@ REGISTRY_ABI = [
                     {"name": "ipfsCID", "type": "string"},
                     {"name": "timestamp", "type": "uint64"},
                     {"name": "submitter", "type": "address"},
+                    {"name": "tier", "type": "uint8"},
                 ],
                 "name": "",
                 "type": "tuple",
@@ -105,7 +106,7 @@ DECISIONLOG_ABI = [
 DECISION_TOPIC0 = (
     "0x" + Web3.keccak(
         text="Decision(address,address,bytes32,string,string)"
-    ).hex().lstrip("0x")
+    ).hex().removeprefix("0x")
 )
 
 
@@ -114,12 +115,12 @@ def _canonical_keccak(report: dict) -> str:
     compute_root_hash. Strict ensure_ascii=False matters."""
     preimage = {
         k: v for k, v in report.items()
-        if k not in ("root_hash", "ipfs_cid", "ipfs_uri", "anchor_tx")
+        if k not in ("root_hash", "ipfs_cid", "ipfs_uri", "anchor_tx", "timing_ms")
     }
     canonical = json.dumps(
         preimage, sort_keys=True, separators=(",", ":"), ensure_ascii=False
     )
-    return "0x" + Web3.keccak(text=canonical).hex().lstrip("0x")
+    return "0x" + Web3.keccak(text=canonical).hex().removeprefix("0x")
 
 
 def main() -> int:  # noqa: C901, PLR0912, PLR0915
@@ -188,7 +189,7 @@ def main() -> int:  # noqa: C901, PLR0912, PLR0915
         address=Web3.to_checksum_address(registry_addr), abi=REGISTRY_ABI
     )
     rec = registry.functions.getAudit(Web3.to_checksum_address(target)).call()
-    on_root = "0x" + rec[0].hex().lstrip("0x")
+    on_root = "0x" + rec[0].hex().removeprefix("0x")
     on_sev = rec[1]
     on_cid = rec[2]
     on_submitter = rec[4]
@@ -230,7 +231,7 @@ def main() -> int:  # noqa: C901, PLR0912, PLR0915
         address=Web3.to_checksum_address(agent_addr), abi=AGENT_ABI
     )
     audits = mp_agent.functions.auditsPerformed().call()
-    mem = "0x" + mp_agent.functions.memoryRoot().call().hex().lstrip("0x")
+    mem = "0x" + mp_agent.functions.memoryRoot().call().hex().removeprefix("0x")
     print(f"[agent]    auditsPerformed={audits} memoryRoot={mem}")
     checks.append((
         "agent.auditsPerformed >= 3 (Demo 1 + 2 + 3 compound)",
@@ -254,12 +255,12 @@ def main() -> int:  # noqa: C901, PLR0912, PLR0915
         topics = log["topics"]
         if len(topics) < 4:
             continue
-        t0 = "0x" + topics[0].hex().lstrip("0x")
+        t0 = "0x" + topics[0].hex().removeprefix("0x")
         if t0.lower() != DECISION_TOPIC0.lower():
             continue
         ev_agent = "0x" + topics[1].hex()[-40:]
         ev_target = "0x" + topics[2].hex()[-40:]
-        ev_root = "0x" + topics[3].hex().lstrip("0x")
+        ev_root = "0x" + topics[3].hex().removeprefix("0x")
         if (
             ev_agent.lower() == agent_lc
             and ev_target.lower() == target_lc

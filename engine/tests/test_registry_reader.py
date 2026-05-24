@@ -32,12 +32,14 @@ def test_severity_from_uint8_rejects_unknown():
 
 
 def test_decode_audit_tuple_happy_path():
+    # Post-T43: Report tuple gains a trailing `tier` uint8.
     raw = (
         bytes.fromhex("6a69e7d4" + "00" * 28),  # arbitrary non-zero rootHash
         3,  # High
         "bafkreibjhgewce",
         1_716_000_000,
         "0x9f17b625902B0d35a02fd790aF45cf95e9F4638a",
+        2,  # tier
     )
     audit = decode_audit_tuple(TARGET, raw, audit_count=1)
     assert audit is not None
@@ -48,9 +50,10 @@ def test_decode_audit_tuple_happy_path():
     assert audit.timestamp == 1_716_000_000
     assert audit.submitter == "0x9f17b625902B0d35a02fd790aF45cf95e9F4638a"
     assert audit.audit_count == 1
+    assert audit.tier == 2
 
 
 def test_decode_audit_tuple_zero_hash_returns_none():
     """Some web3 providers return zeros instead of reverting UnknownTarget."""
-    raw = (ZERO_HASH, 0, "", 0, "0x" + "00" * 20)
+    raw = (ZERO_HASH, 0, "", 0, "0x" + "00" * 20, 0)
     assert decode_audit_tuple(TARGET, raw, audit_count=0) is None

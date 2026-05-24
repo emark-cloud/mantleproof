@@ -4,6 +4,7 @@ import Dashboard from "./pages/Dashboard";
 import Contract from "./pages/Contract";
 import Agent from "./pages/Agent";
 import Audit from "./pages/Audit";
+import DisputeNew from "./pages/DisputeNew";
 import Judge from "./pages/Judge";
 
 // Routes — landing at `/`, dashboard at `/app`. The spec (`docs/design.md`
@@ -17,6 +18,7 @@ export default function App() {
       <Route path="/contract/:address" element={<Contract />} />
       <Route path="/agent/:tokenId" element={<Agent />} />
       <Route path="/audit/:rootHash" element={<Audit />} />
+      <Route path="/dispute/new" element={<DisputeNew />} />
       <Route path="/judge" element={<Judge />} />
     </Routes>
   );

@@ -127,18 +127,16 @@ def main() -> int:
 
         return pin_json(report)
 
-    # Sepolia registry's oracleSigner is immutable at the PRE-rotation deployer
-    # address (this Sepolia registry was deployed before T25's mainnet-only
-    # oracle-signer key was minted). Pass DEPLOYER_PRIVATE_KEY explicitly so a
-    # cross-chain key rotation in .env can't break this rehearsal harness.
-    import os as _os
-    _sepolia_signer = _os.environ.get("DEPLOYER_PRIVATE_KEY") or None
-
-    def _anchor(t, sev, root_hash, cid):  # noqa: ANN001 — bind addr + signer
+    # Post-T43 the Sepolia registry was redeployed against the dedicated
+    # ORACLE_SIGNER_PRIVATE_KEY (not the deployer key). Don't override
+    # private_key here — let anchor_audit use the engine's settings default,
+    # which is `oracle_signer_private_key` from .env (the right key for the
+    # post-T43 Sepolia + mainnet registries alike).
+    def _anchor(t, sev, root_hash, cid, **kw):  # noqa: ANN001, ANN003
         return anchor_audit(
             t, sev, root_hash, cid,
             registry_address=registry_addr,
-            private_key=_sepolia_signer,
+            **kw,
         )
 
     print("\n[run] live source/bytecode/Tier-1/Gemini-Tier-2/guard/rootHash"

@@ -7,11 +7,27 @@
  * we show "evidence missing — should not have been anchored" rather than hide
  * the gap.
  */
+import { Link } from "react-router-dom";
 import type { Finding } from "../../lib/api";
 import { SeverityBadge, type Severity } from "../primitives/SeverityBadge";
 import { HonestyLabel } from "../primitives/HonestyLabel";
 
-export function FindingCard({ finding }: { finding: Finding }) {
+export function FindingCard({
+  finding,
+  rootHash,
+  findingIndex,
+  tier,
+}: {
+  finding: Finding;
+  /** Tier 2 audit rootHash this finding belongs to — required for the
+   *  "Dispute this finding" CTA. Tier 1 findings are not disputable
+   *  (per docs/update.md §8); omit for those. */
+  rootHash?: `0x${string}`;
+  /** 0-based index of this finding within the audit's findings array. */
+  findingIndex?: number;
+  /** Tier of the parent audit — used to gate the dispute CTA. */
+  tier?: number;
+}) {
   const sev = (finding.severity ?? "info") as Severity;
   const label = finding.label ?? "ESTIMATED";
   const evidence = (finding.evidence ?? {}) as Record<string, unknown>;
@@ -110,6 +126,16 @@ export function FindingCard({ finding }: { finding: Finding }) {
           <p className="font-sans text-[12px] text-text-secondary whitespace-pre-wrap leading-relaxed">
             {finding.caveat}
           </p>
+        </div>
+      )}
+      {tier === 2 && rootHash && findingIndex !== undefined && (
+        <div className="px-4 py-2 border-t border-border-faint flex items-center justify-end">
+          <Link
+            to={`/dispute/new?root=${rootHash}&idx=${findingIndex}`}
+            className="font-mono text-[11px] text-text-muted hover:text-accent"
+          >
+            [dispute this finding ↗]
+          </Link>
         </div>
       )}
     </article>

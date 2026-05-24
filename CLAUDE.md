@@ -117,9 +117,15 @@ anchor chain. The mainnet column is a build-time, human-verified artifact (Week 
 
 Mantle issues every participating agent's ERC-8004 identity NFT automatically as an
 integrated hackathon feature. **We do NOT deploy our own Identity Registry.** We deploy
-only **4** contracts and register/call into Mantle's official registries:
+**6** contracts (post-T43, 2026-05-24 — was 5 pre-T43) and register/call into Mantle's
+official registries:
 
-- `MantleProofRegistry.sol` — append-only audit registry (our own).
+- `MantleProofRegistry.sol` — append-only audit registry **+ disputes layer (T43)**.
+  `submitAudit(target, tier, severity, rootHash, ipfsCID)` is payable; Tier 2 calls
+  MUST forward `TIER2_STAKE = 2 MNT` which is forwarded into `StakingPool.lockStake`
+  in the same tx. `submitDispute(rootHash, findingIndex, ipfsCID)` is permissionless;
+  `resolveDispute(disputeId, outcome, reAuditRootHash)` is oracle-only. Tier 1 audits
+  are NOT disputable (`Tier1NotDisputable`). `claimExploit` is RESERVED post-hackathon.
 - `MantleProofAgent.sol` — **thin wrapper** around Mantle's official ERC-8004 identity:
   tracks per-audit `memoryRoot` + `auditsPerformed`. Reputation lives on the **official
   Reputation Registry** (read directly — `MantleProofAgent.reputation()` / `agentURI()`
@@ -128,6 +134,10 @@ only **4** contracts and register/call into Mantle's official registries:
   ERC-8004 feedback about MantleProof through the official registry's
   `giveFeedback(96, …)` — first live mainnet receipt 2026-05-23 (T40). MantleProof
   itself never signs feedback or holds a feedback-signer key.
+- `StakingPool.sol` (NEW — T43) — holds 2 MNT for each Tier 2 audit for a 30-day
+  window. `slashByDispute` (registry-only) transfers to the disputer on RETRACTED.
+  `unlock(rootHash)` is permissionless after `unlocksAt`; 99% → treasury, 1% retained.
+  `claimExploit` reserved comment block.
 - `MantleProofLicense.sol` — pay-per-audit / subscription, 80/20 split.
 - `TreasurySplit.sol` — 20% treasury share.
 - plus `DecisionLog.sol` (demos) and `MockUSDC.sol` (tests).

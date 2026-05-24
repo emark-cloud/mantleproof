@@ -48,6 +48,13 @@
   --label-emulated: #bc8cff;
   --label-labeled: #9a9aa0;
 
+  /* Dispute / stake status (T45 — docs/update.md §2.5) */
+  --status-disputed-pending: #bc8cff; /* purple — dispute in flight */
+  --status-disputed-final: #6e7681;   /* grey — dispute resolved */
+  --status-staked-locked: #00b374;    /* dim accent — stake live, no dispute */
+  --status-staked-released: #5a5a60;  /* mute — stake aged out cleanly */
+  --status-staked-slashed: #ff4d5e;   /* red — stake taken by disputer */
+
   /* Type */
   --font-mono: "JetBrains Mono", "Berkeley Mono", "IBM Plex Mono", ui-monospace, monospace;
   --font-sans: "Inter", "Inter Tight", system-ui, -apple-system, sans-serif;
