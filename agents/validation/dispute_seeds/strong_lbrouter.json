@@ -1,0 +1,7 @@
+{
+  "claim": "This finding (a 'slippage concern' on addLiquidity) is incorrect for Merchant Moe LB v2.2 LBRouter when used with WMNT/USDT0. The LBRouter's addLiquidityNATIVE function enforces amountXMin/amountYMin AND idSlippage parameters that bound both token-amount slippage AND bin-id slippage — these are the documented slippage controls per docs.merchantmoe.com. The audit's finding treats this as missing protection, but the single-sided WMNT deposit pattern used in Demo 3 sets amountXMin=amountX (no slippage on the deposited token, which is correct by design for X-only adds — slippage applies only to the un-deposited side which has amount=0). The agent's own decision narrative explicitly noted this: 'the audit's slippage concern was for fee-on-transfer/rebasing tokens, N/A for WMNT'. WMNT is a standard WETH-style non-rebasing wrapper. The finding should be retracted: there is no actual slippage exposure on a single-sided non-fee-on-transfer deposit through the LB v2.2 router. Reference: LBRouter.sol addLiquidityNATIVE signature + LiquidityParameters struct at github.com/traderjoe-xyz/joe-v2-1/blob/main/src/LBRouter.sol.",
+  "target_audit_root": "0x37ff62a05f9e66151b36846e28a77494ccc9733a298200d3aa62b1a607d3b373",
+  "target_finding_index": 0,
+  "intended_outcome": "RETRACTED",
+  "filed_by": "disputer-agent demo flow"
+}

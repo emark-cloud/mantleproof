@@ -1,0 +1,7 @@
+{
+  "claim": "The finding correctly identifies that swapExact* functions return an amountOut from the last pair, which would be problematic if any pair in the path used a fee-on-transfer or rebasing token — the router's returned amountOut would exceed what the user actually received. This observation is technically correct and stands. However, the HIGH-impact framing is overstated for the LBRouter deployed on Mantle mainnet because: (a) the LBRouter is a generic router; (b) the *pairs* on Mantle that exist today (WMNT, USDT0, MOE, USDe, sUSDe, mETH, USDY, etc.) are all standard ERC-20s with NO fee-on-transfer and NO rebasing — verified by reading their deployed code on mainnet; (c) the affected exploit path requires a fee-on-transfer pair to exist in Merchant Moe LB, which would have to be created by an LP and the user would have to route through it. The finding should be AMENDED: severity DOWNGRADED from MEDIUM to LOW with caveat 'Pair-dependent: applies only if a fee-on-transfer or rebasing-token pair is added to Merchant Moe LB — none exist on Mantle today. Router behavior is correct for standard ERC-20s.' The text and evidence stay; only severity moves and the caveat is added.",
+  "target_audit_root": "0x37ff62a05f9e66151b36846e28a77494ccc9733a298200d3aa62b1a607d3b373",
+  "target_finding_index": 0,
+  "intended_outcome": "AMENDED",
+  "filed_by": "disputer-agent demo flow (round 4 — final)"
+}

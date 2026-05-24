@@ -257,8 +257,14 @@ def main() -> int:
         match = False
         for log in receipt.get("logs", []):
             topics = log.get("topics", [])
-            t0 = topics[0].hex() if hasattr(topics[0], "hex") else topics[0]
-            if t0 == topic_resolved:
+            if not topics:
+                continue
+            # web3.py 7+ HexBytes.hex() omits the "0x" prefix; normalize both
+            # sides so the comparison doesn't silently fail (caught here in
+                # T47's verifier rerun against the live mainnet receipts).
+            raw = topics[0].hex() if hasattr(topics[0], "hex") else str(topics[0])
+            t0 = "0x" + raw.removeprefix("0x")
+            if t0.lower() == topic_resolved.lower():
                 match = True
                 break
         checks.append(

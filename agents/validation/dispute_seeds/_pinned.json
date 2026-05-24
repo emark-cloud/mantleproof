@@ -1,0 +1,58 @@
+{
+  "strong_lbrouter": {
+    "claim": "This finding (a 'slippage concern' on addLiquidity) is incorrect for Merchant Moe LB v2.2 LBRouter when used with WMNT/USDT0. The LBRouter's addLiquidityNATIVE function enforces amountXMin/amountYMin AND idSlippage parameters that bound both token-amount slippage AND bin-id slippage — these are the documented slippage controls per docs.merchantmoe.com. The audit's finding treats this as missing protection, but the single-sided WMNT deposit pattern used in Demo 3 sets amountXMin=amountX (no slippage on the deposited token, which is correct by design for X-only adds — slippage applies only to the un-deposited side which has amount=0). The agent's own decision narrative explicitly noted this: 'the audit's slippage concern was for fee-on-transfer/rebasing tokens, N/A for WMNT'. WMNT is a standard WETH-style non-rebasing wrapper. The finding should be retracted: there is no actual slippage exposure on a single-sided non-fee-on-transfer deposit through the LB v2.2 router. Reference: LBRouter.sol addLiquidityNATIVE signature + LiquidityParameters struct at github.com/traderjoe-xyz/joe-v2-1/blob/main/src/LBRouter.sol.",
+    "target_audit_root": "0x37ff62a05f9e66151b36846e28a77494ccc9733a298200d3aa62b1a607d3b373",
+    "target_finding_index": 0,
+    "intended_outcome": "RETRACTED",
+    "filed_by": "disputer-agent demo flow",
+    "cid": "bafkreienacgtda4it5xanvol2npb2plqfj2gojeax7na4imnps3d3x6xxa"
+  },
+  "partial_meme": {
+    "claim": "This finding is partially correct but the severity is overstated. The contract does have an admin pause() function, but pause() is a standard OpenZeppelin Pausable pattern used by USDC, sUSDe, USDT, and other regulated stablecoins for compliance — these are explicitly listed in the audit's own DO-NOT-FLAG-AS-HIGH allowlist as 'Owner-upgradeable proxies, pause guardians, and oracle admin setters when the protocol documents them as operational controls'. The finding should be amended to LOW or INFO with a caveat noting the documented compliance-controls pattern, rather than HIGH which implies a covert backdoor. The underlying observation about admin pause power is accurate; only the severity classification needs amendment.",
+    "target_audit_root": "0x0947f93b6cc6c4e167722a17eddb1684d5113cce0318b5717e8f702595c7087f",
+    "target_finding_index": 1,
+    "intended_outcome": "AMENDED",
+    "filed_by": "disputer-agent demo flow",
+    "cid": "bafkreicgvgncuj7msasbicid57uo5vm37cxwotlvgl6d2pti6fxzly5ww4"
+  },
+  "weak_meme": {
+    "claim": "The finding seems too aggressive. Many tokens have similar code and they work fine. The agent should not refuse all interaction just because of this concern. Decentralized governance can fix any issues later. Please reconsider.",
+    "target_audit_root": "0x0947f93b6cc6c4e167722a17eddb1684d5113cce0318b5717e8f702595c7087f",
+    "target_finding_index": 0,
+    "intended_outcome": "DISMISSED",
+    "filed_by": "disputer-agent demo flow",
+    "cid": "bafkreigi4e2h3rd5z2kcj7hmrr36f3na2zp37i5xowwi73ncs3syc52gra"
+  },
+  "amend_balanceof_underlying": {
+    "claim": "The finding correctly observes that `balanceOfUnderlying(address user)` at L68 returns `shares[user]` (raw share balance) instead of the underlying-asset value of those shares. The observation is accurate; the severity classification (MEDIUM) is overstated for this specific contract context. Per the audit's own severity rubric: MEDIUM requires 'loss contingent on a specific state/condition, OR an invariant breach that blocks the protocol's promised value.' This function is a pure view — it does not gate any state transition, is not called by any on-chain function in this contract, and cannot directly cause fund loss. Its impact is limited to misreporting a value to off-chain consumers (UIs, indexers), which is a LOW severity issue per the rubric ('unintended deviation from spec causing minor loss or quality issue') with a caveat noting the view-only-impact. The finding should be AMENDED to severity LOW with the view-only caveat — the underlying observation stands, only the severity bucket is wrong.",
+    "target_audit_root": "0x3f4799f5863dbb38994c319254e539e53d47e4f63c3e9254b0994db8e04168e9",
+    "target_finding_index": 1,
+    "intended_outcome": "AMENDED",
+    "filed_by": "disputer-agent demo flow (round 2)",
+    "cid": "bafkreife6fdmvlecyqlyhkjp4pvticvqfw46wqm74iw3lycb2bemreof6i"
+  },
+  "retract_swap_exact_out": {
+    "claim": "This finding misclassifies standard AMM exact-output swap semantics as a bug. `swapTokensForExactTokens` is canonical exact-output swap behavior (LBRouter v2.2, Trader Joe v2.1, Uniswap V2/V3 V3SwapRouter, and every other production AMM router): the caller specifies the EXACT output token amount and the MAXIMUM input they're willing to spend (`amountInMax`). The function transfers from the caller ONLY the amount required by the path's exchange rate — never more. There is no 'overpay without refund' because no excess input is ever taken in the first place. The `amountInMax` parameter is the caller's explicit ceiling consent; spending strictly less than that ceiling is the function's WHOLE PURPOSE, not a defect. The finding's claim of 'lost or locked funds' has no on-chain mechanism — verify this by reading the LBRouter source on Mantlescan: the `_swapTokensForExactTokens` internal call consumes `amountIn` (the calculated required amount), not `amountInMax`. The finding should be RETRACTED in full: it's based on a misunderstanding of how exact-output swaps work versus exact-input swaps. Reference: Uniswap V2 Periphery's `swapTokensForExactTokens` documentation, Trader Joe LBRouter v2.2 source, and Merchant Moe docs at docs.merchantmoe.com/developers/router.",
+    "target_audit_root": "0x37ff62a05f9e66151b36846e28a77494ccc9733a298200d3aa62b1a607d3b373",
+    "target_finding_index": 1,
+    "intended_outcome": "RETRACTED",
+    "filed_by": "disputer-agent demo flow (round 2)",
+    "cid": "bafkreigvqocaes444wyneinv4mrzz4unm74mpobphfv4xee7skubymoiaq"
+  },
+  "amend_susde_cooldown": {
+    "claim": "The finding correctly identifies that the contract's redemption path calls sUSDe.redeem with no awareness of sUSDe's cooldown mechanism — this code-level observation is accurate. However, the HIGH severity classification is overstated for THIS specific contract because no actual fund-loss vector exists in the current code: the contract has NO function that deposits assets into sUSDe (no `sUSDe.deposit` or `sUSDe.mint` call anywhere), so the redeem function operates on a non-existent share balance and reverts cleanly without losing funds. The vulnerability is real as a design flaw but the exploit requires future code changes that would add sUSDe deposits. Per the audit's own severity rubric, HIGH requires 'direct loss or theft of funds via a CONCRETE, named exploit path' — but here no path to loss exists in the current bytecode. The finding should be AMENDED to MEDIUM severity with a caveat noting 'design flaw that becomes a fund-loss vector if sUSDe deposit functionality is added later — must be fixed before any such addition'. The text and evidence stay; only the severity bucket moves from HIGH to MEDIUM to reflect the current code's actual (absent) exploit path.",
+    "target_audit_root": "0x3f4799f5863dbb38994c319254e539e53d47e4f63c3e9254b0994db8e04168e9",
+    "target_finding_index": 0,
+    "intended_outcome": "AMENDED",
+    "filed_by": "disputer-agent demo flow (round 3)",
+    "cid": "bafkreih5htktd7jbko54skxnay4b5ezmzps3vh3o3bdk2qdokshtpopjam"
+  },
+  "amend_swap_pair_scope": {
+    "claim": "The finding correctly identifies that swapExact* functions return an amountOut from the last pair, which would be problematic if any pair in the path used a fee-on-transfer or rebasing token — the router's returned amountOut would exceed what the user actually received. This observation is technically correct and stands. However, the HIGH-impact framing is overstated for the LBRouter deployed on Mantle mainnet because: (a) the LBRouter is a generic router; (b) the *pairs* on Mantle that exist today (WMNT, USDT0, MOE, USDe, sUSDe, mETH, USDY, etc.) are all standard ERC-20s with NO fee-on-transfer and NO rebasing — verified by reading their deployed code on mainnet; (c) the affected exploit path requires a fee-on-transfer pair to exist in Merchant Moe LB, which would have to be created by an LP and the user would have to route through it. The finding should be AMENDED: severity DOWNGRADED from MEDIUM to LOW with caveat 'Pair-dependent: applies only if a fee-on-transfer or rebasing-token pair is added to Merchant Moe LB — none exist on Mantle today. Router behavior is correct for standard ERC-20s.' The text and evidence stay; only severity moves and the caveat is added.",
+    "target_audit_root": "0x37ff62a05f9e66151b36846e28a77494ccc9733a298200d3aa62b1a607d3b373",
+    "target_finding_index": 0,
+    "intended_outcome": "AMENDED",
+    "filed_by": "disputer-agent demo flow (round 4 — final)",
+    "cid": "bafkreigtgpt63im4qyktdgxclte7rxk6idd4lcbekjxw25jrqgvikscpe4"
+  }
+}

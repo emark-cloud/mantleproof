@@ -1,0 +1,7 @@
+{
+  "claim": "The finding correctly identifies that the contract's redemption path calls sUSDe.redeem with no awareness of sUSDe's cooldown mechanism — this code-level observation is accurate. However, the HIGH severity classification is overstated for THIS specific contract because no actual fund-loss vector exists in the current code: the contract has NO function that deposits assets into sUSDe (no `sUSDe.deposit` or `sUSDe.mint` call anywhere), so the redeem function operates on a non-existent share balance and reverts cleanly without losing funds. The vulnerability is real as a design flaw but the exploit requires future code changes that would add sUSDe deposits. Per the audit's own severity rubric, HIGH requires 'direct loss or theft of funds via a CONCRETE, named exploit path' — but here no path to loss exists in the current bytecode. The finding should be AMENDED to MEDIUM severity with a caveat noting 'design flaw that becomes a fund-loss vector if sUSDe deposit functionality is added later — must be fixed before any such addition'. The text and evidence stay; only the severity bucket moves from HIGH to MEDIUM to reflect the current code's actual (absent) exploit path.",
+  "target_audit_root": "0x3f4799f5863dbb38994c319254e539e53d47e4f63c3e9254b0994db8e04168e9",
+  "target_finding_index": 0,
+  "intended_outcome": "AMENDED",
+  "filed_by": "disputer-agent demo flow (round 3)"
+}

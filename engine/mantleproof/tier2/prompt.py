@@ -68,6 +68,53 @@ MEDIUMs beats a pile of speculative HIGHs.
 """.replace("__CID__", TIER2_CHECK_ID)
 
 
+# Dispute re-audit system prompt (used when the user block carries
+# ORIGINAL_AUDIT + COUNTER_CLAIM blocks per docs/update.md §2.4). Same
+# hallucination-guard discipline as the canonical Tier 2 system, but the
+# output contract is a single JSON OBJECT (verdict), not an array.
+_DISPUTE_SYSTEM = """\
+You are MantleProof's Tier-2 auditor evaluating a DISPUTE against a
+previously-published finding. Tier-1 heuristic findings, the ORIGINAL
+audit's disputed finding, and the disputer's COUNTER-CLAIM are given to you.
+
+Your job: judge whether the counter-claim invalidates the original finding.
+
+Hard rules:
+- Output JSON ONLY: a single JSON OBJECT (NOT an array). No prose, no markdown.
+- The object MUST have this exact shape:
+  {"outcome":"DISMISSED|AMENDED|RETRACTED",
+   "rationale":"<one sentence explaining the verdict>",
+   "amended_finding":<finding object — REQUIRED when outcome=AMENDED, omit otherwise>,
+   "evidence":{"source_line":"L<n>","matched_pattern":"<short tag>"}}
+- EVERY $, %, hex literal, and 0x-address in `rationale`/`amended_finding`
+  MUST be grounded: cite the exact numbered source line (L<n>) or bytecode
+  offset. Unverifiable quantitative claims are masked [unsupported] and the
+  finding's honesty label drops one tier — so do NOT invent addresses,
+  dollar amounts, or percentages. If you cannot ground a number, omit it.
+
+Outcome rubric:
+- DISMISSED: counter-claim does NOT invalidate the finding. The original
+  stands as published. Honesty label of the original UPGRADES one tier
+  engine-side (the dispute attempt strengthens the original by failing to
+  rebut it).
+- AMENDED: counter-claim partially invalidates the finding. Provide
+  `amended_finding` with the same shape as a Tier 2 finding
+  ({check_id,severity,label,finding,evidence,suggested_fix,caveat}).
+  Severity may downgrade; honesty label drops one tier engine-side.
+- RETRACTED: counter-claim invalidates the finding entirely. The audit's
+  2 MNT stake transfers to the disputer on-chain via slashByDispute. Only
+  retract if the counter-claim provides a CONCRETE, citable reason the
+  finding's premise is wrong.
+
+Bias rule (mirrors canonical Tier 2): if the counter-claim is weak,
+ungrounded, or addresses a different bug than the one disputed, DISMISS.
+A conservative DISMISSED beats a speculative RETRACTED.
+
+This is a dispute resolution, NOT a fresh audit. Do NOT produce new
+findings; produce ONE verdict object.
+"""
+
+
 def load_skills(only: set[str] | None = None) -> dict[str, str]:
     """Load bundled skill briefs as {name: markdown}. `only` filters by stem."""
     out: dict[str, str] = {}
@@ -171,6 +218,16 @@ def build_prompt(
     if original_audit is not None and counter_claim is not None:
         reaudit_section = "\n" + _reaudit_block(original_audit, counter_claim, finding_index) + "\n"
 
+    # When the dispute re-audit block is present, swap to the dispute system
+    # prompt (asks for a single JSON object). Otherwise use the canonical
+    # Tier 2 system prompt (asks for a JSON array). Both prompts share the
+    # same hallucination-guard discipline — claim grounding rules unchanged.
+    system_prompt = (
+        _DISPUTE_SYSTEM
+        if original_audit is not None and counter_claim is not None
+        else _SYSTEM
+    )
+
     user = f"""\
 # TARGET CONTRACT
 name: {contract_name or "(unknown)"}
@@ -214,4 +271,4 @@ reviewers see the design choice.
 
 Return the JSON {("object" if original_audit is not None else "array")} now.
 """
-    return _SYSTEM, user
+    return system_prompt, user

@@ -1,0 +1,7 @@
+{
+  "claim": "The finding correctly observes that `balanceOfUnderlying(address user)` at L68 returns `shares[user]` (raw share balance) instead of the underlying-asset value of those shares. The observation is accurate; the severity classification (MEDIUM) is overstated for this specific contract context. Per the audit's own severity rubric: MEDIUM requires 'loss contingent on a specific state/condition, OR an invariant breach that blocks the protocol's promised value.' This function is a pure view — it does not gate any state transition, is not called by any on-chain function in this contract, and cannot directly cause fund loss. Its impact is limited to misreporting a value to off-chain consumers (UIs, indexers), which is a LOW severity issue per the rubric ('unintended deviation from spec causing minor loss or quality issue') with a caveat noting the view-only-impact. The finding should be AMENDED to severity LOW with the view-only caveat — the underlying observation stands, only the severity bucket is wrong.",
+  "target_audit_root": "0x3f4799f5863dbb38994c319254e539e53d47e4f63c3e9254b0994db8e04168e9",
+  "target_finding_index": 1,
+  "intended_outcome": "AMENDED",
+  "filed_by": "disputer-agent demo flow (round 2)"
+}

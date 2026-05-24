@@ -24,11 +24,15 @@ _OUTCOMES = {"DISMISSED": 1, "AMENDED": 2, "RETRACTED": 3}
 
 
 def parse_verdict(raw_text: str) -> dict[str, Any]:
-    """Pure: extract the JSON object from the model's response.
+    """Pure: extract the first balanced JSON object from the model's response.
 
     The model is asked for a single object (not an array). We strip ```json
-    fences if present, find the first '{' and the matching last '}'. Raises
-    ValueError on unrecoverable shapes.
+    fences if present and then scan for the FIRST balanced ``{...}`` object,
+    counting brace depth and respecting string literals (so a ``}`` inside a
+    string in the rationale doesn't end the scan prematurely). This is more
+    forgiving than the naïve ``find('{') .. rfind('}')`` slice, which fails
+    when the model emits trailing prose or a second JSON object after the
+    verdict. Raises ``ValueError`` on unrecoverable shapes.
     """
     text = raw_text.strip()
     if text.startswith("```"):
@@ -38,9 +42,36 @@ def parse_verdict(raw_text: str) -> dict[str, Any]:
         text = text.strip()
         text = text.rstrip("`").strip()
     start = text.find("{")
-    end = text.rfind("}")
-    if start < 0 or end < start:
+    if start < 0:
         raise ValueError(f"no JSON object found in re-audit raw_text: {raw_text!r}")
+
+    # Scan forward from `start`, counting braces, respecting strings + escapes.
+    depth = 0
+    in_str = False
+    escape = False
+    end = -1
+    for i in range(start, len(text)):
+        ch = text[i]
+        if escape:
+            escape = False
+            continue
+        if in_str:
+            if ch == "\\":
+                escape = True
+            elif ch == '"':
+                in_str = False
+            continue
+        if ch == '"':
+            in_str = True
+        elif ch == "{":
+            depth += 1
+        elif ch == "}":
+            depth -= 1
+            if depth == 0:
+                end = i
+                break
+    if end < 0:
+        raise ValueError(f"no balanced JSON object in re-audit raw_text: {raw_text!r}")
     obj = json.loads(text[start : end + 1])
     if not isinstance(obj, dict):
         raise ValueError(f"re-audit verdict is not an object: {obj!r}")

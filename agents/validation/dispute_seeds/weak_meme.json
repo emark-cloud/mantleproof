@@ -1,0 +1,7 @@
+{
+  "claim": "The finding seems too aggressive. Many tokens have similar code and they work fine. The agent should not refuse all interaction just because of this concern. Decentralized governance can fix any issues later. Please reconsider.",
+  "target_audit_root": "0x0947f93b6cc6c4e167722a17eddb1684d5113cce0318b5717e8f702595c7087f",
+  "target_finding_index": 0,
+  "intended_outcome": "DISMISSED",
+  "filed_by": "disputer-agent demo flow"
+}

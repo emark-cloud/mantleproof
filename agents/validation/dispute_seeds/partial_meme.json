@@ -1,0 +1,7 @@
+{
+  "claim": "This finding is partially correct but the severity is overstated. The contract does have an admin pause() function, but pause() is a standard OpenZeppelin Pausable pattern used by USDC, sUSDe, USDT, and other regulated stablecoins for compliance — these are explicitly listed in the audit's own DO-NOT-FLAG-AS-HIGH allowlist as 'Owner-upgradeable proxies, pause guardians, and oracle admin setters when the protocol documents them as operational controls'. The finding should be amended to LOW or INFO with a caveat noting the documented compliance-controls pattern, rather than HIGH which implies a covert backdoor. The underlying observation about admin pause power is accurate; only the severity classification needs amendment.",
+  "target_audit_root": "0x0947f93b6cc6c4e167722a17eddb1684d5113cce0318b5717e8f702595c7087f",
+  "target_finding_index": 1,
+  "intended_outcome": "AMENDED",
+  "filed_by": "disputer-agent demo flow"
+}

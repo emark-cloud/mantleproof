@@ -1,0 +1,7 @@
+{
+  "claim": "This finding misclassifies standard AMM exact-output swap semantics as a bug. `swapTokensForExactTokens` is canonical exact-output swap behavior (LBRouter v2.2, Trader Joe v2.1, Uniswap V2/V3 V3SwapRouter, and every other production AMM router): the caller specifies the EXACT output token amount and the MAXIMUM input they're willing to spend (`amountInMax`). The function transfers from the caller ONLY the amount required by the path's exchange rate — never more. There is no 'overpay without refund' because no excess input is ever taken in the first place. The `amountInMax` parameter is the caller's explicit ceiling consent; spending strictly less than that ceiling is the function's WHOLE PURPOSE, not a defect. The finding's claim of 'lost or locked funds' has no on-chain mechanism — verify this by reading the LBRouter source on Mantlescan: the `_swapTokensForExactTokens` internal call consumes `amountIn` (the calculated required amount), not `amountInMax`. The finding should be RETRACTED in full: it's based on a misunderstanding of how exact-output swaps work versus exact-input swaps. Reference: Uniswap V2 Periphery's `swapTokensForExactTokens` documentation, Trader Joe LBRouter v2.2 source, and Merchant Moe docs at docs.merchantmoe.com/developers/router.",
+  "target_audit_root": "0x37ff62a05f9e66151b36846e28a77494ccc9733a298200d3aa62b1a607d3b373",
+  "target_finding_index": 1,
+  "intended_outcome": "RETRACTED",
+  "filed_by": "disputer-agent demo flow (round 2)"
+}
