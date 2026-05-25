@@ -12,6 +12,26 @@ Mantle Turing Test Hackathon 2026 · AI DevTools track · solo (Emark).
 reputation entry, 7 disputes (1 RETRACTED — 2 MNT slashed publicly on-chain), and
 a 6-contract inventory.
 
+## Why MantleProof needs to exist
+
+A human developer interacting with a new contract has time — read the source, run
+Slither, check the deployer's history, ask in a Telegram group. The agentic economy
+Mantle is explicitly building has no such time: trading agents, yield agents, and
+deployer agents make on-chain decisions in sub-second windows with no human in the
+loop. That creates a structural gap — high-frequency autonomous on-chain decisions
+with no time for human due diligence and no human present to do it. The gap is
+created by the exact trend the Turing Test Hackathon is built around, and nothing
+currently fills it.
+
+It's also a *format* gap. Slither is text. A professional audit is a PDF. A bug
+bounty is a human process. None of these is a structured, machine-parseable,
+sub-second response an agent can consume and act on. There is no `getAudit(address)`
+an agent can call — so MantleProof is built oracle-first: JSON responses, on-chain
+`getAudit`, MCP tools, structured findings with machine-readable severity and
+evidence. The format is the product as much as the content is.
+
+Full strategic case + objection handling: [`docs/positioning.md`](docs/positioning.md).
+
 ## Judge Quick Eval (3 minutes, no setup)
 
 Six paste-able checks. Each is independently verifiable on Mantlescan — nothing
@@ -447,6 +467,45 @@ lender — a signed, on-chain, dimension-scored report on a counterparty
 contract that an agent can query, cite in its on-chain decision, and stake a
 position behind. Long-form: [`docs/mantleproof.md`](docs/mantleproof.md)
 *Related work* section.
+
+## Defensibility — three moats, each with its honest caveat
+
+The audit engine is **not** the moat. The five checks, the Tier 2 prompt, the
+hallucination guard pattern, the MCP server, the x402 paywall — a competent
+competitor reads the Ondo and Merchant Moe docs and replicates these in a weekend.
+Stated openly because pretending otherwise convinces no one. Defensibility, where
+it genuinely exists, is time-denominated.
+
+1. **The accumulating audit graph.** Every audit, every dispute, every stake
+   outcome is on-chain, permanent, and attributed to MantleProof's ERC-8004
+   identity. After months of continuous operation, MantleProof *is* the audit
+   record of Mantle. This is the Etherscan moat — data network effect, compounds
+   with time, cannot be bought. **Caveat:** days of history at Demo Day, not years.
+   The primitive (`MantleProofRegistry`) is shipped; the accumulation is the bet.
+2. **Skin-in-the-game track record.** 2 MNT staked per Tier 2 audit for 30 days;
+   public released-vs-slashed ratio. The staking *mechanism* is copyable — a
+   competitor writes the same contract. A clean track record on the ratio is not,
+   the way an insurer's loss history is not. **Caveat:** one slash + zero released
+   audits today (3 staked, 1 RETRACTED). The mechanism that *begins* the moat is
+   live; the moat itself accumulates from here.
+3. **Position in the agentic transaction path.** Once an audit oracle is wired
+   into *how agents transact*, switching costs appear that have nothing to do
+   with audit quality — integrated MCP tools and `getAudit` interfaces, historical
+   `DecisionLog` references to specific rootHashes, ERC-8004 reputation accrued
+   to one identity. Plaid is defensible despite bank APIs being unglamorous;
+   Chainlink is defensible despite "an oracle" being conceptually simple. The
+   moat is being the thing everything routes through. **Caveat:** four built-in
+   demo agents today. The interface exists; the third-party integrations don't.
+
+The flywheel: stake makes the oracle trustworthy → trust gets it wired into
+transaction paths → being in the path generates audits → audits accumulate into
+a graph → the graph makes the oracle more worth routing through. A fast-follower
+enters from a standing start; MantleProof is already spinning.
+
+If the defensibility argument collapses to one line: **the audit engine is not
+the moat — it is copyable, and we say so. The moat is being first to accumulate
+the on-chain audit graph, the staking track record, and the integrated-agent base
+that a fast-follower cannot copy because all three are denominated in time.**
 
 ## Honest market
 
