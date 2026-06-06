@@ -28,8 +28,9 @@ Full ASCII diagram: `docs/mantleproof.md` §2.
 
 ### Repo layout & workspace rules
 
-- **pnpm workspaces** for the 4 TypeScript packages: `contracts/`, `frontend/`,
-  `mcp-server/`, `agents/`. Listed in `pnpm-workspace.yaml`.
+- **pnpm workspaces** for the 5 TypeScript packages: `contracts/`, `frontend/`,
+  `mcp-server/`, `agents/`, `cli/`. Listed in `pnpm-workspace.yaml`. (`cli/` is the
+  `mantleproof verify`/`check` command — pure mainnet reads, no wallet.)
 - **`engine/` is standalone Python** — own `pyproject.toml`, NOT a pnpm workspace
   member, run/containerized separately.
 - **Never hoist** Hardwat's ethers/OZ tree into the frontend's wagmi/viem tree — keep

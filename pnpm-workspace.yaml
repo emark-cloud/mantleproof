@@ -3,4 +3,5 @@ packages:
   - frontend
   - mcp-server
   - agents
+  - cli
 # NOTE: engine/ is a standalone Python package, intentionally NOT a workspace member.

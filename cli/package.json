@@ -1,0 +1,33 @@
+{
+  "name": "mantleproof",
+  "version": "0.1.0",
+  "description": "One-command CLI to verify MantleProof's live state on Mantle mainnet and audit any contract (Tier 1, free, no wallet).",
+  "keywords": ["mantle", "audit", "oracle", "web3", "erc-8004", "cli"],
+  "homepage": "https://github.com/emark-cloud/mantleproof#readme",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/emark-cloud/mantleproof.git",
+    "directory": "cli"
+  },
+  "license": "MIT",
+  "type": "module",
+  "bin": {
+    "mantleproof": "./build/index.js"
+  },
+  "files": ["build"],
+  "scripts": {
+    "build": "tsc && chmod 755 build/index.js",
+    "typecheck": "tsc --noEmit",
+    "lint": "tsc --noEmit",
+    "test": "echo \"no unit tests (live-read CLI; exercised via build/index.js verify)\" && exit 0",
+    "verify": "node build/index.js verify",
+    "start": "node build/index.js"
+  },
+  "dependencies": {
+    "viem": "^2.21.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.9.0",
+    "typescript": "^5.6.0"
+  }
+}

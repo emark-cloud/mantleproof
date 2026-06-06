@@ -1,16 +1,77 @@
 # MantleProof
 
-> The on-chain **audit oracle** for Mantle's agentic economy. Other agents query it
-> before touching a contract, get a structured safety signal back in under a second,
-> and route their behavior accordingly. Five Mantle-specific risk checks, a two-tier
-> pipeline, a hallucination guard, and every audit published on Mantle with the full
-> report on IPFS — anyone can re-derive the on-chain `rootHash` from those bytes
-> without trusting our backend.
+> **MantleProof is an audit oracle that agents call before they transact — and it
+> stakes MNT on being right.**
+
+One mechanic in the foreground (an oracle in the transaction path), one
+differentiator that makes it credible (skin in the game). Everything else is *how*.
 
 Mantle Turing Test Hackathon 2026 · AI DevTools track · solo (Emark).
 **Live on Mantle mainnet (chainId 5000)** with 3 agent-to-agent demos, 1 ERC-8004
 reputation entry, 7 disputes (1 RETRACTED — 2 MNT slashed publicly on-chain), and
 a 6-contract inventory.
+
+### How it works
+
+Every other capability is the answer to a *how* question hanging off that one
+sentence — not a co-equal feature:
+
+- **What does it check?** Five Mantle-specific risk dimensions — USDY/mUSD rebase,
+  mETH bridge lag, USDe/sUSDe cooldown, Merchant Moe Liquidity Book bins, EIP-712
+  replay. *(How it audits — not five features.)*
+- **How does it price audits?** Tier 1 free heuristic + bytecode matching; Tier 2
+  paid Gemini reasoning pass. *(How it charges.)*
+- **Why trust an AI's findings?** The hallucination guard, the five honesty labels,
+  and the 2 MNT stake — plus every audit is published with its full report on IPFS,
+  so anyone re-derives the on-chain `rootHash` from the bytes without trusting our
+  backend. *(How it earns trust.)*
+- **What if it's wrong?** The dispute layer re-runs Tier 2; an upheld dispute takes
+  the stake (1 RETRACTED to date — 2 MNT slashed publicly on-chain). *(How staking
+  stays fair — a supporting actor, not a second headline.)*
+- **How do agents reach it?** On-chain `getAudit`, MCP server, x402 REST endpoint —
+  the same JSON with the same labels. *(How it's accessed — not three features.)*
+- **Who uses it?** Four demo agents — deployer, trading, yield, disputer — each a
+  verifiable on-chain receipt. *(Evidence for the headline, not scope.)*
+
+## Not a Slither wrapper — how MantleProof differs from a report generator
+
+MantleProof *is* an AI audit tool: it uses AI, it audits, it is a tool. What it is
+**not** is the lazy instance of that category — the GPT-wraps-Slither report
+generator every judge has seen ten times this hackathon. Three honest distinctions
+draw the line where it actually is.
+
+First, what the alternatives are genuinely good at: **Slither** is excellent at
+structural and pattern-level bugs (reentrancy, integer issues, shadowed state);
+a **professional audit** has depth, manual review, and pre-launch rigor MantleProof
+does not attempt. MantleProof does not replace either. It does something they
+structurally cannot.
+
+**1. Output shape: oracle, not report.** A Slither wrapper emits a human-readable
+report for a person to read after the fact. MantleProof emits a structured,
+on-chain, sub-second signal for an agent to consume *inside a transaction
+decision*. The product is `getAudit(address) → {severity, findings, rootHash}`,
+not a PDF. A report generator cannot be called by a contract; MantleProof can. A
+difference in kind, not quality.
+
+**2. Consumer: agents, not humans.** A report generator assumes a human developer
+reads the output and decides. MantleProof assumes the consumer is another
+autonomous agent deciding at machine speed with no human present. That assumption
+drives every choice — JSON-first responses, the on-chain read path, the MCP tools,
+and honesty labels that are machine-parseable confidence signals rather than prose
+hedges.
+
+**3. Accountability: stake, not disclaimer.** A report generator — and every
+professional audit — ends with "no warranties, use at your own risk." MantleProof
+stakes **2 MNT** on every Tier 2 audit and pays out when a dispute proves it wrong
+(1 RETRACTED to date, 2 MNT slashed on-chain). No report generator puts money
+behind being right, because its incentive is to flag everything and let the human
+sort it out. MantleProof's incentive is calibrated by the stake — over-flagging
+gets disputed, under-flagging gets exploited, both cost money.
+
+Each distinction is verifiable and true, and none claims MantleProof isn't an audit
+tool. The point is to stop the reflexive mis-file — "oh, another Slither-plus-LLM
+project" — by drawing the line at the *shape, consumer, and accountability* of the
+thing, not at the category.
 
 ## Why MantleProof needs to exist
 
@@ -44,10 +105,84 @@ relies on the project's own UI or API.
 | 3 | **Agents acted on those audits.** | `DecisionLog` records Demo 2's trading agent **DECLINING** the backdoored token ([`0x385eaded…`](https://mantlescan.xyz/tx/0x385eaded6f7eba0191ed00972e60077ea4041667c4329a19d400a33efd351119)) and Demo 3's yield agent **APPROVING** the canonical LBRouter ([`0x82760ff2…`](https://mantlescan.xyz/tx/0x82760ff271172d2ce6209a25e880072ffc67781a181ff536c933f6c5416e1725)) — opposite verdicts, both grounded in MantleProof audits. Demo 3's APPROVED is paired with a real Merchant Moe LB v2.2 [`addLiquidityNATIVE`](https://mantlescan.xyz/tx/0x52904eb2c3b9882c35610dc187c75cbf54ae8eff7a4223e691bd8a1ff37f439e) deposit. |
 | 4 | **A paying agent left ERC-8004 reputation about MantleProof.** | [`giveFeedback` tx `0x579fe213…`](https://mantlescan.xyz/tx/0x579fe213972b056d9d1bd83023d179052cf5084e5e4417f20302b314af4b26f5) on Mantle's canonical Reputation Registry (`0x8004BAa1…`). `getSummary(96, [payer], "", "")` returns `count=1, value=4`. |
 | 5 | **A dispute was RETRACTED and 2 MNT moved on-chain.** | Dispute #5 [`resolveDispute` tx `0xed264780…`](https://mantlescan.xyz/tx/0xed264780037e07a404f5ce5b37c056523d27d1e88296d29ee1fa6f8bac8a2374) — `StakingPool.StakeSlashedByDispute` log shows 2 MNT transferred from pool (`0x2E279f4c…`) to disputer (`0x7805e826…`). Pool balance went 6 → 4 MNT. |
-| 6 | **Independent verification, no trust.** | `cast call 0x5CEafE0FD8b2A9BD2eC6aCdf3f5e024c21CA65A5 "getAudit(address)((bytes32,uint8,string,uint64,address,uint8))" 0x1892f77e335c133ce4a7b28555f13ba74cbb76fa --rpc-url https://rpc.mantle.xyz` returns the same Demo 1 `rootHash` shown above. Fetch the IPFS body (`bafkreieaexay…`) and recompute `keccak256(canonical JSON minus root_hash) == on-chain rootHash`. The dashboard is just a renderer. |
+| 6 | **Independent verification, no trust.** | `cast call 0x5CEafE0FD8b2A9BD2eC6aCdf3f5e024c21CA65A5 "getAudit(address)((bytes32,uint8,string,uint64,address,uint8))" 0x1892f77e335c133ce4a7b28555f13ba74cbb76fa --rpc-url https://rpc.mantle.xyz` returns the same Demo 1 `rootHash` shown above — or run `npx mantleproof check 0x1892f77e335c133ce4a7b28555f13ba74cbb76fa`. Fetch the IPFS body (`bafkreieaexay…`); its embedded `root_hash` equals the on-chain anchor, fetched from the content-addressed CID. Independent `keccak256(canonical JSON minus root_hash)` re-derivation reproduces the hash for audits pinned on/after the 2026-05-24 canonicalization fix; the three demo anchors predate it ([Known issues](#known-issues) #1). The dashboard is just a renderer. |
 
 For full verification scripts (Python, read-only, no keys required) see
 [Independent verification](#independent-verification) below.
+
+## Status / MVP scope
+
+The core is live on mainnet; the extensions are fenced as extensions. "Live,
+seeded" is honest that the activity was bootstrapped by the project's own demo
+agents during the hackathon — the truthful maturity level. "Planned" rows are
+stated proudly: shipped primitives that credibly support the roadmap.
+
+| Capability | Status | Evidence |
+|---|---|---|
+| Audit engine — five Mantle dimensions, Tier 1 | **Live on mainnet** | `getAudit` returns findings; `mantleproof verify` (Quick Eval #6) |
+| Audit engine — Tier 2 Gemini reasoning + hallucination guard | **Live on mainnet** | Recent Tier 2 `rootHash` anchored on-chain (Quick Eval #2) |
+| On-chain audit registry | **Live on mainnet** | Contract verified on Mantlescan (Quick Eval #1) |
+| ERC-8004 identity — MantleProof = agent #96 | **Live on mainnet** | Reputation entry references `tokenId 96` (Quick Eval #4) |
+| `getAudit` / MCP / x402 query surfaces | **Live** | Three surfaces, one backend, same JSON (Query surfaces §) |
+| Inter-agent licensing — `payForAudit`, 80/20 split | **Live on mainnet** | 3 `payForAudit` txs, 0.5 MNT each (On-chain receipts §) |
+| Reputation staking — 2 MNT per Tier 2 | **Live, seeded** | StakingPool holds live stake; 3 audits staked |
+| Dispute layer — submit / re-audit / resolve | **Live, seeded** | 7 disputes resolved on-chain (6 DISMISSED, 1 RETRACTED) |
+| Slash-by-exploit (`claimExploit`) | **Reserved post-hackathon** | Documented comment block, no body; only dispute-slashing ships live |
+| Multi-auditor staking marketplace | **Planned** | Post-hackathon; primitive shipped, market untested |
+| CI / GitHub Action integration | **Planned** | Roadmap; engine API ready |
+
+## One-command CLI (`cli/`)
+
+Two zero-config commands over the live oracle. Both are **pure public reads** —
+no wallet, no gas, no private key. Source: [`cli/`](cli/).
+
+**`mantleproof verify`** — collapse "is this real?" into ~30 seconds of green
+checks. Every line is a real read against Mantle mainnet (no hardcoded results):
+
+```
+$ npx mantleproof verify
+
+MantleProof — live verification against Mantle mainnet (chainId 5000)
+
+  [✓] Registry deployed, oracleSigner matches   0x5CEafE0F…CA65A5 (mantlescan ↗)
+  [✓] Agent registered in ERC-8004 Identity     tokenId #96 → owner 0x2a3080AA…605B6A
+  [✓] StakingPool holds live stake              4 MNT locked in pool
+  [✓] Most recent audit anchored on-chain       rootHash 0x37ff62a0…d3b373 (13d ago)
+  [✓] getAudit() returns structured finding     target 0x013e138E…d21E3a → MEDIUM, Tier 2
+  [✓] Dispute resolved on-chain                 disputeId #5 → RETRACTED, stake slashed (7/7 resolved)
+  [✓] ERC-8004 reputation recorded              1 feedback entry about agent #96
+
+  7/7 checks passed. MantleProof is live on Mantle mainnet.
+```
+
+**`mantleproof check <address>`** — audit any Mantle contract, no wallet. Reads
+the anchored audit, fetches the report from IPFS, re-derives integrity from the
+bytes, and prints the findings with their honesty labels:
+
+```
+$ npx mantleproof check 0x1892f77e335c133ce4a7b28555f13ba74cbb76fa
+
+Auditing 0x1892f77e…BB76fA on Mantle mainnet…
+  BuggyYieldVault  ·  Tier 2  ·  overall HIGH
+
+  HIGH   [ESTIMATED]  sUSDe redemption path with no cooldown awareness …
+  MEDIUM [VERIFIED]   balanceOfUnderlying returns raw shares, not underlying value …
+
+  ✓ anchor verified — report's root_hash == on-chain rootHash, from the content-addressed CID
+```
+
+Run from a clone with `pnpm --filter mantleproof build && node cli/build/index.js verify`.
+Full docs: [`cli/README.md`](cli/README.md).
+
+**Integrity honesty note.** `check` re-derives the on-chain `rootHash` by hashing
+the raw IPFS bytes (minus `root_hash`). For audits pinned **on/after** the
+2026-05-24 canonicalization fix this reproduces the hash exactly (`✓ integrity
+verified`). The three demo audits were pinned **before** that fix, when Pinata's
+JSON endpoint silently stripped `.0` from integer-valued floats in `metrics_ref`
+— so independent keccak re-derivation isn't reproducible for them. `check`
+reports those honestly as `✓ anchor verified` (the embedded `root_hash` matches
+the on-chain anchor, fetched from the content-addressed CID) rather than faking
+a recompute. See [`engine/mantleproof/persistence/ipfs.py`](engine/mantleproof/persistence/ipfs.py).
 
 ## Architecture
 
@@ -507,6 +642,35 @@ the moat — it is copyable, and we say so. The moat is being first to accumulat
 the on-chain audit graph, the staking track record, and the integrated-agent base
 that a fast-follower cannot copy because all three are denominated in time.**
 
+## Go-to-market (one page)
+
+A concrete first-customer story, skimmable in 60 seconds. The honest market caveats
+follow in the next section — both are true at once.
+
+- **First customer segment (now):** Mantle-native autonomous agents and the teams
+  building them — concretely, the other agent projects in this very hackathon. They
+  exist today and have the exact need MantleProof serves: a safety signal before
+  transacting. Demand is adjacent and real, not hypothetical.
+- **Wedge:** the free Tier 1 read. Zero friction, no wallet, one CLI command
+  (`npx mantleproof check 0x…`) or one MCP call. Developers and agents adopt the
+  read path at no cost; this seeds the audit graph and the integration base.
+- **Revenue (now):** Tier 2 paid audits via `payForAudit` (0.5 MNT) and the x402
+  endpoint, with the 80/20 split — already live on mainnet (3 receipts). Per-audit
+  micropayments, not a subscription, matched to how agents actually consume.
+- **Expansion (next):** CI integration — a GitHub Action that pre-audits on every
+  PR (a real category, Snyk / GitGuardian-shaped) — and the multi-auditor staking
+  marketplace, where other auditors stake against their own findings and MantleProof
+  becomes the protocol, not just the first auditor.
+- **Why now:** the agentic economy Mantle is building *is* the demand driver.
+  MantleProof is a leveraged bet on the same thesis the judges are already
+  underwriting by running this hackathon. If autonomous on-chain agents are real,
+  they need this; if they are not, most of the hackathon's premise fails too.
+
+The honest edge (for Q&A): the moats are time-denominated and near-zero today — the
+audit graph, the staking track record, and the integrated-agent base all accumulate
+from day one and cannot be bought. Defensibility is being first into that flywheel.
+See [Defensibility](#defensibility--three-moats-each-with-its-honest-caveat) above.
+
 ## Honest market
 
 What we demonstrate at hackathon scale:
@@ -539,6 +703,8 @@ engine/         standalone Python — 5 checks, Tier 2 runner, hallucination gua
                 pipeline, IPFS pin, anchor, dispute resolver, ERC-8004 reputation
                 helpers, 261 pytest tests
 mcp-server/     pnpm workspace, TypeScript — 3 MCP tools, stdio
+cli/            pnpm workspace, TypeScript — `mantleproof verify` + `check`,
+                pure mainnet reads (no wallet), trustless IPFS integrity
 frontend/       pnpm workspace, Vite + React + wagmi — 5 pages, dark only,
                 ASCII charts, no emoji
 agents/         pnpm workspace, TypeScript — 5 demo wallets (deployer, oracle,
