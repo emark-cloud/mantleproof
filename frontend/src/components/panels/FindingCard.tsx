@@ -11,6 +11,7 @@ import { Link } from "react-router-dom";
 import type { Finding } from "../../lib/api";
 import { SeverityBadge, type Severity } from "../primitives/SeverityBadge";
 import { HonestyLabel } from "../primitives/HonestyLabel";
+import { StageBadge } from "../primitives/StageBadge";
 
 export function FindingCard({
   finding,
@@ -78,9 +79,20 @@ export function FindingCard({
 
   return (
     <article className="panel">
-      <header className="px-4 py-3 row-divider flex items-center gap-3">
+      <header className="px-4 py-3 row-divider flex items-center gap-3 flex-wrap">
         <SeverityBadge severity={sev} />
         <HonestyLabel label={label} />
+        {finding.stage && <StageBadge stage={finding.stage} />}
+        {finding.sub_detector && (
+          <span
+            className="font-mono text-[10px] text-text-muted cursor-help"
+            title={`sub-detector — the specific hazard slug a consuming agent branches on (engine checks/taxonomy.py). check: ${
+              finding.check_id ?? finding.check ?? "?"
+            }`}
+          >
+            {finding.sub_detector}
+          </span>
+        )}
         <h3 className="font-mono text-sm text-text-primary truncate">
           {finding.finding?.split("\n")[0] ?? "(no title)"}
         </h3>

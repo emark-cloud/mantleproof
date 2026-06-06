@@ -1,33 +1,36 @@
 /**
  * Canonical on-chain references for the frontend.
  *
- * Sourced from `contracts/deployments/mantle.addresses.json` (T25 cutover deploy,
- * 2026-05-19). These are mainnet 5000 contracts; Sepolia rehearsal stack lives
- * in `mantleSepolia.addresses.json` and is loadable via `VITE_DEPLOYMENTS` for
- * a testnet build, but we ship mainnet by default — the dashboard's job is to
- * make the live mainnet receipts believable.
+ * Sourced from `contracts/deployments/mantle.addresses.json` (T43 redeploy,
+ * 2026-05-24 — the 6-contract stack with the disputes + StakingPool layer that
+ * supersedes the T25 5-contract deploy from 2026-05-19). These are mainnet 5000
+ * contracts; Sepolia rehearsal stack lives in `mantleSepolia.addresses.json` and
+ * is loadable via the `VITE_*` overrides for a testnet build, but we ship mainnet
+ * by default — the dashboard's job is to make the live mainnet receipts believable.
+ * Keep these defaults in sync with `mantle.addresses.json` (same rule the CLI's
+ * `cli/src/config.ts` follows).
  */
 import { parseAbi } from "viem";
 
 export const REGISTRY_ADDRESS =
   (import.meta.env.VITE_REGISTRY_ADDRESS as `0x${string}`) ??
-  ("0x60E97c83Dd184D3B0812Ce25430e9D6930eD63aE" as const);
+  ("0x5CEafE0FD8b2A9BD2eC6aCdf3f5e024c21CA65A5" as const);
 
 export const AGENT_ADDRESS =
   (import.meta.env.VITE_AGENT_ADDRESS as `0x${string}`) ??
-  ("0x966A385A7C56794E1Bb40C9F0f73cCDaA0724503" as const);
+  ("0x6661Fb91CfA5F5691E3F80cA319b665824CB02e9" as const);
 
 export const DECISION_LOG_ADDRESS =
   (import.meta.env.VITE_DECISION_LOG_ADDRESS as `0x${string}`) ??
-  ("0x1823359f0a5bB8b2af71a55200B08ECcCedFec6f" as const);
+  ("0x11B395452e2bF8Ab20F21cd4deA8f9a7650CCf65" as const);
 
 export const LICENSE_ADDRESS =
   (import.meta.env.VITE_LICENSE_ADDRESS as `0x${string}`) ??
-  ("0x906390B3594384bE83F3465cFeDf8661f4d1a410" as const);
+  ("0x51fA686747ea148f6BeC7e30390C8B929DC45447" as const);
 
 export const TREASURY_ADDRESS =
   (import.meta.env.VITE_TREASURY_ADDRESS as `0x${string}`) ??
-  ("0x53459fb149CB1772ea389ACE325501DA2B28E437" as const);
+  ("0xEaea8a20288528ea6E55B619DB3F7442890c9600" as const);
 
 /**
  * StakingPool — 6th contract added by T43 (docs/update.md §3). Holds Tier 2
@@ -35,12 +38,12 @@ export const TREASURY_ADDRESS =
  * disputer on a RETRACTED outcome. Reads only — no client-side writes (the
  * registry's submitAudit forwards msg.value, resolveDispute triggers slashing).
  *
- * Address is the placeholder zero until the post-T43 redeploy lands; the env
- * override is the canonical way to ship the live address.
+ * Live mainnet address from the T43 redeploy (`mantle.addresses.json`); the
+ * `VITE_STAKING_POOL_ADDRESS` env override swaps in the Sepolia stack.
  */
 export const STAKING_POOL_ADDRESS =
   (import.meta.env.VITE_STAKING_POOL_ADDRESS as `0x${string}`) ??
-  ("0x0000000000000000000000000000000000000000" as const);
+  ("0x2E279f4cAE39B5d0Fa57e08D0d455Ec9f6080ee9" as const);
 
 export const MANTLE_CHAIN_ID = Number(import.meta.env.VITE_CHAIN_ID ?? 5000);
 /** Tier 2 stake amount in wei — mirrors MantleProofRegistry.TIER2_STAKE. */

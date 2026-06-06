@@ -144,9 +144,9 @@ on-chain decision, and stake a position behind.
 
 ---
 
-## 3. Contracts (Path A — RESOLVED 2026-05-18, DEPLOYED 2026-05-19)
+## 3. Contracts (Path A — RESOLVED 2026-05-18, DEPLOYED 2026-05-19, REDEPLOYED 2026-05-24 for T43)
 
-**Path A locked.** Mantle ships canonical ERC-8004 Identity + Reputation registries (no Validation registry — not needed); MantleProof self-registers (`register()` is permissionless) and wraps the official identity. We deploy **5** contracts; Path B (own registries) was abandoned.
+**Path A locked.** Mantle ships canonical ERC-8004 Identity + Reputation registries (no Validation registry — not needed); MantleProof self-registers (`register()` is permissionless) and wraps the official identity. We deploy **6** contracts (post-T43; was 5 at the 2026-05-19 cutover — `StakingPool.sol` + the disputes layer landed in the 2026-05-24 redeploy). Path B (own registries) was abandoned.
 
 **Canonical ERC-8004 registries (consumed, not deployed):**
 
@@ -157,17 +157,20 @@ on-chain decision, and stake a position behind.
 
 Verified live via `eth_getCode` (T1b, 2026-05-18). Canonical from `github.com/erc-8004/erc-8004-contracts`. `contracts/contracts/interfaces/IEIP8004.sol` holds the *external* interfaces we consume. MantleProof's own ERC-8004 identity self-registered on mainnet 2026-05-19: **`tokenId=96`** owned by `0x2a30…605B6A` (mint tx `0x3d810ca4…ea2a` block 95547770; Sepolia rehearsal `tokenId=48`). `MANTLEPROOF_AGENT_TOKEN_ID=96` in `.env`.
 
-**MantleProof contracts deployed on Mantle mainnet 5000 (T25, 2026-05-19, all Mantlescan-verified):**
+**MantleProof contracts — current live deploy on Mantle mainnet 5000 (T43 redeploy, 2026-05-24, all Mantlescan-verified; source of truth is `contracts/deployments/mantle.addresses.json`):**
 
 | Contract | Mainnet address | Purpose |
 |---|---|---|
-| `MantleProofRegistry.sol` | `0x60E97c83Dd184D3B0812Ce25430e9D6930eD63aE` | Append-only audit registry. `submitAudit(target, severity, rootHash, ipfsCID)` callable only by the immutable `oracleSigner`. `getAudit(target)` view. Public read, signed write — the credibility-purchasing invariant. |
-| `MantleProofAgent.sol` | `0x966A385A7C56794E1Bb40C9F0f73cCDaA0724503` | Thin wrapper over the official ERC-8004 identity (`agentTokenId=96`, immutable). Tracks per-audit `memoryRoot` (compounded via `keccak256(prev, newRoot)`), `auditsPerformed`, `reputation`. Calls into the official Reputation Registry. |
-| `MantleProofLicense.sol` | `0x906390B3594384bE83F3465cFeDf8661f4d1a410` | Pay-per-audit + subscription. **Settles native MNT on Mantle on-chain** with auto 80/20 split to `identity.ownerOf(96)` / `TreasurySplit` — documented spec divergence #4 (the original "USDC on Base" plan now lives in T22's x402 surface as a parallel HTTP path, not the on-chain license itself). |
-| `TreasurySplit.sol` | `0x53459fb149CB1772ea389ACE325501DA2B28E437` | Receives the 20% treasury share. Minimal timelock. |
-| `DecisionLog.sol` | `0x1823359f0a5bB8b2af71a55200B08ECcCedFec6f` | Demo-agent on-chain decision log. Emits `Decision(address indexed agent, address indexed target, bytes32 indexed auditRootHash, string action, string reason)`. Powers the §7 receipts. |
+| `MantleProofRegistry.sol` | `0x5CEafE0FD8b2A9BD2eC6aCdf3f5e024c21CA65A5` | Append-only audit registry **+ disputes layer (T43)**. `submitAudit(target, tier, severity, rootHash, ipfsCID)` is **payable**, callable only by the immutable `oracleSigner`; Tier 2 forwards `TIER2_STAKE = 2 MNT` into `StakingPool.lockStake`. `submitDispute`/`resolveDispute`; Tier 1 not disputable. `getAudit(target)` view. Public read, signed write — the credibility-purchasing invariant. |
+| `MantleProofAgent.sol` | `0x6661Fb91CfA5F5691E3F80cA319b665824CB02e9` | Thin wrapper over the official ERC-8004 identity (`agentTokenId=96`, immutable). Tracks per-audit `memoryRoot` (compounded via `keccak256(prev, newRoot)`) + `auditsPerformed`. `reputation()`/`agentURI()` are **defunct** (T38 — compiled against a fictional pre-T38 interface; reputation now read from the official Reputation Registry directly). |
+| `MantleProofLicense.sol` | `0x51fA686747ea148f6BeC7e30390C8B929DC45447` | Pay-per-audit + subscription. **Settles native MNT on Mantle on-chain** with auto 80/20 split to `identity.ownerOf(96)` / `TreasurySplit` — documented spec divergence #4 (the original "USDC on Base" plan now lives in T22's x402 surface as a parallel HTTP path, not the on-chain license itself). |
+| `TreasurySplit.sol` | `0xEaea8a20288528ea6E55B619DB3F7442890c9600` | Receives the 20% treasury share. Minimal timelock. |
+| `StakingPool.sol` | `0x2E279f4cAE39B5d0Fa57e08D0d455Ec9f6080ee9` | **NEW (T43).** Holds 2 MNT per Tier 2 audit for a 30-day window. `slashByDispute` (registry-only) → disputer on RETRACTED; `unlock(rootHash)` permissionless after `unlocksAt` (99% → treasury, 1% retained). `claimExploit` reserved post-hackathon. |
+| `DecisionLog.sol` | `0x11B395452e2bF8Ab20F21cd4deA8f9a7650CCf65` | Demo-agent on-chain decision log. Emits `Decision(address indexed agent, address indexed target, bytes32 indexed auditRootHash, string action, string reason)`. Powers the §7 receipts. |
 
-Mantle Sepolia (5003) carries an earlier deploy of the same five for the smoke + pipeline rehearsal (T4 + T6 + T20). `MockUSDC.sol` exists for tests only.
+**Superseded T25 deploy (2026-05-19, 5 contracts, no disputes/staking):** Registry `0x60E97c83…63aE`, Agent `0x966A385A…4503`, License `0x906390B3…a410`, TreasurySplit `0x53459fb1…E437`, DecisionLog `0x1823359f…Fec6f`. **The §7 demo receipts (Demos 1–3, 2026-05-20) were anchored on this T25 registry** and remain valid historical artifacts; the T43 stack carries the disputes + staking work (the 7 mainnet disputes incl. the RETRACTED slash, §7-adjacent). All live code (frontend defaults, CLI, engine query routes) targets the T43 addresses above.
+
+Mantle Sepolia (5003) carries a parallel T43 deploy of all six for the smoke + pipeline rehearsal (Registry `0x11B39545…CCf65`; full set in `contracts/deployments/mantleSepolia.addresses.json`). `MockUSDC.sol` exists for tests only.
 
 **Pre-deploy SPOF caught + fixed (T25 pre-flight):** `DEPLOYER_PRIVATE_KEY == ORACLE_SIGNER_PRIVATE_KEY` in `.env` while `MantleProofRegistry.oracleSigner` is `immutable`. Generated a fresh oracle key in-process (`0x9f17…638a`, never printed) before the mainnet deploy. The deployer key remains `0x2a30…605B6A` (= identity owner = License 80/20 recipient). Post-deploy on-chain readback: 16/16 wiring checks pass.
 

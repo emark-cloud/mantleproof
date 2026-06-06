@@ -36,6 +36,12 @@ export interface Finding {
   // accept both.
   check_id?: string;
   check?: string;
+  // T33/T34: dimension-scoped sub-detector slug (e.g. `usdy.balance_snapshot`)
+  // and the lifecycle stage derived from it (configuration | economic |
+  // exploitation). Emitted by `engine/.../checks/base.py:CheckResult.to_dict`.
+  // Empty for Tier-2 findings the LLM emits without a taxonomy mapping.
+  sub_detector?: string;
+  stage?: string;
   severity?: Severity;
   label?: string;
   finding?: string;

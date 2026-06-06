@@ -47,8 +47,10 @@ DECISION_LOG_ABI = [
 # Canonical DecisionLog deployments — engine stays decoupled from
 # ``../contracts/`` (CLAUDE.md), so we curate the map here.
 DECISION_LOG_BY_CHAIN: dict[int, str | None] = {
-    5000: "0x1823359f0a5bB8b2af71a55200B08ECcCedFec6f",
-    5003: None,  # testnet redeploys; pull from .env if needed
+    # T43 redeploy (mantle.addresses.json, 2026-05-24) — supersedes the T25
+    # DecisionLog at 0x1823359f…; .env MANTLEPROOF_DECISION_LOG_ADDRESS overrides.
+    5000: "0x11B395452e2bF8Ab20F21cd4deA8f9a7650CCf65",
+    5003: "0x5d6874df08640bAb87C5c15b61Fb4c3E641f8956",  # Sepolia rehearsal stack
 }
 
 
