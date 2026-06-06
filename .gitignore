@@ -40,6 +40,11 @@ engine/data/
 # --- Local tooling state ---
 .claude/
 
+# --- Local-only working docs (untracked from remote, kept local) ---
+refine.md
+dd.md
+TODO.md
+
 # --- Editors / OS ---
 .DS_Store
 .idea/
