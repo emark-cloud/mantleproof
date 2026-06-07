@@ -173,13 +173,6 @@ we are a tenant of that infrastructure, not its operator.
 | `TreasurySplit` | [`0xEaea8a20288528ea6E55B619DB3F7442890c9600`](https://mantlescan.xyz/address/0xEaea8a20288528ea6E55B619DB3F7442890c9600) | 20% treasury share. Withdrawals are 2-day timelocked. |
 | `DecisionLog` | [`0x11B395452e2bF8Ab20F21cd4deA8f9a7650CCf65`](https://mantlescan.xyz/address/0x11B395452e2bF8Ab20F21cd4deA8f9a7650CCf65) | Agent-to-agent on-chain receipts. Demos 2 and 3 log `APPROVED` / `DECLINED` here referencing the audit hash they read. |
 
-Plus references (not deployed by us — Mantle ships them):
-- **ERC-8004 Identity Registry** `0x8004A169FB4a3325136EB29fA0ceB6D2e539a432` — MantleProof = tokenId 96, owned by `0x2a3080AA52DE07702dd30b81cC97C3527e605B6A`.
-- **ERC-8004 Reputation Registry (v2.0.0)** `0x8004BAa17C55a88189AE136b182e5fdA19dE9b63` — read MantleProof's reputation directly via `getSummary(96, getClients(96), "", "")`.
-
-The previous T25 deploy (2026-05-19, 5-contract stack at `0x60E97c83…` etc.) is
-**superseded** by the T43 redeploy and kept only for receipt history.
-
 ## On-chain receipts
 
 ### Demo 1 — deployer-agent rejects a buggy yield vault
