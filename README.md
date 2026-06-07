@@ -486,32 +486,7 @@ Sepolia (5003) and Mantle mainnet (5000) deploy via
 [cutover gate](CLAUDE.md) — Sepolia smoke + Tier 2 e2e + verified token
 addresses must all pass first.
 
-## Known issues
 
-1. **IPFS keccak invariant fails on the three current Demo 1/2/3 receipts.** Root
-   caused 2026-05-24: Pinata's old `pinJSONToIPFS` endpoint strips `.0` from
-   integer-valued floats (`1.0` → `1`) before pinning, mutating six bytes per
-   audit (the `precision`/`recall`/`f1` perfect-score fields in `metrics_ref`).
-   The on-chain `rootHash` is computed over our exact bytes (`1.0` preserved),
-   but Pinata stores normalized bytes (`1` written). Fixed forward in
-   `engine/mantleproof/persistence/ipfs.py` (now uses `pinFileToIPFS` with our
-   exact canonical bytes); every audit anchored after this fix verifies cleanly.
-   The three historical Demo 1/2/3 anchors are immutable on chain and would
-   require re-anchoring (~7 MNT) to refresh. Trust path is intact (`rootHash` on
-   chain matches the IPFS-pinned `root_hash` field; oracle is the only writer;
-   agent advanced cleanly) — only "anyone can re-derive `rootHash` from the IPFS
-   bytes via canonical recompute" is the broken property for these three.
-2. **`AMENDED` dispute outcome not yet produced live.** The mechanism is
-   supported end-to-end in contract + engine, but the 3 severity-downgrade
-   attempts in T47 (#4, #6, #7) were each dismissed with specific
-   counter-evidence. A more surgical severity-amendment counter-claim would
-   produce a live AMENDED receipt — open polish for post-submission.
-3. **`MantleProofAgent.reputation()` and `agentURI()` revert on-chain.** The
-   deployed bytecode was compiled against a fictional pre-T38 interface; T38
-   marked both views defunct in source. The frontend reads reputation directly
-   from Mantle's canonical Reputation Registry (`getSummary(96, getClients(96),
-   "", "")`) instead. See [`docs/erc8004-abi-notes.md`](docs/erc8004-abi-notes.md)
-   for the full T37 ABI verification log.
 
 ## Related work — how MantleProof differs
 
