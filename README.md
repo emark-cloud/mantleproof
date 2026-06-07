@@ -3,14 +3,6 @@
 > **MantleProof is an audit oracle that agents call before they transact — and it
 > stakes MNT on being right.**
 
-One mechanic in the foreground (an oracle in the transaction path), one
-differentiator that makes it credible (skin in the game). Everything else is *how*.
-
-Mantle Turing Test Hackathon 2026 · AI DevTools track · solo (Emark).
-**Live on Mantle mainnet (chainId 5000)** with 3 agent-to-agent demos, 1 ERC-8004
-reputation entry, 7 disputes (1 RETRACTED — 2 MNT slashed publicly on-chain), and
-a 6-contract inventory.
-
 ### How it works
 
 Every other capability is the answer to a *how* question hanging off that one
