@@ -379,12 +379,6 @@ flow surfaced inline).
 | `GET /api/queries` | free | Recent DecisionLog events (agent decisions) |
 | `POST /x402/audit/{address}` | **0.50 USDC on Base** | Trigger fresh Tier 2 audit. Both txHashes in response. |
 
-Why USDC on Base for payment but Mantle for the audit anchor? Cross-chain by
-design — payment settles where stablecoins are deepest (Base via Coinbase's CDP
-facilitator), the audit anchors where Mantle's agents live. Both tx hashes ship
-in every paid-audit response. UI labels the payment chain explicitly
-("0.50 USDC paid on base eip155:8453").
-
 ## Quickstart (dev)
 
 ```bash
