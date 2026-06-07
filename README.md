@@ -535,32 +535,6 @@ transaction paths → being in the path generates audits → audits accumulate i
 a graph → the graph makes the oracle more worth routing through. A fast-follower
 enters from a standing start; MantleProof is already spinning.
 
-## Go-to-market (one page)
-
-
-- **First customer segment (now):** Mantle-native autonomous agents and the teams
-  building them — concretely, the other agent projects in this very hackathon. They
-  exist today and have the exact need MantleProof serves: a safety signal before
-  transacting. Demand is adjacent and real, not hypothetical.
-- **Wedge:** the free Tier 1 read. Zero friction, no wallet, one CLI command
-  (`npx mantleproof check 0x…`) or one MCP call. Developers and agents adopt the
-  read path at no cost; this seeds the audit graph and the integration base.
-- **Revenue (now):** Tier 2 paid audits via `payForAudit` (0.5 MNT) and the x402
-  endpoint, with the 80/20 split — already live on mainnet (3 receipts). Per-audit
-  micropayments, not a subscription, matched to how agents actually consume.
-- **Expansion (next):** CI integration — a GitHub Action that pre-audits on every
-  PR (a real category, Snyk / GitGuardian-shaped) — and the multi-auditor staking
-  marketplace, where other auditors stake against their own findings and MantleProof
-  becomes the protocol, not just the first auditor.
-- **Why now:** the agentic economy Mantle is building *is* the demand driver.
-  MantleProof is a leveraged bet on the same thesis the judges are already
-  underwriting by running this hackathon. If autonomous on-chain agents are real,
-  they need this; if they are not, most of the hackathon's premise fails too.
-
-The honest edge (for Q&A): the moats are time-denominated and near-zero today — the
-audit graph, the staking track record, and the integrated-agent base all accumulate
-from day one and cannot be bought. Defensibility is being first into that flywheel.
-See [Defensibility](#defensibility--three-moats-each-with-its-honest-caveat) above.
 
 ## Honest market
 
