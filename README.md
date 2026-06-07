@@ -109,16 +109,6 @@ Auditing 0x1892f77e…BB76fA on Mantle mainnet…
 Run from a clone with `pnpm --filter mantleproof build && node cli/build/index.js verify`.
 Full docs: [`cli/README.md`](cli/README.md).
 
-**Integrity honesty note.** `check` re-derives the on-chain `rootHash` by hashing
-the raw IPFS bytes (minus `root_hash`). For audits pinned **on/after** the
-2026-05-24 canonicalization fix this reproduces the hash exactly (`✓ integrity
-verified`). The three demo audits were pinned **before** that fix, when Pinata's
-JSON endpoint silently stripped `.0` from integer-valued floats in `metrics_ref`
-— so independent keccak re-derivation isn't reproducible for them. `check`
-reports those honestly as `✓ anchor verified` (the embedded `root_hash` matches
-the on-chain anchor, fetched from the content-addressed CID) rather than faking
-a recompute. See [`engine/mantleproof/persistence/ipfs.py`](engine/mantleproof/persistence/ipfs.py).
-
 ## Architecture
 
 Three layers, one signed write path:
