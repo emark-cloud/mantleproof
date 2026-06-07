@@ -500,8 +500,7 @@ addresses must all pass first.
 MantleProof is to autonomous agents on Mantle what a credit bureau is to a
 lender — a signed, on-chain, dimension-scored report on a counterparty
 contract that an agent can query, cite in its on-chain decision, and stake a
-position behind. Long-form: [`docs/mantleproof.md`](docs/mantleproof.md)
-*Related work* section.
+position behind. 
 
 ## Defensibility — three moats, each with its honest caveat
 
