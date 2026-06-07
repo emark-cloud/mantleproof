@@ -406,49 +406,6 @@ facilitator), the audit anchors where Mantle's agents live. Both tx hashes ship
 in every paid-audit response. UI labels the payment chain explicitly
 ("0.50 USDC paid on base eip155:8453").
 
-## Independent verification
-
-```bash
-cd engine && . .venv/bin/activate
-
-# Demo 1 — deployer-agent + BuggyYieldVault
-python scripts/verify_demo1_receipt.py \
-  0x1892f77e335c133ce4a7b28555f13ba74cbb76fa \
-  0x3f4799f5863dbb38994c319254e539e53d47e4f63c3e9254b0994db8e04168e9 \
-  0x4c6bbed93dc678075d8489e2ce89732d067837f9a28e7a6336f91ca00fcacf08
-
-# Demo 2 — trading-agent + BackdooredMemeToken + DecisionLog DECLINED
-python scripts/verify_demo2_receipt.py \
-  0x8f6679eb031799fc9c5e149dfb75b4543808912f \
-  0x0947f93b6cc6c4e167722a17eddb1684d5113cce0318b5717e8f702595c7087f \
-  0xfedd0b7db78f500dc96b638e1e5c55b47f78fe0986a25e355a6f8bb3d6427e6b \
-  0x385eaded6f7eba0191ed00972e60077ea4041667c4329a19d400a33efd351119 \
-  0xB74a08a5aD469758F1a0fAc2cF6059de3cc4A148
-
-# Demo 3 — yield-agent + LBRouter + addLiquidity + DecisionLog APPROVED
-python scripts/verify_demo3_receipt.py \
-  0x013e138EF6008ae5FDFDE29700e3f2Bc61d21E3a \
-  0x37ff62a05f9e66151b36846e28a77494ccc9733a298200d3aa62b1a607d3b373 \
-  0xdce37de275d561d8aa9bf3836fb7eec4d120d4a968f5a2315232435a1dca2349 \
-  0x52904eb2c3b9882c35610dc187c75cbf54ae8eff7a4223e691bd8a1ff37f439e \
-  0x82760ff271172d2ce6209a25e880072ffc67781a181ff536c933f6c5416e1725 \
-  0x9979A4e0465b0F6E14e40309Fe4C6aEe8A1f66c3
-
-# T40 — first ERC-8004 reputation entry about MantleProof
-python scripts/verify_reputation_receipt.py \
-  --payer 0x4354d518eD2060b315995E68268f019C074fc1f3 \
-  --agent-id 96 --network mantle \
-  --expect-tag1 audit-quality --expect-value 4
-
-# T47 — dispute #5 RETRACTED (2 MNT slashed)
-python scripts/verify_dispute_receipt.py \
-  --dispute-id 5 --network mantle \
-  --expect-outcome RETRACTED \
-  --expect-disputer 0x7805e8261E8508d70554211dA54FB3c33A6ebfd3 \
-  --tx 0xed264780037e07a404f5ce5b37c056523d27d1e88296d29ee1fa6f8bac8a2374
-```
-
-
 ## Quickstart (dev)
 
 ```bash
