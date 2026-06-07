@@ -136,11 +136,7 @@ Three layers, one signed write path:
    `yield-agent` — each with its own funded wallet (no key wears two hats). Plus
    a 4th `disputer-agent` that filed 7 real disputes (T47).
 
-Full spec — locked: [`docs/mantleproof.md`](docs/mantleproof.md) ·
-[`docs/resources.md`](docs/resources.md) · [`docs/design.md`](docs/design.md) ·
-[`docs/update.md`](docs/update.md) (Disputes + Staking extensions).
-
-## The five honesty labels (non-negotiable)
+## The five honesty labels
 
 Every finding ships with exactly one. If the engine can't assign one, the finding
 does not ship.
