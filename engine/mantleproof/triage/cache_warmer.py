@@ -35,12 +35,19 @@ log = logging.getLogger(__name__)
 def _audit_submitted_topic() -> str:
     """Keccak of the canonical event signature, lazily evaluated.
 
+    Must match the DEPLOYED event exactly — the T43 redeploy added the
+    trailing ``uint8 tier`` arg (see IMantleProofRegistry.AuditSubmitted),
+    and ``Severity`` is an enum so it canonicalizes to ``uint8``:
+
     AuditSubmitted(address indexed target, bytes32 indexed rootHash,
-                   uint8 severity, string ipfsCID)
+                   Severity severity, string ipfsCID, uint8 tier)
+
+    The pre-T43 4-arg signature hashes to a different topic that matches
+    zero on-chain logs, so leaving ``tier`` off silently empties the cache.
     """
     from eth_utils import keccak  # type: ignore[import-untyped]
 
-    sig = b"AuditSubmitted(address,bytes32,uint8,string)"
+    sig = b"AuditSubmitted(address,bytes32,uint8,string,uint8)"
     return "0x" + keccak(sig).hex()
 
 

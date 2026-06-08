@@ -157,10 +157,12 @@ def test_walk_audits_persists_to_store(tmp_path):
 
 
 def test_audit_submitted_topic_is_keccak_of_signature():
-    # Sanity check: the topic must match what the contract emits.
+    # Sanity check: the topic must match what the DEPLOYED contract emits.
+    # T43 added the trailing `uint8 tier` arg and `Severity` canonicalizes to
+    # `uint8` — the 4-arg signature hashes to a topic that matches zero logs.
     from eth_utils import keccak
 
-    expected = "0x" + keccak(b"AuditSubmitted(address,bytes32,uint8,string)").hex()
+    expected = "0x" + keccak(b"AuditSubmitted(address,bytes32,uint8,string,uint8)").hex()
     assert cache_warmer._audit_submitted_topic() == expected
 
 

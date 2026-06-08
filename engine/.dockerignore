@@ -1,0 +1,15 @@
+.venv/
+venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+mantleproof_engine.egg-info/
+.env
+.env.*
+data/
+artifacts/
+validation/
+tests/

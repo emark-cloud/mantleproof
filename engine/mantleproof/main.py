@@ -14,7 +14,10 @@ if you want to lock it down for a production deploy.
 
 from __future__ import annotations
 
+import asyncio
+import contextlib
 import os
+from collections.abc import AsyncIterator
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -27,6 +30,7 @@ from mantleproof.api import (
     routes_queries,
     routes_x402,
 )
+from mantleproof.triage import scheduler
 
 
 def _cors_origins() -> list[str]:
@@ -37,8 +41,26 @@ def _cors_origins() -> list[str]:
     return [origin.strip() for origin in raw.split(",") if origin.strip()]
 
 
+@contextlib.asynccontextmanager
+async def _lifespan(_app: FastAPI) -> AsyncIterator[None]:
+    """Run the file-backed cache/feed warmer on a timer for the app's lifetime.
+
+    Started here (not at import) so the loop only exists for a live server, not
+    when tests import ``create_app``. Cancelled cleanly on shutdown. See
+    ``mantleproof.triage.scheduler`` for the no-external-cron rationale.
+    """
+    task = scheduler.start()
+    try:
+        yield
+    finally:
+        if task is not None:
+            task.cancel()
+            with contextlib.suppress(asyncio.CancelledError):
+                await task
+
+
 def create_app() -> FastAPI:
-    app = FastAPI(title="MantleProof", version="0.0.0")
+    app = FastAPI(title="MantleProof", version="0.0.0", lifespan=_lifespan)
     app.add_middleware(
         CORSMiddleware,
         allow_origins=_cors_origins(),
