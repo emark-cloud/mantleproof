@@ -92,22 +92,15 @@ def test_canonical_bytes_match_compute_root_hash_preimage():
     """Pinata pinFileToIPFS stores our exact bytes. The verifier's invariant
     keccak(canonical(IPFS body sans root_hash)) == on-chain rootHash holds
     iff `_canonical_bytes(report)` produces the SAME bytes as the engine's
-    `compute_root_hash` preimage.
+    `compute_root_hash` preimage. This is the low-level byte-faithfulness of
+    the pin path — it preserves whatever it is handed, verbatim.
     """
     from mantleproof.pipeline import _canonical
 
     report = {
         "target": _TARGET,
         "tier": 2,
-        "metrics_ref": {
-            # Integer-valued floats — Pinata's old pinJSONToIPFS would strip
-            # `.0` from these, breaking the keccak invariant. Pin-as-bytes
-            # preserves them so canonical roundtrip is byte-identical.
-            "precision": 1.0,
-            "recall": 1.0,
-            "f1": 1.0,
-            "latency_ms": {"p50": 0.4, "p95": 4.5},
-        },
+        "metrics_ref": {"precision": 0.97, "latency_ms": {"p50": 0.4, "p95": 4.5}},
         "root_hash": "0xabc",
     }
     body = _canonical_bytes(report)
@@ -117,13 +110,72 @@ def test_canonical_bytes_match_compute_root_hash_preimage():
         _canonical({k: v for k, v in report.items() if k != "root_hash"})
     )
     assert preimage == body_minus_root  # tautology — just pin the contract
-    # Float `1.0` must remain `1.0` in the bytes (Pinata-mutation regression).
-    assert b'"f1":1.0' in body
-    assert b'"precision":1.0' in body
-    # Non-integer floats preserved too.
+    # Non-integer floats are preserved byte-for-byte by the pin path.
     assert b'"p50":0.4' in body
+    assert b'"precision":0.97' in body
     # ensure_ascii=False round-trips utf-8 cleanly.
     assert isinstance(body, bytes)
+
+
+def test_normalize_numbers_strips_integer_valued_floats():
+    """`_normalize_numbers` removes the one value class a JSON re-encoder can
+    mutate (integer-valued floats like 1.0 → 1) while leaving everything else
+    untouched — fractional floats, ints, bools, strings, and None."""
+    from mantleproof.pipeline import _normalize_numbers
+
+    out = _normalize_numbers(
+        {
+            "precision": 1.0,   # integer-valued float -> int
+            "ratio": 0.4,       # fractional float -> unchanged
+            "count": 7,         # int -> unchanged
+            "flag": True,       # bool must NOT become 1
+            "nested": [2.0, 3.5, {"recall": 0.0}],
+            "name": "x",
+            "missing": None,
+        }
+    )
+    assert out["precision"] == 1 and isinstance(out["precision"], int)
+    assert out["ratio"] == 0.4 and isinstance(out["ratio"], float)
+    assert out["count"] == 7 and isinstance(out["count"], int)
+    assert out["flag"] is True  # bool preserved, not coerced to 1
+    assert out["nested"][0] == 2 and isinstance(out["nested"][0], int)
+    assert out["nested"][1] == 3.5 and isinstance(out["nested"][1], float)
+    assert out["nested"][2]["recall"] == 0 and isinstance(out["nested"][2]["recall"], int)
+    assert out["name"] == "x"
+    assert out["missing"] is None
+
+
+def test_build_report_preimage_has_no_integer_valued_floats():
+    """A real report carrying perfect metrics (precision/recall/f1 == 1.0) must
+    serialize them as `1`, not `1.0`, in BOTH the hash preimage and the bytes the
+    pin path uploads — closing the 2026-05-24 Pinata desync class for good. The
+    rootHash recomputed over the pinned bytes must still match (the credibility
+    invariant), proving hash and pin see identical, re-encode-stable bytes."""
+    import json
+
+    from mantleproof.persistence.ipfs_fetch import verify_root_hash
+    from mantleproof.pipeline import _load_metrics_ref
+
+    # Skip if the local validation artifact is absent (fresh checkout) — the
+    # normalization itself is covered by the unit test above regardless.
+    metrics = _load_metrics_ref()
+    if not metrics or metrics.get("precision") != 1:
+        # _load_metrics_ref runs through no normalization, so a 1.0 on disk
+        # arrives here as float 1.0 == 1; this asserts the artifact is perfect.
+        pytest.skip("validation/metrics.json absent or not a perfect-score set")
+
+    report, root_hash, _ = build_report(
+        _TARGET, tier=2, chain_id=5000, tier1=[], now=_FIXED
+    )
+    body = _canonical_bytes(report)
+    # No integer-valued float survives anywhere in the pinned preimage.
+    assert not re.search(rb"\d+\.0(?=[,}\]])", body), body
+    assert b'"precision":1' in body and b'"precision":1.0' not in body
+    # Full IPFS round-trip: re-parse the pinned bytes and recompute the hash the
+    # public verifier (ipfs_fetch) would — it must match the anchored rootHash.
+    refetched = json.loads(body)
+    _, match = verify_root_hash(refetched, "0x" + root_hash.hex())
+    assert match, "recomputed rootHash must match after a JSON round-trip"
 
 
 def test_build_report_root_hash_is_keccak_of_canonical_preimage():

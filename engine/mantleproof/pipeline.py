@@ -85,6 +85,40 @@ def _overall_severity(findings: list[CheckResult]) -> Severity:
     return min((f.severity for f in findings), key=lambda s: _SEV_ORDER[s])
 
 
+def _normalize_numbers(obj: Any) -> Any:
+    """Recursively coerce integer-valued floats to ints so the rootHash preimage
+    cannot be mutated by a JSON re-encode (float-stability hardening, 2026-06-10).
+
+    The ONLY way a fetched report's keccak can drift from its anchored rootHash is
+    a number that two compliant serializers render differently. In practice that
+    is exactly one class of value: an integer-valued float like ``1.0`` that an
+    intermediary rewrites to ``1`` (root-caused 2026-05-24 — Pinata's old
+    ``pinJSONToIPFS`` did this to our perfect ``metrics_ref.{precision,recall,f1}``
+    scores, desyncing every audit's IPFS bytes from its on-chain hash). We
+    eliminate that class from the preimage entirely: integer-valued floats become
+    ints, which every JSON serializer renders identically and which no re-encoder
+    turns back into ``1.0``. Genuine fractional floats (0.4, 4.5) are left
+    untouched — their shortest-repr form already round-trips byte-identically.
+
+    bool is an ``int`` subclass in Python but must stay JSON ``true``/``false`` —
+    never coerce it. NaN/Inf are not valid JSON; ``.is_integer()`` is False for
+    them so they pass through unchanged (a pre-existing concern, not ours to fix).
+
+    Applied once in ``build_report`` to the single dict that is BOTH hashed and
+    pinned, so the hash preimage and the IPFS bytes can never diverge — unlike the
+    old two-canonicalizer arrangement that had to be kept in sync by hand.
+    """
+    if isinstance(obj, bool):
+        return obj
+    if isinstance(obj, float):
+        return int(obj) if obj.is_integer() else obj
+    if isinstance(obj, dict):
+        return {k: _normalize_numbers(v) for k, v in obj.items()}
+    if isinstance(obj, list):
+        return [_normalize_numbers(v) for v in obj]
+    return obj
+
+
 def _canonical(report: dict[str, Any]) -> str:
     """Deterministic JSON preimage for the rootHash (stable key order)."""
     return json.dumps(report, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
@@ -156,6 +190,11 @@ def build_report(
         if tier2_status and tier2_status != "ok":
             # Tier 2 needs verified source to ground claims; degrade honestly.
             report["tier2_skipped"] = tier2_status
+    # Float-stability: strip integer-valued floats (e.g. metrics_ref scores of
+    # 1.0) from the preimage so the rootHash and the IPFS-pinned bytes can never
+    # be desynced by a re-encode (see _normalize_numbers). This is the SAME dict
+    # run_audit pins, so hash and pin see identical, re-encode-stable bytes.
+    report = _normalize_numbers(report)
     root_hash = compute_root_hash(report)
     report["root_hash"] = "0x" + root_hash.hex()
     return report, root_hash, severity
