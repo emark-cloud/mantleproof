@@ -17,9 +17,6 @@
   with its full report on IPFS, so anyone independently recomputes the on-chain
   `rootHash` from the bytes without trusting our backend. Credibility rests on that
   integrity check, not on us.
-- **What if it's wrong?** The dispute layer re-runs Tier 2 and posts the verdict
-  on-chain. (Economic staking/slashing behind findings is on the roadmap — see
-  [Skin in the game](#skin-in-the-game--roadmap).)
 - **How do agents reach it?** On-chain `getAudit`, MCP server, x402 REST endpoint —
   the same JSON with the same labels. 
 
@@ -236,41 +233,6 @@ requirement, so the engine never needs that key).
 Negative feedback is possible and **correct** — a real paying customer can rate
 MantleProof poorly. We don't suppress.
 
-### Disputes — 7 filed, 1 RETRACTED (historical, on the previous registry)
-
-The disputer-agent (`0x7805e826…`, 5th demo wallet, fresh-generated key) filed
-7 disputes across 4 rounds of progressively-tighter counter-claims. The engine
-re-ran Tier 2 against each counter-claim and posted the verdict on-chain. This
-batch ran on the **previous (staking-era) registry** `0x5CEafE0F…CA65A5` and the
-now-retired `StakingPool` — economic staking was deactivated 2026-06-10. The
-redeployed staking-free registry **keeps the dispute layer** (`submitDispute` /
-`resolveDispute` still file and resolve on-chain); it simply no longer slashes an
-audit stake on RETRACTED — that economic layer is roadmap.
-
-| Outcome | Count | What it means |
-|---|---|---|
-| DISMISSED | 6 | Counter-claim doesn't invalidate the finding. Counter-stake forfeited to registry. Original honesty label upgrades one tier engine-side. |
-| AMENDED | 0 | (Supported in contract + engine, not produced in this seed batch — 3 severity-downgrade attempts were each dismissed with specific source-line counter-evidence.) |
-| RETRACTED | 1 | Counter-claim invalidates the finding. **(Historical) 2 MNT audit stake transferred from pool to disputer; on the staking-free registry an upheld dispute refunds the disputer's counter-stake, no audit-stake slash.** |
-
-**Dispute #5 RETRACTED ✓** — the counter-claim noted Demo 3's `swapTokensForExactTokens`
-finding misclassified standard exact-output AMM semantics as a bug (the function
-consumes only the path-required input, not `amountInMax` — no "overpay" possible).
-The engine agreed: [`resolveDispute` tx `0xed264780…`](https://mantlescan.xyz/tx/0xed264780037e07a404f5ce5b37c056523d27d1e88296d29ee1fa6f8bac8a2374),
-`StakingPool.StakeSlashedByDispute` log shows **2 MNT moved from pool to disputer**.
-Independent verify: `python engine/scripts/verify_dispute_receipt.py --dispute-id 5
---network mantle --expect-outcome RETRACTED --tx 0xed264780…` returns **9/9 ✓**
-including `StakingPool.status == SLASHED_DISPUTE`.
-
-Full ledger of all 7 disputes (with counter-claim IPFS CIDs, rationale per
-outcome): [`agents/validation/dispute_receipts.md`](agents/validation/dispute_receipts.md).
-
-What this seed batch demonstrates: the engine does not capitulate on weak
-challenges (6 dismissals with specific source-line counter-evidence) but WILL
-retract when a counter-claim is genuinely correct. **2 MNT moved publicly on
-chain for the one upheld dispute** — visible on Mantlescan, verifiable by
-anyone with `cast call` or the included Python verifier scripts.
-
 ## The five risk checks
 
 Each is a small Python module (`engine/mantleproof/checks/*.py`) running in
@@ -302,18 +264,6 @@ counter-claim and posts DISMISSED / AMENDED / RETRACTED on chain. See
 What still ships live: the **dispute layer** (anyone can `submitDispute`; the
 oracle re-audits and posts `DISMISSED`/`AMENDED`/`RETRACTED` on-chain), the five
 honesty labels, and the hallucination guard.
-
-Historical proof the economic path worked end-to-end: on the previous
-(staking-era) registry `0x5CEafE0F…CA65A5`, three Tier 2 audits each staked 2 MNT
-into `StakingPool` `0x2E279f4c…0ee9`, and dispute #5 RETRACTED slashed 2 MNT to
-the disputer (pool 6 → 4 MNT) — all on Mantlescan, still verifiable via
-`verify_dispute_receipt.py`. The primitive (`StakingPool.sol`) and its tests
-remain in-tree; re-deploying it is future work, not new code.
-
-Roadmap detail: the original scope doc (`docs/update.md` §3.1) defaulted to
-50 MNT per stake; the staking-era deploy used **2 MNT** as a hackathon-window
-MNT-exposure cap. Exploit-claim slashing (`claimExploit`) is a reserved comment
-block in `MantleProofRegistry.sol` / `StakingPool.sol`, also post-hackathon.
 
 ## Coverage & latency (engine validation)
 
