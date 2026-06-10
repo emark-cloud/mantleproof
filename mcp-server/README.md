@@ -61,17 +61,27 @@ payload, stripped the post-hash fields, recomputed `keccak256(canonical(json))`,
 and compared it to the on-chain `rootHash`. If they don't match, `match` is
 `false` and `recomputed_root_hash` is surfaced — never silently hidden.
 
-## Install / use with Claude Desktop
+## Install
+
+### Claude Code (one line, zero config)
+
+```bash
+claude mcp add mantleproof -- npx -y mantleproof-mcp
+```
+
+That's it — the server defaults to the hosted MantleProof engine, so no API
+URL or key is needed. Add `-s project` to share it with everyone who clones a
+repo, or `-s user` to enable it across all your projects. Then `/mcp` in a
+session lists the three tools.
+
+### Claude Desktop
 
 ```json
 {
   "mcpServers": {
     "mantleproof": {
       "command": "npx",
-      "args": ["-y", "mantleproof-mcp"],
-      "env": {
-        "MANTLEPROOF_API_BASE": "https://mantleproof.xyz"
-      }
+      "args": ["-y", "mantleproof-mcp"]
     }
   }
 }
@@ -81,7 +91,7 @@ Environment:
 
 | Var | Default | Purpose |
 |---|---|---|
-| `MANTLEPROOF_API_BASE` | `http://localhost:8000` | Base URL of the MantleProof engine REST API (`/api/audit/{address}`, `/api/health`). |
+| `MANTLEPROOF_API_BASE` | hosted engine (`…up.railway.app`) | Base URL of the MantleProof engine REST API (`/api/audit/{address}`, `/api/health`). Override to point at a local engine, e.g. `http://localhost:8000`. |
 
 ## Local development
 

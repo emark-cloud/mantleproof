@@ -127,23 +127,16 @@ npx mantleproof check 0x8f6679eb031799fc9c5e149dfb75b4543808912f
 
 ### [1:30–2:40] — Doorway 2: wire it into your agent (Claude Code + MCP) — *the headline*
 
-**SCREEN:** Show a project's `.mcp.json` being added (or `claude mcp add`). Keep it on
-screen — this is the "set up your agent" money shot:
+**SCREEN:** Type the one-liner live — this is the "set up your agent" money shot. Zero
+config, no key, no URL:
 
-```jsonc
-// .mcp.json — MantleProof as a tool any MCP agent can call
-{
-  "mcpServers": {
-    "mantleproof": {
-      "command": "npx",
-      "args": ["-y", "mantleproof-mcp"],
-      "env": { "MANTLEPROOF_API_BASE": "https://<your-engine-url>" }
-    }
-  }
-}
+```
+claude mcp add mantleproof -- npx -y mantleproof-mcp
 ```
 
-> (CLI equivalent: `claude mcp add mantleproof --env MANTLEPROOF_API_BASE=https://<engine-url> -- npx -y mantleproof-mcp`.)
+> It just works — the package defaults to the hosted MantleProof engine. (Claude Desktop
+> equivalent: a three-line `mcpServers` block with `"command": "npx", "args": ["-y",
+> "mantleproof-mcp"]` — no `env` needed.)
 
 Then a **live Claude Code session.** Type a natural prompt and let Claude decide to call
 the tool — do NOT call it manually:

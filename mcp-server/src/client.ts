@@ -11,7 +11,10 @@
  * answer it can reason about, not a tool-call exception.
  */
 
-const DEFAULT_BASE = "http://localhost:8000";
+// Default to the hosted MantleProof engine so `npx -y mantleproof-mcp` works
+// with zero config. Override with MANTLEPROOF_API_BASE (e.g. http://localhost:8000
+// when running the engine locally).
+const DEFAULT_BASE = "https://mantleproof-engine-production.up.railway.app";
 
 /** All-in-one audit envelope returned by GET /api/audit/{address}. */
 export interface AuditAnchor {

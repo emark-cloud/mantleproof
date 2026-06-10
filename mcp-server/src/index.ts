@@ -19,10 +19,14 @@
  * honestly gated on T11 (x402 paywall endpoint) and refuses rather than
  * fabricating a payment receipt.
  *
+ * Add to Claude Code (zero config — defaults to the hosted engine):
+ *   claude mcp add mantleproof -- npx -y mantleproof-mcp
+ *
  * Claude Desktop config:
  *   { "mcpServers": { "mantleproof": { "command": "npx",
- *     "args": ["-y", "mantleproof-mcp"], "env": {
- *       "MANTLEPROOF_API_BASE": "https://mantleproof.xyz" } } } }
+ *     "args": ["-y", "mantleproof-mcp"] } } }
+ *
+ * Point at a local engine with MANTLEPROOF_API_BASE=http://localhost:8000.
  */
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
