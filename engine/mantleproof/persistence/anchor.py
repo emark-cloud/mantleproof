@@ -2,14 +2,16 @@
 
 Step 6 of the pipeline (docs/mantleproof.md §5): submit the audit head on-chain
 via ``submitAudit(target, tier, severity, rootHash, ipfsCID)``. The contract
-advances the linked MantleProofAgent's ``memoryRoot`` internally **and**, for
-Tier 2 audits, forwards ``msg.value`` (2 MNT) into ``StakingPool.lockStake``
-for the 30-day dispute window (T43, docs/update.md §3).
+advances the linked MantleProofAgent's ``memoryRoot`` internally.
+
+Audit staking is **deactivated (roadmap, 2026-06-10)**: the registry's
+``submitAudit`` is nonpayable for both tiers, so no value is forwarded and
+audits anchor for gas only. The StakingPool / 2 MNT Tier-2 stake / dispute
+slashing are future economic-security work.
 
 CLAUDE.md invariant: the **oracle-signer key is the only writer** to
 ``submitAudit``. We sign locally with that key and broadcast a raw tx — the key
-never leaves the engine. The 2 MNT stake comes from the oracle signer's wallet
-balance (the only writer is also the only payer).
+never leaves the engine.
 
 The minimal ABI is embedded here on purpose: ``engine/`` is standalone and
 containerized separately (CLAUDE.md), so it must NOT read ``../contracts``
@@ -30,12 +32,8 @@ _SEVERITY_TO_UINT8: dict[Severity, int] = {
     Severity.HIGH: 3,
 }
 
-# Tier 2 stake value (per T43 + user-locked override of docs/update.md §3 default
-# 50 MNT): 2 MNT in wei. Must match `MantleProofRegistry.TIER2_STAKE`.
-TIER2_STAKE_WEI = 2 * 10**18
-
 # Only the function we call; full ABI lives with the contracts package.
-# Signature post-T43: submitAudit(address, uint8, uint8, bytes32, string) payable
+# Staking deactivated: submitAudit(address, uint8, uint8, bytes32, string) nonpayable
 REGISTRY_ABI = [
     {
         "inputs": [
@@ -47,7 +45,7 @@ REGISTRY_ABI = [
         ],
         "name": "submitAudit",
         "outputs": [],
-        "stateMutability": "payable",
+        "stateMutability": "nonpayable",
         "type": "function",
     },
     {
@@ -76,7 +74,6 @@ def anchor_audit(
     ipfs_cid: str,
     *,
     tier: int = 1,
-    value: int = 0,
     rpc_url: str | None = None,
     registry_address: str | None = None,
     private_key: str | None = None,
@@ -84,9 +81,8 @@ def anchor_audit(
 ) -> str:
     """Sign + broadcast ``submitAudit`` as the oracle signer; return the txHash.
 
-    Tier 2 calls MUST set ``value=TIER2_STAKE_WEI`` (2e18). Tier 1 calls MUST
-    set ``value=0``. The registry enforces both — passing the wrong value is
-    a hard revert (``InvalidStakeValue``) before any state changes.
+    Audit staking is deactivated (roadmap): ``submitAudit`` is nonpayable, so
+    no value is forwarded for either tier — audits anchor for gas only.
 
     Raises ``RuntimeError`` with an actionable message when the signer key or
     registry address is not configured (an unanchored audit must fail loudly,
@@ -96,12 +92,6 @@ def anchor_audit(
         raise ValueError(f"rootHash must be 32 bytes, got {len(root_hash)}")
     if tier not in (1, 2):
         raise ValueError(f"tier must be 1 or 2, got {tier}")
-    expected_value = TIER2_STAKE_WEI if tier == 2 else 0
-    if value != expected_value:
-        raise ValueError(
-            f"tier={tier} requires value={expected_value} wei, got {value} "
-            f"(on-chain InvalidStakeValue would revert)"
-        )
 
     s = get_settings()
     rpc_url = rpc_url or s.active_rpc_url
@@ -121,7 +111,7 @@ def anchor_audit(
     from typing import cast
 
     from web3 import Web3
-    from web3.types import TxParams, Wei
+    from web3.types import TxParams
 
     w3 = Web3(Web3.HTTPProvider(rpc_url, request_kwargs={"timeout": timeout}))
     acct = w3.eth.account.from_key(private_key)
@@ -141,7 +131,6 @@ def anchor_audit(
                 "from": acct.address,
                 "nonce": w3.eth.get_transaction_count(acct.address),
                 "chainId": w3.eth.chain_id,
-                "value": Wei(value),
             },
         )
     )

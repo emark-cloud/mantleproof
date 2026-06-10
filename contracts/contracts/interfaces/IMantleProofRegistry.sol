@@ -66,15 +66,15 @@ interface IMantleProofRegistry {
     );
 
     /// @notice Anchor an audit result. Callable only by the oracle signer.
-    ///         If `tier == 2`, the call must forward `value == TIER2_STAKE`
-    ///         to the linked StakingPool's lockStake.
+    ///         Nonpayable for both tiers — audit staking is deactivated (roadmap),
+    ///         so audits anchor for gas only.
     function submitAudit(
         address target,
         uint8 tier,
         Severity severity,
         bytes32 rootHash,
         string calldata ipfsCID
-    ) external payable;
+    ) external;
 
     /// @notice File a dispute against a finding in an existing Tier 2 audit.
     ///         Permissionless. Optional counter-stake via msg.value (MNT).
@@ -84,8 +84,8 @@ interface IMantleProofRegistry {
         string calldata counterClaimIpfs
     ) external payable returns (uint256 disputeId);
 
-    /// @notice Resolve a pending dispute. Oracle-only.
-    ///         On RETRACTED, slashes the audit's stake to the disputer.
+    /// @notice Resolve a pending dispute. Oracle-only. Refunds the disputer's
+    ///         counter-stake on RETRACTED/AMENDED (audit-stake slashing is roadmap).
     function resolveDispute(
         uint256 disputeId,
         DisputeStatus outcome,

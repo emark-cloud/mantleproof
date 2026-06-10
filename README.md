@@ -1,7 +1,7 @@
 # MantleProof
 
 > **MantleProof is an audit oracle that agents call before they transact — and it
-> stakes MNT on being right.**
+> tells them when it isn't sure.**
 
 ### How it works
 
@@ -12,12 +12,14 @@
   replay.
 - **How does it price audits?** Tier 1 free heuristic + bytecode matching; Tier 2
   paid Gemini reasoning pass. 
-- **Why trust an AI's findings?** The hallucination guard, the five honesty labels,
-  and the 2 MNT stake — plus every audit is published with its full report on IPFS,
-  so anyone re-derives the on-chain `rootHash` from the bytes without trusting our
-  backend.
-- **What if it's wrong?** The dispute layer re-runs Tier 2; an upheld dispute takes
-  the stake
+- **Why trust an AI's findings?** The five honesty labels and the hallucination
+  guard tell you exactly which claims are grounded — plus every audit is published
+  with its full report on IPFS, so anyone independently recomputes the on-chain
+  `rootHash` from the bytes without trusting our backend. Credibility rests on that
+  integrity check, not on us.
+- **What if it's wrong?** The dispute layer re-runs Tier 2 and posts the verdict
+  on-chain. (Economic staking/slashing behind findings is on the roadmap — see
+  [Skin in the game](#skin-in-the-game--roadmap).)
 - **How do agents reach it?** On-chain `getAudit`, MCP server, x402 REST endpoint —
   the same JSON with the same labels. 
 
@@ -43,12 +45,12 @@ evidence.
 
 | # | Check | How to verify |
 |---|---|---|
-| 1 | **The audit registry is live on Mantle mainnet.** | Open the [MantleProofRegistry](https://mantlescan.xyz/address/0x5CEafE0FD8b2A9BD2eC6aCdf3f5e024c21CA65A5) — recent `AuditSubmitted` events show real targets with severity codes. The signer matches the immutable `oracleSigner` view. |
-| 2 | **The three demo audits are anchored on-chain.** | Three `submitAudit` txs from the oracle signer: Demo 1 [`0x4c6bbed9…`](https://mantlescan.xyz/tx/0x4c6bbed93dc678075d8489e2ce89732d067837f9a28e7a6336f91ca00fcacf08), Demo 2 [`0xfedd0b7d…`](https://mantlescan.xyz/tx/0xfedd0b7db78f500dc96b638e1e5c55b47f78fe0986a25e355a6f8bb3d6427e6b), Demo 3 [`0xdce37de2…`](https://mantlescan.xyz/tx/0xdce37de275d561d8aa9bf3836fb7eec4d120d4a968f5a2315232435a1dca2349). Each carries `value = 2 MNT` forwarded into `StakingPool.lockStake`. |
+| 1 | **The audit registry is live on Mantle mainnet.** | Open the [MantleProofRegistry](https://mantlescan.xyz/address/0xcF3703BD76C64DA8a13461e820456d0576662aaf) — recent `AuditSubmitted` events show real targets with severity codes. The signer matches the immutable `oracleSigner` view. |
+| 2 | **The three demo audits are anchored on-chain.** | Three `submitAudit` txs from the oracle signer: Demo 1 [`0xcb471577…`](https://mantlescan.xyz/tx/0xcb471577eac210723213df4829a25dc8ceec32b894664fc0adc504c83c55daee), Demo 2 [`0xb26c83f5…`](https://mantlescan.xyz/tx/0xb26c83f52011438a10d4ad3b3aac7f447a855e7f3846c5fa26cd2981d18bc77c), Demo 3 [`0x53072067…`](https://mantlescan.xyz/tx/0x53072067116ccf88d68306368d19dce4205d8e7c09cd70dadb7729a1b8b5f229). Each is anchored for gas only on the staking-free registry. |
 | 3 | **Agents acted on those audits.** | `DecisionLog` records Demo 2's trading agent **DECLINING** the backdoored token ([`0x385eaded…`](https://mantlescan.xyz/tx/0x385eaded6f7eba0191ed00972e60077ea4041667c4329a19d400a33efd351119)) and Demo 3's yield agent **APPROVING** the canonical LBRouter ([`0x82760ff2…`](https://mantlescan.xyz/tx/0x82760ff271172d2ce6209a25e880072ffc67781a181ff536c933f6c5416e1725)) — opposite verdicts, both grounded in MantleProof audits. Demo 3's APPROVED is paired with a real Merchant Moe LB v2.2 [`addLiquidityNATIVE`](https://mantlescan.xyz/tx/0x52904eb2c3b9882c35610dc187c75cbf54ae8eff7a4223e691bd8a1ff37f439e) deposit. |
 | 4 | **A paying agent left ERC-8004 reputation about MantleProof.** | [`giveFeedback` tx `0x579fe213…`](https://mantlescan.xyz/tx/0x579fe213972b056d9d1bd83023d179052cf5084e5e4417f20302b314af4b26f5) on Mantle's canonical Reputation Registry (`0x8004BAa1…`). `getSummary(96, [payer], "", "")` returns `count=1, value=4`. |
-| 5 | **A dispute was RETRACTED and 2 MNT moved on-chain.** | Dispute #5 [`resolveDispute` tx `0xed264780…`](https://mantlescan.xyz/tx/0xed264780037e07a404f5ce5b37c056523d27d1e88296d29ee1fa6f8bac8a2374) — `StakingPool.StakeSlashedByDispute` log shows 2 MNT transferred from pool (`0x2E279f4c…`) to disputer (`0x7805e826…`). Pool balance went 6 → 4 MNT. |
-| 6 | **Independent verification, no trust.** | `cast call 0x5CEafE0FD8b2A9BD2eC6aCdf3f5e024c21CA65A5 "getAudit(address)((bytes32,uint8,string,uint64,address,uint8))" 0x1892f77e335c133ce4a7b28555f13ba74cbb76fa --rpc-url https://rpc.mantle.xyz` returns the same Demo 1 `rootHash` shown above — or run `npx mantleproof check 0x1892f77e335c133ce4a7b28555f13ba74cbb76fa`. Fetch the IPFS body (`bafkreieaexay…`); its embedded `root_hash` equals the on-chain anchor, fetched from the content-addressed CID. 
+| 5 | **A dispute was RETRACTED on-chain (historical).** | On the **previous** registry (`0x5CEafE0F…`), dispute #5 [`resolveDispute` tx `0xed264780…`](https://mantlescan.xyz/tx/0xed264780037e07a404f5ce5b37c056523d27d1e88296d29ee1fa6f8bac8a2374) was RETRACTED and 2 MNT moved from the (now-retired) StakingPool to the disputer — a historical demonstration of the dispute path. The redeployed registry keeps disputes (file/resolve); economic slashing is now roadmap. |
+| 6 | **Independent verification, no trust.** | `cast call 0xcF3703BD76C64DA8a13461e820456d0576662aaf "getAudit(address)((bytes32,uint8,string,uint64,address,uint8))" 0x1892f77e335c133ce4a7b28555f13ba74cbb76fa --rpc-url https://rpc.mantle.xyz` returns the same Demo 1 `rootHash` (`0x88e98d22…`) shown above — or run `npx mantleproof check 0x1892f77e335c133ce4a7b28555f13ba74cbb76fa`. Fetch the IPFS body (`bafkreibnyidf…`); its embedded `root_hash` equals the on-chain anchor, fetched from the content-addressed CID. 
 
 ## Status / MVP scope
 
@@ -60,8 +62,8 @@ evidence.
 | ERC-8004 identity — MantleProof = agent #96 | **Live on mainnet** | Reputation entry references `tokenId 96` (Quick Eval #4) |
 | `getAudit` / MCP / x402 query surfaces | **Live** | Three surfaces, one backend, same JSON (Query surfaces §) |
 | Inter-agent licensing — `payForAudit`, 80/20 split | **Live on mainnet** | 3 `payForAudit` txs, 0.5 MNT each (On-chain receipts §) |
-| Reputation staking — 2 MNT per Tier 2 | **Live, seeded** | StakingPool holds live stake; 3 audits staked |
-| Dispute layer — submit / re-audit / resolve | **Live, seeded** | 7 disputes resolved on-chain (6 DISMISSED, 1 RETRACTED) |
+| Reputation staking — 2 MNT per Tier 2 | **Roadmap** | Staking deactivated; audits now anchor for gas only. StakingPool.sol stays in repo, undeployed (post-hackathon). |
+| Dispute layer — submit / re-audit / resolve | **Live** | File/resolve live on the redeployed registry; 7 disputes resolved on-chain historically (6 DISMISSED, 1 RETRACTED) |
 | Slash-by-exploit (`claimExploit`) | **Reserved post-hackathon** | Documented comment block, no body; only dispute-slashing ships live |
 | Multi-auditor staking marketplace | **Planned** | Post-hackathon; primitive shipped, market untested |
 | CI / GitHub Action integration | **Planned** | Roadmap; engine API ready |
@@ -79,12 +81,12 @@ $ npx mantleproof verify
 
 MantleProof — live verification against Mantle mainnet (chainId 5000)
 
-  [✓] Registry deployed, oracleSigner matches   0x5CEafE0F…CA65A5 (mantlescan ↗)
+  [✓] Registry deployed, oracleSigner matches   0xcF3703BD…662aaf (mantlescan ↗)
   [✓] Agent registered in ERC-8004 Identity     tokenId #96 → owner 0x2a3080AA…605B6A
-  [✓] StakingPool holds live stake              4 MNT locked in pool
-  [✓] Most recent audit anchored on-chain       rootHash 0x37ff62a0…d3b373 (13d ago)
+  [✓] Demo audits anchored (staking-free, gas only) 3/3 demo targets anchored on 0xcF3703BD…662aaf
+  [✓] Most recent audit anchored on-chain       rootHash 0xf9cd79fb…002a20
   [✓] getAudit() returns structured finding     target 0x013e138E…d21E3a → MEDIUM, Tier 2
-  [✓] Dispute resolved on-chain                 disputeId #5 → RETRACTED, stake slashed (7/7 resolved)
+  [✓] Disputes layer exercised on mainnet       disputeId #5 → RETRACTED on prev. registry 0x5CEafE0F…CA65A5 (slashing now roadmap)
   [✓] ERC-8004 reputation recorded              1 feedback entry about agent #96
 
   7/7 checks passed. MantleProof is live on Mantle mainnet.
@@ -115,7 +117,7 @@ Three layers, one signed write path:
 
 ```
   agents          ─query─►  MantleProof oracle  ─publish─►  Mantle registry (immutable)
-  (Mantle / any chain)        (engine, off-chain)            6 contracts on chainId 5000
+  (Mantle / any chain)        (engine, off-chain)            5 contracts on chainId 5000
        ▲                                                            │
        └────── read getAudit() / MCP getAudit / REST /api/audit ◄───┘
 ```
@@ -126,8 +128,8 @@ Three layers, one signed write path:
      ~1 ms p50 on the validation set.
    - **Tier 2** — Gemini reasoning pass + protocol-brief skills, then the
      **hallucination guard**, then canonical JSON → keccak256 `rootHash` → IPFS
-     pin → oracle-signed `submitAudit` on Mantle. Tier 2 anchors lock 2 MNT into
-     `StakingPool` for a 30-day dispute window.
+     pin → oracle-signed `submitAudit` on Mantle. Audits anchor for gas only
+     (economic staking is roadmap).
 2. **Three query surfaces, one backend.** On-chain
    `MantleProofRegistry.getAudit(target)`, MCP server (`npx -y mantleproof-mcp`,
    stdio, 3 tools), REST + x402 paywall (USDC on Base settles, audit anchors on
@@ -160,15 +162,16 @@ LLM provider — see [`engine/mantleproof/tier2/hallucination_guard.py`](engine/
 
 ## Smart contracts (Mantle mainnet 5000)
 
-Six contracts deployed 2026-05-24 (post-T43, Etherscan V2 verified). MantleProof
+Five contracts deployed (Etherscan V2 verified). MantleProof
 is also registered as agent **#96** on Mantle's canonical ERC-8004 registries —
-we are a tenant of that infrastructure, not its operator.
+we are a tenant of that infrastructure, not its operator. (`StakingPool` is no
+longer in the deployed stack — economic staking is roadmap; see below.)
 
 | Contract | Address | Role |
 |---|---|---|
-| `MantleProofRegistry` | [`0x5CEafE0FD8b2A9BD2eC6aCdf3f5e024c21CA65A5`](https://mantlescan.xyz/address/0x5CEafE0FD8b2A9BD2eC6aCdf3f5e024c21CA65A5) | Append-only audit registry + disputes layer. `submitAudit(target, tier, severity, rootHash, ipfsCID)` payable (Tier 2 forwards 2 MNT); `submitDispute` permissionless; `resolveDispute` oracle-only. |
+| `MantleProofRegistry` | [`0xcF3703BD76C64DA8a13461e820456d0576662aaf`](https://mantlescan.xyz/address/0xcF3703BD76C64DA8a13461e820456d0576662aaf) | Append-only audit registry + disputes layer. `submitAudit(target, tier, severity, rootHash, ipfsCID)` nonpayable — audits anchor for gas only (staking deactivated, roadmap); `submitDispute` permissionless; `resolveDispute` oracle-only. |
 | `MantleProofAgent` | [`0x6661Fb91CfA5F5691E3F80cA319b665824CB02e9`](https://mantlescan.xyz/address/0x6661Fb91CfA5F5691E3F80cA319b665824CB02e9) | Thin wrapper around our ERC-8004 identity (tokenId 96). Tracks `memoryRoot` (compounding keccak chain over all audits) + `auditsPerformed`. |
-| `StakingPool` (NEW T43) | [`0x2E279f4cAE39B5d0Fa57e08D0d455Ec9f6080ee9`](https://mantlescan.xyz/address/0x2E279f4cAE39B5d0Fa57e08D0d455Ec9f6080ee9) | Holds 2 MNT per Tier 2 audit for 30 days. Slashes to the disputer on RETRACTED; 99% releases to treasury after the window, 1% retained for pool capitalization. |
+| `StakingPool` (**ROADMAP — not deployed**) | [`0x2E279f4cAE39B5d0Fa57e08D0d455Ec9f6080ee9`](https://mantlescan.xyz/address/0x2E279f4cAE39B5d0Fa57e08D0d455Ec9f6080ee9) (retired pool, historical) | Would hold 2 MNT per Tier 2 audit for 30 days and slash to the disputer on RETRACTED. Deactivated for the hackathon — `StakingPool.sol` stays in the repo but is **not** in the current 5-contract stack. The linked address is the previous, now-retired pool. |
 | `MantleProofLicense` | [`0x51fA686747ea148f6BeC7e30390C8B929DC45447`](https://mantlescan.xyz/address/0x51fA686747ea148f6BeC7e30390C8B929DC45447) | `payForAudit(target)` (0.5 MNT) and `subscribe()`. 80/20 split to iNFT owner / treasury. |
 | `TreasurySplit` | [`0xEaea8a20288528ea6E55B619DB3F7442890c9600`](https://mantlescan.xyz/address/0xEaea8a20288528ea6E55B619DB3F7442890c9600) | 20% treasury share. Withdrawals are 2-day timelocked. |
 | `DecisionLog` | [`0x11B395452e2bF8Ab20F21cd4deA8f9a7650CCf65`](https://mantlescan.xyz/address/0x11B395452e2bF8Ab20F21cd4deA8f9a7650CCf65) | Agent-to-agent on-chain receipts. Demos 2 and 3 log `APPROVED` / `DECLINED` here referencing the audit hash they read. |
@@ -185,7 +188,7 @@ expose funds.
 | Step | Tx | Detail |
 |---|---|---|
 | payForAudit | [`0xe04cb2b7…`](https://mantlescan.xyz/tx/0xe04cb2b750443273823c497893ceba50818451c311d04e112c87f77cfc780ce0) | 0.5 MNT paid by deployer-agent `0x4354d518…` |
-| submitAudit | [`0x4c6bbed9…`](https://mantlescan.xyz/tx/0x4c6bbed93dc678075d8489e2ce89732d067837f9a28e7a6336f91ca00fcacf08) | Oracle-signed, **2 MNT staked in pool**, rootHash `0x3f4799f5…04168e9`, IPFS `bafkreieaexay…6guay` |
+| submitAudit | [`0xcb471577…`](https://mantlescan.xyz/tx/0xcb471577eac210723213df4829a25dc8ceec32b894664fc0adc504c83c55daee) | Oracle-signed, gas only, rootHash `0x88e98d22…dfbf3b`, IPFS `bafkreibnyidf…` |
 
 ### Demo 2 — trading-agent declines a backdoored meme token
 

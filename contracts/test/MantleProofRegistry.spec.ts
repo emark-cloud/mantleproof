@@ -5,40 +5,25 @@ const TIER1 = 1;
 const TIER2 = 2;
 const HIGH = 3; // Severity.High
 const ROOT = ethers.keccak256(ethers.toUtf8Bytes("root-1"));
-const STAKE = ethers.parseEther("2");
 
-async function deployRegistryWithPool(
+// Staking deactivated (roadmap): submitAudit is nonpayable for both tiers and
+// the registry constructor no longer takes a StakingPool — audits anchor for
+// gas only.
+async function deployRegistry(
   oracle: { address: string },
   owner: { address: string },
 ) {
-  // Owner-as-treasury for tests — production wires the real TreasurySplit.
-  const Pool = await ethers.getContractFactory("StakingPool");
-  // Predict registry address from deployer nonce so we can wire the pool.
   const deployerSigner = await ethers.getSigner(owner.address);
-  const nonce = await ethers.provider.getTransactionCount(deployerSigner.address);
-  // Pool will be deployed at nonce N, Registry at nonce N+1.
-  const predictedRegistry = ethers.getCreateAddress({
-    from: deployerSigner.address,
-    nonce: nonce + 1,
-  });
-  const pool = await Pool.connect(deployerSigner).deploy(predictedRegistry, owner.address);
-  await pool.waitForDeployment();
   const Reg = await ethers.getContractFactory("MantleProofRegistry");
-  const reg = await Reg.connect(deployerSigner).deploy(
-    oracle.address,
-    owner.address,
-    await pool.getAddress(),
-  );
-  return { reg, pool };
+  const reg = await Reg.connect(deployerSigner).deploy(oracle.address, owner.address);
+  return { reg };
 }
 
 describe("MantleProofRegistry", () => {
   async function deploy() {
     const [owner, oracle, other, target] = await ethers.getSigners();
-    const { reg, pool } = await deployRegistryWithPool(oracle, owner);
-    // Fund oracle for Tier 2 stake forwarding in tests.
-    await owner.sendTransaction({ to: oracle.address, value: ethers.parseEther("100") });
-    return { reg, pool, owner, oracle, other, target };
+    const { reg } = await deployRegistry(oracle, owner);
+    return { reg, owner, oracle, other, target };
   }
 
   it("only the oracle signer can submitAudit", async () => {
@@ -52,8 +37,8 @@ describe("MantleProofRegistry", () => {
       .withArgs(target.address, ROOT, HIGH, "cid", TIER1);
   });
 
-  it("getAudit returns the latest report; unknown target reverts; Tier 1 carries no stake", async () => {
-    const { reg, pool, oracle, target } = await deploy();
+  it("getAudit returns the latest report; unknown target reverts", async () => {
+    const { reg, oracle, target } = await deploy();
     await expect(reg.getAudit(target.address)).to.be.revertedWithCustomError(
       reg,
       "UnknownTarget",
@@ -69,7 +54,6 @@ describe("MantleProofRegistry", () => {
     expect(await reg.auditCount(target.address)).to.equal(1n);
     expect(await reg.auditTier(ROOT)).to.equal(TIER1);
     expect(await reg.auditTarget(ROOT)).to.equal(target.address);
-    expect(await pool.isLocked(ROOT)).to.equal(false);
   });
 
   it("setAgent is admin-only and submitAudit advances the linked agent", async () => {
@@ -101,39 +85,15 @@ describe("MantleProofRegistry", () => {
     );
   });
 
-  it("Tier 2 submitAudit MUST forward exactly TIER2_STAKE; pool records the lock", async () => {
-    const { reg, pool, oracle, target } = await deploy();
-
-    // Wrong value: too small
-    await expect(
-      reg.connect(oracle).submitAudit(target.address, TIER2, HIGH, ROOT, "cid", {
-        value: ethers.parseEther("1"),
-      }),
-    ).to.be.revertedWithCustomError(reg, "InvalidStakeValue");
-
-    // Correct value
-    await expect(
-      reg.connect(oracle).submitAudit(target.address, TIER2, HIGH, ROOT, "cid", {
-        value: STAKE,
-      }),
-    )
-      .to.emit(reg, "AuditSubmitted")
-      .withArgs(target.address, ROOT, HIGH, "cid", TIER2)
-      .and.to.emit(pool, "StakeLocked");
-
-    expect(await pool.isLocked(ROOT)).to.equal(true);
-    const stake = await pool.stakeOf(ROOT);
-    expect(stake.amount).to.equal(STAKE);
-    expect(stake.status).to.equal(0); // LOCKED
-  });
-
-  it("Tier 1 submitAudit MUST NOT forward any value", async () => {
+  it("Tier 2 submitAudit anchors for gas only (staking deactivated)", async () => {
     const { reg, oracle, target } = await deploy();
     await expect(
-      reg.connect(oracle).submitAudit(target.address, TIER1, HIGH, ROOT, "cid", {
-        value: 1n,
-      }),
-    ).to.be.revertedWithCustomError(reg, "InvalidStakeValue");
+      reg.connect(oracle).submitAudit(target.address, TIER2, HIGH, ROOT, "cid"),
+    )
+      .to.emit(reg, "AuditSubmitted")
+      .withArgs(target.address, ROOT, HIGH, "cid", TIER2);
+    const r = await reg.getAudit(target.address);
+    expect(r.tier).to.equal(TIER2);
   });
 
   it("invalid tier reverts", async () => {

@@ -62,8 +62,9 @@ honesty-label pills.
 >
 > Every finding ships with exactly one of five honesty labels — **VERIFIED, COMPUTED,
 > ESTIMATED, EMULATED, LABELED.** Then the report is hashed, pinned to IPFS, and anchored
-> on Mantle — with a two-MNT stake behind it. **An auditor that tells you when it isn't
-> sure is the only auditor an agent can safely trust.**"
+> on Mantle — so anyone can recompute the hash off IPFS and check it matches the chain.
+> **An auditor that tells you when it isn't sure is the only auditor an agent can safely
+> trust.**"
 
 **On-screen text (lower third, as guard is named):**
 `VERIFIED → COMPUTED → ESTIMATED → EMULATED → LABELED · every claim earns its label`
@@ -91,12 +92,12 @@ Let the real output land:
 ```
 MantleProof — live verification against Mantle mainnet (chainId 5000)
 
-  [✓] Registry deployed, oracleSigner matches     0x5CEafE0F…CA65A5
-  [✓] Agent registered in ERC-8004 Identity       tokenId #96 → 0x2a3080AA…605B6A
-  [✓] StakingPool holds live stake                4 MNT locked in pool
-  [✓] Most recent audit anchored on-chain         rootHash 0x37ff62a0…d3b373 (13d ago)
-  [✓] getAudit() returns structured finding       0x013e138E…d21E3a → MEDIUM, Tier 2
-  [✓] Dispute resolved on-chain                   disputeId #5 → RETRACTED, stake slashed
+  [✓] Registry deployed, oracleSigner matches     0xcF3703BD…662aaf
+  [✓] Agent registered in ERC-8004 Identity       tokenId #96 → owner 0x2a3080AA…605B6A
+  [✓] Demo audits anchored (staking-free, gas only) 3/3 demo targets anchored on 0xcF3703BD…662aaf
+  [✓] Most recent audit anchored on-chain         rootHash 0xf9cd79fb…002a20
+  [✓] getAudit() returns structured finding       target 0x013e138E…d21E3a → MEDIUM, Tier 2
+  [✓] Disputes layer exercised on mainnet         disputeId #5 → RETRACTED on prev. registry (slashing now roadmap)
   [✓] ERC-8004 reputation recorded                1 feedback entry about agent #96
 
   7/7 checks passed. MantleProof is live on Mantle mainnet.
@@ -148,7 +149,7 @@ the tool — do NOT call it manually:
 ● mantleproof - getAudit (MCP)
   ⎿ severity: HIGH · tier: 2 · integrity.match: true
      findings: hidden mint(), pause() honeypot vector
-     rootHash 0x0947f9…7087f · ipfs://bafkrei…  (anchored on Mantle)
+     rootHash 0x121ba360…a6d3bc · ipfs://bafkrei…  (anchored on Mantle)
 
   I checked it against MantleProof — this contract is HIGH severity. It has a
   hidden mint() and a pause() that can freeze transfers. I won't execute the
@@ -172,14 +173,14 @@ the tool — do NOT call it manually:
 **SCREEN:** Terminal, Foundry `cast`:
 
 ```
-cast call 0x5CEafE0FD8b2A9BD2eC6aCdf3f5e024c21CA65A5 \
+cast call 0xcF3703BD76C64DA8a13461e820456d0576662aaf \
   "getAudit(address)((bytes32,uint8,string,uint64,address,uint8))" \
   0x8f6679eb031799fc9c5e149dfb75b4543808912f \
   --rpc-url https://rpc.mantle.xyz
 ```
 
 ```
-(0x0947f93b6cc6c4e167722a17eddb1684d5113cce0318b5717e8f702595c7087f,
+(0x121ba3604687fa1af117d84f4d64b8b689b50aee0ab07861473d10823ea6d3bc,
  3, "ipfs://bafkrei…", 1779263294, 0x9f17…638a, 2)
 ```
 
@@ -265,7 +266,7 @@ MantleProof — the on-chain audit oracle for Mantle's agentic economy
 - **Real demo targets** (all anchored on mainnet): `0x8f6679eb031799fc9c5e149dfb75b4543808912f`
   (BackdooredMemeToken, HIGH — use for CLI + Claude Code), `0x1892f77e335c133ce4a7b28555f13ba74cbb76fa`
   (BuggyYieldVault, HIGH), `0x013e138EF6008ae5FDFDE29700e3f2Bc61d21E3a` (LBRouter, MEDIUM).
-  Registry: `0x5CEafE0FD8b2A9BD2eC6aCdf3f5e024c21CA65A5`.
+  Registry: `0xcF3703BD76C64DA8a13461e820456d0576662aaf`.
 - **Pacing budget:** Architecture 55s · CLI 35s · Claude Code 70s · on-chain 35s · x402
   50s · CTA 25s. The Claude Code doorway is the longest on purpose — "set up your agent"
   is the developer story judges remember.

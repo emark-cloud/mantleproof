@@ -4,24 +4,24 @@ pragma solidity 0.8.28;
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {IMantleProofRegistry} from "./interfaces/IMantleProofRegistry.sol";
 import {IMantleProofAgent} from "./interfaces/IMantleProofAgent.sol";
-import {IStakingPool} from "./interfaces/IStakingPool.sol";
 
 /// @title MantleProofRegistry
 /// @notice Append-only audit registry + dispute layer (docs/update.md §2).
 ///         `submitAudit` is callable only by the oracle signer; `getAudit` is
 ///         public read. Each anchored audit advances the linked agent's
-///         compounding memoryRoot and (for Tier 2) locks a stake in the pool.
+///         compounding memoryRoot.
 /// @dev Invariants (CLAUDE.md):
 ///        - the oracle signer is the ONLY writer to `submitAudit` and `resolveDispute`.
 ///        - the owner is an admin role that can only (re)point the agent link.
-///        - `stakingPool` is immutable — set in constructor; reading and slashing
-///          both flow through the same address for the lifetime of this registry.
+/// @dev STAKING DEACTIVATED (roadmap): the 2 MNT Tier-2 audit stake + the
+///        StakingPool + dispute-slashing were removed so audits anchor for gas
+///        only. `submitAudit` is now nonpayable for both tiers; disputes still
+///        file/resolve (with optional disputer counter-stake) but no longer
+///        slash an audit stake. StakingPool remains in-tree, undeployed — the
+///        economic-security layer is future work, not part of this deployment.
 contract MantleProofRegistry is IMantleProofRegistry, Ownable {
     /// @notice The sole address permitted to write audits and resolve disputes.
     address public immutable oracleSigner;
-
-    /// @notice StakingPool that holds Tier 2 audit stakes (docs/update.md §3).
-    IStakingPool public immutable stakingPool;
 
     /// @notice Optional MantleProofAgent; if set, advanced on every submitAudit.
     IMantleProofAgent public agent;
@@ -55,23 +55,15 @@ contract MantleProofRegistry is IMantleProofRegistry, Ownable {
     error UnknownDispute(uint256 disputeId);
     error Tier1NotDisputable(bytes32 rootHash);
     error InvalidTier(uint8 tier);
-    error InvalidStakeValue(uint256 expected, uint256 received);
     error DisputeNotPending(uint256 disputeId);
     error InvalidOutcome();
 
-    /// @notice Required `msg.value` for Tier 2 `submitAudit` calls (2 MNT).
-    ///         User-locked override of docs/update.md §3.1's 50 MNT default.
-    uint256 public constant TIER2_STAKE = 2 ether;
-
     constructor(
         address oracleSigner_,
-        address owner_,
-        address stakingPool_
+        address owner_
     ) Ownable(owner_) {
         require(oracleSigner_ != address(0), "oracleSigner=0");
-        require(stakingPool_ != address(0), "stakingPool=0");
         oracleSigner = oracleSigner_;
-        stakingPool = IStakingPool(stakingPool_);
         // Reserve dispute id 0 so callers can use 0 as "no dispute".
         _disputes.push();
     }
@@ -94,7 +86,7 @@ contract MantleProofRegistry is IMantleProofRegistry, Ownable {
         Severity severity,
         bytes32 rootHash,
         string calldata ipfsCID
-    ) external payable onlyOracle {
+    ) external onlyOracle {
         require(target != address(0), "target=0");
         require(rootHash != bytes32(0), "rootHash=0");
         if (tier != 1 && tier != 2) revert InvalidTier(tier);
@@ -118,15 +110,8 @@ contract MantleProofRegistry is IMantleProofRegistry, Ownable {
         if (address(agent) != address(0)) {
             agent.updateMemoryRoot(rootHash);
         }
-
-        // Tier 2 audits stake 2 MNT into the pool, locked for 30 days.
-        // Tier 1 audits MUST NOT forward value.
-        if (tier == 2) {
-            if (msg.value != TIER2_STAKE) revert InvalidStakeValue(TIER2_STAKE, msg.value);
-            stakingPool.lockStake{value: TIER2_STAKE}(rootHash, TIER2_STAKE);
-        } else {
-            if (msg.value != 0) revert InvalidStakeValue(0, msg.value);
-        }
+        // Audit staking deactivated (roadmap): no value is forwarded — both
+        // tiers anchor for gas only. See contract-level @dev note.
     }
 
     /// @inheritdoc IMantleProofRegistry
@@ -184,19 +169,13 @@ contract MantleProofRegistry is IMantleProofRegistry, Ownable {
 
         emit DisputeResolved(disputeId, d.rootHash, outcome, reAuditRootHash);
 
-        // Counter-stake disposition + dispute-slash:
-        //   RETRACTED  : counter-stake → disputer (refund); slash audit-stake to disputer.
-        //   AMENDED    : counter-stake → disputer (refund); audit-stake stays locked.
-        //                Honesty label drops one tier engine-side (off-chain).
+        // Counter-stake disposition (audit-stake slashing is roadmap — see the
+        // contract-level @dev note; there is no StakingPool to slash):
+        //   RETRACTED  : counter-stake → disputer (refund). Finding was wrong.
+        //   AMENDED    : counter-stake → disputer (refund). Honesty label drops
+        //                one tier engine-side (off-chain).
         //   DISMISSED  : counter-stake forfeited (stays in registry, swept later).
-        if (outcome == DisputeStatus.RETRACTED) {
-            if (d.counterStake != 0) {
-                (bool ok, ) = d.disputer.call{value: d.counterStake}("");
-                if (!ok) revert();
-            }
-            // Slash full audit stake to the disputer.
-            stakingPool.slashByDispute(d.rootHash, d.disputer, TIER2_STAKE);
-        } else if (outcome == DisputeStatus.AMENDED) {
+        if (outcome == DisputeStatus.RETRACTED || outcome == DisputeStatus.AMENDED) {
             if (d.counterStake != 0) {
                 (bool ok, ) = d.disputer.call{value: d.counterStake}("");
                 if (!ok) revert();

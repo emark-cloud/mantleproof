@@ -203,20 +203,27 @@ export async function tryGetAudit(
   }
 }
 
-export async function readDisputeCount(c: PublicClient): Promise<bigint> {
+export async function readDisputeCount(
+  c: PublicClient,
+  registry: Address = ADDR.registry,
+): Promise<bigint> {
   return withRetry(async () =>
     (await c.readContract({
-      address: ADDR.registry,
+      address: registry,
       abi: REGISTRY_ABI,
       functionName: "disputeCount",
     })) as bigint,
   );
 }
 
-export async function getDispute(c: PublicClient, disputeId: bigint): Promise<DisputeRecord> {
+export async function getDispute(
+  c: PublicClient,
+  disputeId: bigint,
+  registry: Address = ADDR.registry,
+): Promise<DisputeRecord> {
   return withRetry(async () =>
     (await c.readContract({
-      address: ADDR.registry,
+      address: registry,
       abi: REGISTRY_ABI,
       functionName: "getDispute",
       args: [disputeId],

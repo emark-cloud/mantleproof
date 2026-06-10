@@ -1,20 +1,20 @@
 /**
- * Path A deploy (T1 resolved) + Disputes/Staking (T43, docs/update.md): we do
- * NOT deploy ERC-8004 registries — Mantle issues the identity NFT automatically.
- * Deploy 6 contracts:
+ * Path A deploy (T1 resolved): we do NOT deploy ERC-8004 registries — Mantle
+ * issues the identity NFT automatically. Deploy 5 contracts:
  *
  *   TreasurySplit(owner)
- *     -> StakingPool(predictedRegistryAddr, treasury)
- *     -> MantleProofRegistry(oracleSigner, owner, stakingPool)
+ *     -> MantleProofRegistry(oracleSigner, owner)
  *     -> MantleProofAgent(identityRegistry, reputationRegistry, tokenId, owner)
  *     -> registry.setAgent(agent) ; agent.setAuditor(registry)
  *     -> MantleProofLicense(agent, treasury, auditPrice, subPrice, owner)
  *     -> DecisionLog()
  *
- * StakingPool's `registry` is `immutable`, so we must know the registry
- * address BEFORE the pool is deployed. We compute it from the deployer nonce
- * via CREATE address derivation (no CREATE2 needed since we control the
- * nonce sequence in this script).
+ * Audit staking is DEACTIVATED (roadmap): the StakingPool + 2 MNT Tier-2 stake
+ * + dispute-slashing were removed, so audits anchor for gas only and the
+ * registry constructor no longer takes a pool address. StakingPool.sol remains
+ * in-tree (undeployed) as the future economic-security layer. For the minimal
+ * staking-removal redeploy that reuses the existing agent, see
+ * scripts/redeploy-registry-nostake.ts.
  *
  * Writes deployments/<network>.addresses.json (committed).
  */
@@ -53,41 +53,16 @@ async function main(): Promise<void> {
   await treasury.waitForDeployment();
   console.log(`[deploy] TreasurySplit  = ${await treasury.getAddress()}`);
 
-  // 2. StakingPool — its `registry` is immutable, so we must predict the
-  //    Registry's CREATE address from the deployer's next-but-one nonce.
-  //    "pending" so the just-mined TreasurySplit nonce IS counted (some RPCs
-  //    lag on "latest" right after waitForDeployment, off-by-one corruption).
-  const currentNonce = await ethers.provider.getTransactionCount(
-    deployer.address,
-    "pending",
-  );
-  const predictedRegistry = ethers.getCreateAddress({
-    from: deployer.address,
-    nonce: currentNonce + 1, // pool deploys at currentNonce, registry at +1
-  });
-  console.log(`[deploy] predicted Registry address: ${predictedRegistry}`);
-
-  const stakingPool = await (
-    await ethers.getContractFactory("StakingPool")
-  ).deploy(predictedRegistry, await treasury.getAddress());
-  await stakingPool.waitForDeployment();
-  console.log(`[deploy] StakingPool    = ${await stakingPool.getAddress()}`);
-
-  // 3. MantleProofRegistry — uses the predicted address (which now matches).
+  // 2. MantleProofRegistry — staking deactivated, so the constructor is just
+  //    (oracleSigner, owner); no StakingPool to pre-deploy or address-predict.
   const registry = await (
     await ethers.getContractFactory("MantleProofRegistry")
-  ).deploy(oracleSigner, owner, await stakingPool.getAddress());
+  ).deploy(oracleSigner, owner);
   await registry.waitForDeployment();
   const registryAddr = await registry.getAddress();
   console.log(`[deploy] Registry       = ${registryAddr}`);
-  if (registryAddr.toLowerCase() !== predictedRegistry.toLowerCase()) {
-    throw new Error(
-      `[deploy] FATAL: predicted ${predictedRegistry} != actual ${registryAddr} ` +
-        `— StakingPool would mis-wire. Abort and investigate nonce drift.`,
-    );
-  }
 
-  // 4. MantleProofAgent + bidirectional wiring.
+  // 3. MantleProofAgent + bidirectional wiring.
   const agent = await (
     await ethers.getContractFactory("MantleProofAgent")
   ).deploy(identity, reputation, agentTokenId, owner);
@@ -126,14 +101,13 @@ async function main(): Promise<void> {
     agentTokenId: agentTokenId.toString(),
     auditPriceWei: auditPrice.toString(),
     subPriceWei: subPrice.toString(),
-    tier2StakeWei: ethers.parseEther("2").toString(),
+    staking: "deactivated (roadmap) — audits anchor for gas only",
     officialIdentityRegistry: identity,
     officialReputationRegistry: reputation,
     contracts: {
       MantleProofRegistry: registryAddr,
       MantleProofAgent: await agent.getAddress(),
       TreasurySplit: await treasury.getAddress(),
-      StakingPool: await stakingPool.getAddress(),
       MantleProofLicense: await license.getAddress(),
       DecisionLog: await decisionLog.getAddress(),
     },

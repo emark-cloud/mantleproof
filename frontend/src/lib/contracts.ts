@@ -12,9 +12,15 @@
  */
 import { parseAbi } from "viem";
 
+// Staking-free registry (2026-06-10 redeploy): submitAudit is nonpayable and
+// audits anchor for gas only. The StakingPool layer was retired to roadmap.
 export const REGISTRY_ADDRESS =
   (import.meta.env.VITE_REGISTRY_ADDRESS as `0x${string}`) ??
-  ("0x5CEafE0FD8b2A9BD2eC6aCdf3f5e024c21CA65A5" as const);
+  ("0xcF3703BD76C64DA8a13461e820456d0576662aaf" as const);
+
+/** The previous registry deployment (pre-staking-removal) — historical only. */
+export const PREVIOUS_REGISTRY_ADDRESS =
+  "0x5CEafE0FD8b2A9BD2eC6aCdf3f5e024c21CA65A5" as const;
 
 export const AGENT_ADDRESS =
   (import.meta.env.VITE_AGENT_ADDRESS as `0x${string}`) ??
@@ -33,22 +39,20 @@ export const TREASURY_ADDRESS =
   ("0xEaea8a20288528ea6E55B619DB3F7442890c9600" as const);
 
 /**
- * StakingPool — 6th contract added by T43 (docs/update.md §3). Holds Tier 2
- * audit stakes (2 MNT each) for the 30-day dispute window; slashes to the
- * disputer on a RETRACTED outcome. Reads only — no client-side writes (the
- * registry's submitAudit forwards msg.value, resolveDispute triggers slashing).
- *
- * Live mainnet address from the T43 redeploy (`mantle.addresses.json`); the
- * `VITE_STAKING_POOL_ADDRESS` env override swaps in the Sepolia stack.
+ * StakingPool — ROADMAP (deactivated 2026-06-10). The economic-security layer
+ * (2 MNT Tier-2 stake, 30-day window, slash-to-disputer) is future work; audits
+ * currently anchor for gas only. This address is the retired pool from the
+ * previous deployment, kept for historical reference only — the staking-free
+ * registry does not lock into it. The constants below are roadmap mirrors.
  */
 export const STAKING_POOL_ADDRESS =
   (import.meta.env.VITE_STAKING_POOL_ADDRESS as `0x${string}`) ??
   ("0x2E279f4cAE39B5d0Fa57e08D0d455Ec9f6080ee9" as const);
 
 export const MANTLE_CHAIN_ID = Number(import.meta.env.VITE_CHAIN_ID ?? 5000);
-/** Tier 2 stake amount in wei — mirrors MantleProofRegistry.TIER2_STAKE. */
+/** Roadmap: planned Tier 2 stake amount in wei (staking currently deactivated). */
 export const TIER2_STAKE_WEI = 2n * 10n ** 18n;
-/** 30-day stake window — mirrors StakingPool.UNLOCK_WINDOW. */
+/** Roadmap: planned 30-day stake window (staking currently deactivated). */
 export const DISPUTE_UNLOCK_WINDOW_SECONDS = 30 * 24 * 60 * 60;
 export const AGENT_TOKEN_ID = 96n; // MantleProof's own ERC-8004 identity (T5).
 
@@ -69,9 +73,9 @@ export const REPUTATION_REGISTRY_ADDRESS =
 
 // Minimal read ABI — mirrors `engine/mantleproof/persistence/registry_reader.py`
 // so frontend & engine read the SAME on-chain shape.
-// T43 (docs/update.md): Report struct gains `tier`; new submitDispute/
-// resolveDispute/getDispute/getDisputesForRoot + events DisputeSubmitted /
-// DisputeResolved. The submitAudit signature gains `tier` + becomes payable.
+// Report struct carries `tier`; disputes layer: submitDispute/resolveDispute/
+// getDispute/getDisputesForRoot + DisputeSubmitted/DisputeResolved events.
+// submitAudit is nonpayable (staking deactivated — audits anchor for gas only).
 export const registryAbi = parseAbi([
   "function auditCount(address) view returns (uint256)",
   "function isAudited(address) view returns (bool)",

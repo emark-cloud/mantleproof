@@ -5,7 +5,6 @@
  * collapses "is this real?" into ~30 seconds of green checks. No wallet, no gas,
  * no private key — pure public reads.
  */
-import { formatEther } from "viem";
 import {
   ADDR,
   AGENT_TOKEN_ID,
@@ -13,6 +12,7 @@ import {
   ENGINE_URL,
   EXPLORER,
   ORACLE_SIGNER,
+  PREVIOUS_REGISTRY,
   KNOWN_TARGETS,
 } from "./config.js";
 import {
@@ -20,7 +20,6 @@ import {
   getCode,
   getDispute,
   makeClient,
-  readBalance,
   readDisputeCount,
   readFeedbackCount,
   readOracleSigner,
@@ -93,16 +92,23 @@ export async function runVerify(): Promise<number> {
     emit({ ok: false, label: "Agent registered in ERC-8004 Identity", detail: String(e) });
   }
 
-  // 3 — StakingPool holds live stake (sum of currently-locked Tier 2 stakes).
+  // 3 — Demo audits are anchored on the staking-free registry (gas-only anchors).
   try {
-    const bal = await readBalance(client, ADDR.stakingPool);
+    let anchored = 0;
+    for (const target of KNOWN_TARGETS) {
+      try {
+        if (await tryGetAudit(client, target)) anchored++;
+      } catch {
+        /* read-flaky; best-effort count */
+      }
+    }
     emit({
-      ok: bal > 0n,
-      label: "StakingPool holds live stake",
-      detail: `${formatEther(bal)} MNT locked in pool`,
+      ok: anchored === KNOWN_TARGETS.length,
+      label: "Demo audits anchored (staking-free, gas only)",
+      detail: `${anchored}/${KNOWN_TARGETS.length} demo targets anchored on ${shortHex(ADDR.registry)}`,
     });
   } catch (e) {
-    emit({ ok: false, label: "StakingPool holds live stake", detail: String(e) });
+    emit({ ok: false, label: "Demo audits anchored (staking-free, gas only)", detail: String(e) });
   }
 
   // 4 + 5 — Discover the most-recent anchored audit, read it back structured.
@@ -137,27 +143,29 @@ export async function runVerify(): Promise<number> {
     emit({ ok: false, label: "getAudit() returns structured finding", detail: "—" });
   }
 
-  // 6 — A dispute was resolved on-chain (RETRACTED slashes the stake).
+  // 6 — The disputes layer was exercised on mainnet. Read from the PREVIOUS
+  // registry: the dispute receipts are historical (economic slashing is now
+  // roadmap on the staking-free registry), but the on-chain proof stands.
   try {
     // disputeCount() returns _disputes.length - 1 (id 0 is reserved); valid
     // disputeIds are 1..count inclusive.
-    const count = await readDisputeCount(client);
+    const count = await readDisputeCount(client, PREVIOUS_REGISTRY);
     let retracted: { id: bigint } | null = null;
     let resolvedTotal = 0;
     for (let i = 1n; i <= count; i++) {
-      const d = await getDispute(client, i);
+      const d = await getDispute(client, i, PREVIOUS_REGISTRY);
       if (d.status !== 0) resolvedTotal++;
       if (d.status === 3 && !retracted) retracted = { id: i };
     }
     emit({
       ok: retracted !== null,
-      label: "Dispute resolved on-chain",
+      label: "Disputes layer exercised on mainnet",
       detail: retracted
-        ? `disputeId #${retracted.id} → ${disputeStatusName(3)}, stake slashed (${resolvedTotal}/${count} resolved)`
+        ? `disputeId #${retracted.id} → ${disputeStatusName(3)} on prev. registry ${shortHex(PREVIOUS_REGISTRY)} (${resolvedTotal}/${count} resolved; slashing now roadmap)`
         : `${resolvedTotal}/${count} resolved, none RETRACTED`,
     });
   } catch (e) {
-    emit({ ok: false, label: "Dispute resolved on-chain", detail: String(e) });
+    emit({ ok: false, label: "Disputes layer exercised on mainnet", detail: String(e) });
   }
 
   // 7 — A paying customer left ERC-8004 reputation about MantleProof.

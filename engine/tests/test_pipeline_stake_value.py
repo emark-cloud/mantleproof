@@ -1,4 +1,8 @@
-"""Regression: pipeline.run_audit forwards `tier` + `value` to anchor (T44)."""
+"""Regression: pipeline.run_audit forwards `tier` (no stake `value`) to anchor.
+
+Staking deactivated (roadmap, 2026-06-10): submitAudit is nonpayable, so the
+pipeline must NOT forward any value for either tier — audits anchor for gas only.
+"""
 
 from __future__ import annotations
 
@@ -6,7 +10,6 @@ from datetime import UTC, datetime
 
 import pytest
 
-from mantleproof.persistence.anchor import TIER2_STAKE_WEI
 from mantleproof.pipeline import run_audit
 
 _FIXED = datetime(2026, 5, 23, 12, 0, 0, tzinfo=UTC)
@@ -35,14 +38,15 @@ def _anchor():
             severity=severity,
             cid=cid,
             tier=kw.get("tier"),
-            value=kw.get("value"),
+            # Captured to assert it is NEVER forwarded post-staking-removal.
+            value=kw.get("value", "<<absent>>"),
         )
         return "0xtxhash"
 
     return anchor, box
 
 
-def test_tier1_anchor_called_with_tier_1_and_zero_value(usdy_pos):
+def test_tier1_anchor_called_with_tier_1_and_no_value(usdy_pos):
     anchor, box = _anchor()
     run_audit(
         _TARGET,
@@ -55,10 +59,10 @@ def test_tier1_anchor_called_with_tier_1_and_zero_value(usdy_pos):
         now=lambda: _FIXED,
     )
     assert box["tier"] == 1
-    assert box["value"] == 0
+    assert box["value"] == "<<absent>>"  # no stake forwarded
 
 
-def test_tier2_anchor_called_with_tier_2_and_2_mnt_value(usdy_pos):
+def test_tier2_anchor_called_with_tier_2_and_no_value(usdy_pos):
     anchor, box = _anchor()
 
     class _Provider:
@@ -79,11 +83,11 @@ def test_tier2_anchor_called_with_tier_2_and_2_mnt_value(usdy_pos):
         now=lambda: _FIXED,
     )
     assert box["tier"] == 2
-    assert box["value"] == TIER2_STAKE_WEI == 2 * 10**18
+    assert box["value"] == "<<absent>>"  # Tier 2 no longer stakes 2 MNT
 
 
-def test_tier1_anchor_does_NOT_set_value_for_dry_run(usdy_pos):
-    """do_anchor=False: anchor never called; no value passed; honest no-op."""
+def test_tier1_anchor_does_NOT_run_for_dry_run(usdy_pos):
+    """do_anchor=False: anchor never called; honest no-op."""
     pin = _pin()
     rep = run_audit(
         _TARGET,

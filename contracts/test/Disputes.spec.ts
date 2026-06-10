@@ -7,7 +7,6 @@ const HIGH = 3;
 const ROOT_T1 = ethers.keccak256(ethers.toUtf8Bytes("root-t1"));
 const ROOT_T2 = ethers.keccak256(ethers.toUtf8Bytes("root-t2"));
 const REAUDIT = ethers.keccak256(ethers.toUtf8Bytes("reaudit"));
-const STAKE = ethers.parseEther("2");
 const COUNTER = ethers.parseEther("0.1");
 
 // DisputeStatus enum mirror
@@ -16,30 +15,19 @@ const DISMISSED = 1;
 const AMENDED = 2;
 const RETRACTED = 3;
 
+// Staking deactivated (roadmap): the registry no longer takes a StakingPool and
+// submitAudit is nonpayable. Disputes still file/resolve and the disputer's
+// optional counter-stake is refunded on RETRACTED/AMENDED — but there is no
+// audit-stake slash (that economic layer is future work).
 async function deploy() {
   const [owner, oracle, target, disputer, stranger] = await ethers.getSigners();
-  const Pool = await ethers.getContractFactory("StakingPool");
-  const nonce = await ethers.provider.getTransactionCount(owner.address);
-  const predictedRegistry = ethers.getCreateAddress({
-    from: owner.address,
-    nonce: nonce + 1,
-  });
-  const pool = await Pool.connect(owner).deploy(predictedRegistry, owner.address);
   const Reg = await ethers.getContractFactory("MantleProofRegistry");
-  const reg = await Reg.connect(owner).deploy(
-    oracle.address,
-    owner.address,
-    await pool.getAddress(),
-  );
-  // Fund the oracle for stake forwarding.
-  await owner.sendTransaction({ to: oracle.address, value: ethers.parseEther("100") });
+  const reg = await Reg.connect(owner).deploy(oracle.address, owner.address);
 
   // Pre-seed: one Tier 2 audit (for dispute happy path) + one Tier 1 (for guard).
-  await reg.connect(oracle).submitAudit(target.address, TIER2, HIGH, ROOT_T2, "cid-t2", {
-    value: STAKE,
-  });
+  await reg.connect(oracle).submitAudit(target.address, TIER2, HIGH, ROOT_T2, "cid-t2");
   await reg.connect(oracle).submitAudit(target.address, TIER1, HIGH, ROOT_T1, "cid-t1");
-  return { reg, pool, owner, oracle, target, disputer, stranger };
+  return { reg, owner, oracle, target, disputer, stranger };
 }
 
 describe("MantleProofRegistry — disputes", () => {
@@ -101,35 +89,34 @@ describe("MantleProofRegistry — disputes", () => {
     ).to.be.revertedWithCustomError(reg, "InvalidOutcome");
   });
 
-  it("RETRACTED slashes the audit stake to the disputer and refunds the counter-stake", async () => {
-    const { reg, pool, oracle, disputer } = await deploy();
+  it("RETRACTED refunds the counter-stake (audit-stake slashing is roadmap)", async () => {
+    const { reg, oracle, disputer } = await deploy();
     await reg.connect(disputer).submitDispute(ROOT_T2, 0, "ipfs://cc", { value: COUNTER });
 
     const before = await ethers.provider.getBalance(disputer.address);
-    await expect(reg.connect(oracle).resolveDispute(1, RETRACTED, REAUDIT))
-      .to.emit(reg, "DisputeResolved")
-      .and.to.emit(pool, "StakeSlashedByDispute");
+    await expect(reg.connect(oracle).resolveDispute(1, RETRACTED, REAUDIT)).to.emit(
+      reg,
+      "DisputeResolved",
+    );
 
-    // Disputer should have gained STAKE + COUNTER refund.
+    // Disputer is refunded the counter-stake only — no audit stake to slash.
     const after = await ethers.provider.getBalance(disputer.address);
-    expect(after - before).to.equal(STAKE + COUNTER);
+    expect(after - before).to.equal(COUNTER);
 
     const d = await reg.getDispute(1);
     expect(d.status).to.equal(RETRACTED);
     expect(d.reAuditRootHash).to.equal(REAUDIT);
-    expect(await pool.isLocked(ROOT_T2)).to.equal(false);
   });
 
-  it("AMENDED refunds the counter-stake but does NOT slash", async () => {
-    const { reg, pool, oracle, disputer } = await deploy();
+  it("AMENDED refunds the counter-stake", async () => {
+    const { reg, oracle, disputer } = await deploy();
     await reg.connect(disputer).submitDispute(ROOT_T2, 0, "ipfs://cc", { value: COUNTER });
 
     const before = await ethers.provider.getBalance(disputer.address);
     await reg.connect(oracle).resolveDispute(1, AMENDED, REAUDIT);
     const after = await ethers.provider.getBalance(disputer.address);
 
-    expect(after - before).to.equal(COUNTER); // only counter-stake refund
-    expect(await pool.isLocked(ROOT_T2)).to.equal(true); // stake still locked
+    expect(after - before).to.equal(COUNTER); // counter-stake refund
   });
 
   it("DISMISSED forfeits the counter-stake (registry retains it)", async () => {

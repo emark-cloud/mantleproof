@@ -7,15 +7,16 @@
   "agentTokenId": "96",
   "auditPriceWei": "500000000000000000",
   "subPriceWei": "5000000000000000000",
-  "tier2StakeWei": "2000000000000000000",
   "officialIdentityRegistry": "0x8004A169FB4a3325136EB29fA0ceB6D2e539a432",
   "officialReputationRegistry": "0x8004BAa17C55a88189AE136b182e5fdA19dE9b63",
   "contracts": {
-    "MantleProofRegistry": "0x5CEafE0FD8b2A9BD2eC6aCdf3f5e024c21CA65A5",
+    "MantleProofRegistry": "0xcF3703BD76C64DA8a13461e820456d0576662aaf",
     "MantleProofAgent": "0x6661Fb91CfA5F5691E3F80cA319b665824CB02e9",
     "TreasurySplit": "0xEaea8a20288528ea6E55B619DB3F7442890c9600",
-    "StakingPool": "0x2E279f4cAE39B5d0Fa57e08D0d455Ec9f6080ee9",
     "MantleProofLicense": "0x51fA686747ea148f6BeC7e30390C8B929DC45447",
     "DecisionLog": "0x11B395452e2bF8Ab20F21cd4deA8f9a7650CCf65"
-  }
+  },
+  "previousRegistry": "0x5CEafE0FD8b2A9BD2eC6aCdf3f5e024c21CA65A5",
+  "staking": "deactivated (roadmap) — audits anchor for gas only",
+  "registryRedeployedAt": "2026-06-10T00:00:00.000Z"
 }
