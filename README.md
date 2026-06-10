@@ -46,8 +46,7 @@ evidence.
 | 2 | **The three demo audits are anchored on-chain.** | Three `submitAudit` txs from the oracle signer: Demo 1 [`0xcb471577…`](https://mantlescan.xyz/tx/0xcb471577eac210723213df4829a25dc8ceec32b894664fc0adc504c83c55daee), Demo 2 [`0xb26c83f5…`](https://mantlescan.xyz/tx/0xb26c83f52011438a10d4ad3b3aac7f447a855e7f3846c5fa26cd2981d18bc77c), Demo 3 [`0x53072067…`](https://mantlescan.xyz/tx/0x53072067116ccf88d68306368d19dce4205d8e7c09cd70dadb7729a1b8b5f229). Each is anchored for gas only on the staking-free registry. |
 | 3 | **Agents acted on those audits.** | `DecisionLog` records Demo 2's trading agent **DECLINING** the backdoored token ([`0x385eaded…`](https://mantlescan.xyz/tx/0x385eaded6f7eba0191ed00972e60077ea4041667c4329a19d400a33efd351119)) and Demo 3's yield agent **APPROVING** the canonical LBRouter ([`0x82760ff2…`](https://mantlescan.xyz/tx/0x82760ff271172d2ce6209a25e880072ffc67781a181ff536c933f6c5416e1725)) — opposite verdicts, both grounded in MantleProof audits. Demo 3's APPROVED is paired with a real Merchant Moe LB v2.2 [`addLiquidityNATIVE`](https://mantlescan.xyz/tx/0x52904eb2c3b9882c35610dc187c75cbf54ae8eff7a4223e691bd8a1ff37f439e) deposit. |
 | 4 | **A paying agent left ERC-8004 reputation about MantleProof.** | [`giveFeedback` tx `0x579fe213…`](https://mantlescan.xyz/tx/0x579fe213972b056d9d1bd83023d179052cf5084e5e4417f20302b314af4b26f5) on Mantle's canonical Reputation Registry (`0x8004BAa1…`). `getSummary(96, [payer], "", "")` returns `count=1, value=4`. |
-| 5 | **A dispute was RETRACTED on-chain (historical).** | On the **previous** registry (`0x5CEafE0F…`), dispute #5 [`resolveDispute` tx `0xed264780…`](https://mantlescan.xyz/tx/0xed264780037e07a404f5ce5b37c056523d27d1e88296d29ee1fa6f8bac8a2374) was RETRACTED and 2 MNT moved from an earlier-prototype StakingPool to the disputer — an on-chain demonstration of the dispute path. The current registry keeps disputes (file/resolve); economic slashing is roadmap. |
-| 6 | **Independent verification, no trust.** | `cast call 0xcF3703BD76C64DA8a13461e820456d0576662aaf "getAudit(address)((bytes32,uint8,string,uint64,address,uint8))" 0x1892f77e335c133ce4a7b28555f13ba74cbb76fa --rpc-url https://rpc.mantle.xyz` returns the same Demo 1 `rootHash` (`0x88e98d22…`) shown above — or run `npx mantleproof check 0x1892f77e335c133ce4a7b28555f13ba74cbb76fa`. Fetch the IPFS body (`bafkreibnyidf…`); its embedded `root_hash` equals the on-chain anchor, fetched from the content-addressed CID. 
+| 5 | **Independent verification, no trust.** | `cast call 0xcF3703BD76C64DA8a13461e820456d0576662aaf "getAudit(address)((bytes32,uint8,string,uint64,address,uint8))" 0x1892f77e335c133ce4a7b28555f13ba74cbb76fa --rpc-url https://rpc.mantle.xyz` returns the same Demo 1 `rootHash` (`0x88e98d22…`) shown above — or run `npx mantleproof check 0x1892f77e335c133ce4a7b28555f13ba74cbb76fa`. Fetch the IPFS body (`bafkreibnyidf…`); its embedded `root_hash` equals the on-chain anchor, fetched from the content-addressed CID. 
 
 ## Architecture
 
@@ -73,8 +72,7 @@ Three layers, one signed write path:
    stdio, 3 tools), REST + x402 paywall (USDC on Base settles, audit anchors on
    Mantle). All three return the same JSON with the same five honesty labels.
 3. **Three agent-to-agent demos** (`agents/`) — `deployer-agent`, `trading-agent`,
-   `yield-agent` — each with its own funded wallet (no key wears two hats). Plus
-   a 4th `disputer-agent` that filed 7 real disputes (T47).
+   `yield-agent` — each with its own funded wallet (no key wears two hats).
 
 ## The five honesty labels
 
@@ -109,7 +107,6 @@ in the deployed MVP stack — economic staking is roadmap; see below.)
 |---|---|---|
 | `MantleProofRegistry` | [`0xcF3703BD76C64DA8a13461e820456d0576662aaf`](https://mantlescan.xyz/address/0xcF3703BD76C64DA8a13461e820456d0576662aaf) | Append-only audit registry + disputes layer. `submitAudit(target, tier, severity, rootHash, ipfsCID)` nonpayable — audits anchor for gas only (economic staking is roadmap); `submitDispute` permissionless; `resolveDispute` oracle-only. |
 | `MantleProofAgent` | [`0x6661Fb91CfA5F5691E3F80cA319b665824CB02e9`](https://mantlescan.xyz/address/0x6661Fb91CfA5F5691E3F80cA319b665824CB02e9) | Thin wrapper around our ERC-8004 identity (tokenId 96). Tracks `memoryRoot` (compounding keccak chain over all audits) + `auditsPerformed`. |
-| `StakingPool` (**ROADMAP — not deployed**) | [`0x2E279f4cAE39B5d0Fa57e08D0d455Ec9f6080ee9`](https://mantlescan.xyz/address/0x2E279f4cAE39B5d0Fa57e08D0d455Ec9f6080ee9) (earlier prototype, historical) | Will hold 2 MNT per Tier 2 audit for 30 days and slash to the disputer on RETRACTED. Roadmap for the hackathon — `StakingPool.sol` is in the repo but **not** in the current 5-contract stack. The linked address is an earlier prototype pool. |
 | `MantleProofLicense` | [`0x51fA686747ea148f6BeC7e30390C8B929DC45447`](https://mantlescan.xyz/address/0x51fA686747ea148f6BeC7e30390C8B929DC45447) | `payForAudit(target)` (0.5 MNT) and `subscribe()`. 80/20 split to iNFT owner / treasury. |
 | `TreasurySplit` | [`0xEaea8a20288528ea6E55B619DB3F7442890c9600`](https://mantlescan.xyz/address/0xEaea8a20288528ea6E55B619DB3F7442890c9600) | 20% treasury share. Withdrawals are 2-day timelocked. |
 | `DecisionLog` | [`0x11B395452e2bF8Ab20F21cd4deA8f9a7650CCf65`](https://mantlescan.xyz/address/0x11B395452e2bF8Ab20F21cd4deA8f9a7650CCf65) | Agent-to-agent on-chain receipts. Demos 2 and 3 log `APPROVED` / `DECLINED` here referencing the audit hash they read. |
@@ -204,7 +201,7 @@ counter-claim and posts DISMISSED / AMENDED / RETRACTED on chain. See
 | `getAudit` / MCP / x402 query surfaces | **Live** | Three surfaces, one backend, same JSON (Query surfaces §) |
 | Inter-agent licensing — `payForAudit`, 80/20 split | **Live on mainnet** | 3 `payForAudit` txs, 0.5 MNT each (On-chain receipts §) |
 | Reputation staking — 2 MNT per Tier 2 | **Roadmap** | Audits anchor for gas only today; `StakingPool.sol` is in-tree and deploys post-hackathon (Roadmap §). |
-| Dispute layer — submit / re-audit / resolve | **Live** | File/resolve live on the redeployed registry; 7 disputes resolved on-chain historically (6 DISMISSED, 1 RETRACTED) |
+| Dispute layer — submit / re-audit / resolve | **Live** | `submitDispute` / `resolveDispute` file and resolve on-chain on the live registry |
 | Slash-by-exploit (`claimExploit`) | **Reserved post-hackathon** | Documented comment block, no body. Economic slashing is roadmap; the dispute layer files/resolves on-chain today without slashing a stake |
 | Multi-auditor staking marketplace | **Planned** | Post-hackathon; primitive shipped, market untested |
 | CI / GitHub Action integration | **Planned** | Roadmap; engine API ready |
@@ -422,10 +419,8 @@ competitor reads the Ondo and Merchant Moe docs and replicates these in a weeken
    from staking MNT behind every Tier 2 audit. The staking *mechanism* is copyable —
    a competitor writes the same contract. A clean track record on the ratio is not,
    the way an insurer's loss history is not. **Status:** economic staking is roadmap
-   — audits anchor for gas only today. An earlier prototype already proved the path
-   end-to-end on-chain (3 staked, 1 RETRACTED slash). The mechanism that *begins*
-   this moat is built (`StakingPool.sol`, in-tree); deploying it to the live registry
-   is the bet.
+   — audits anchor for gas only today. The mechanism that *begins* this moat is built
+   (`StakingPool.sol`, in-tree); deploying it to the live registry is the bet.
 3. **Position in the agentic transaction path.** Once an audit oracle is wired
    into *how agents transact*, switching costs appear that have nothing to do
    with audit quality — integrated MCP tools and `getAudit` interfaces, historical
@@ -449,9 +444,8 @@ What we demonstrate at hackathon scale:
   labeled validation set).
 - Inter-agent licensing settles on chain (3 live demos, real payments).
 - The iNFT reputation compounds in the canonical Reputation Registry (T40, live).
-- Findings are disputable (T47): the dispute layer files and resolves on-chain;
-  7 disputes (1 RETRACTED, with a publicly-slashed stake on an earlier prototype)
-  are already on-chain. Economic staking behind findings is roadmap.
+- Findings are disputable (T47): the dispute layer files and resolves on-chain.
+  Economic staking behind findings is roadmap.
 - Audit integrity is independently recomputable — the published IPFS report's
   keccak `rootHash` equals the on-chain anchor (`integrity.match`), so no backend
   trust is required. (Putting an economic stake behind findings is roadmap.)
