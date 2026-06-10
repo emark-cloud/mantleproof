@@ -64,7 +64,7 @@ evidence.
 | Inter-agent licensing — `payForAudit`, 80/20 split | **Live on mainnet** | 3 `payForAudit` txs, 0.5 MNT each (On-chain receipts §) |
 | Reputation staking — 2 MNT per Tier 2 | **Roadmap** | Staking deactivated; audits now anchor for gas only. StakingPool.sol stays in repo, undeployed (post-hackathon). |
 | Dispute layer — submit / re-audit / resolve | **Live** | File/resolve live on the redeployed registry; 7 disputes resolved on-chain historically (6 DISMISSED, 1 RETRACTED) |
-| Slash-by-exploit (`claimExploit`) | **Reserved post-hackathon** | Documented comment block, no body; only dispute-slashing ships live |
+| Slash-by-exploit (`claimExploit`) | **Reserved post-hackathon** | Documented comment block, no body. All economic slashing is roadmap; the dispute layer files/resolves on-chain but no longer slashes an audit stake |
 | Multi-auditor staking marketplace | **Planned** | Post-hackathon; primitive shipped, market untested |
 | CI / GitHub Action integration | **Planned** | Roadmap; engine API ready |
 
@@ -199,7 +199,7 @@ findings; agent DECLINED.
 | Step | Tx | Detail |
 |---|---|---|
 | payForAudit | [`0x8a558b05…`](https://mantlescan.xyz/tx/0x8a558b05f31d7240fb4e93840f828394f2189187524c97b2b0dfc09cb125f70f) | 0.5 MNT by trading-agent `0xB74a08a5…` |
-| submitAudit | [`0xfedd0b7d…`](https://mantlescan.xyz/tx/0xfedd0b7db78f500dc96b638e1e5c55b47f78fe0986a25e355a6f8bb3d6427e6b) | Oracle-signed, 2 MNT staked, rootHash `0x0947f93b…5c7087f` |
+| submitAudit | [`0xb26c83f5…`](https://mantlescan.xyz/tx/0xb26c83f52011438a10d4ad3b3aac7f447a855e7f3846c5fa26cd2981d18bc77c) | Oracle-signed, gas only (staking deactivated), rootHash `0x121ba360…a6d3bc` |
 | DecisionLog (DECLINED) | [`0x385eaded…`](https://mantlescan.xyz/tx/0x385eaded6f7eba0191ed00972e60077ea4041667c4329a19d400a33efd351119) | **Headline Demo 2 receipt** — agent decision recorded on-chain referencing the audit hash. |
 
 ### Demo 3 — yield-agent approves Merchant Moe LBRouter + deposits real liquidity
@@ -212,7 +212,7 @@ router.
 | Step | Tx | Detail |
 |---|---|---|
 | payForAudit | [`0x34879dd4…`](https://mantlescan.xyz/tx/0x34879dd428b21bf632cca78965ce590c758ec5ae07b01c641a4fdd1df5b35842) | 0.5 MNT by yield-agent `0x9979A4e0…` |
-| submitAudit | [`0xdce37de2…`](https://mantlescan.xyz/tx/0xdce37de275d561d8aa9bf3836fb7eec4d120d4a968f5a2315232435a1dca2349) | Oracle-signed, 2 MNT staked, rootHash `0x37ff62a0…07d3b373` |
+| submitAudit | [`0x53072067…`](https://mantlescan.xyz/tx/0x53072067116ccf88d68306368d19dce4205d8e7c09cd70dadb7729a1b8b5f229) | Oracle-signed, gas only (staking deactivated), rootHash `0xf9cd79fb…002a20` |
 | addLiquidityNATIVE | [`0x52904eb2…`](https://mantlescan.xyz/tx/0x52904eb2c3b9882c35610dc187c75cbf54ae8eff7a4223e691bd8a1ff37f439e) | **Real Merchant Moe LB v2.2 deposit** — 0.05 WMNT into bin `activeId+1` (single-sided X). gasUsed 142677. |
 | DecisionLog (APPROVED) | [`0x82760ff2…`](https://mantlescan.xyz/tx/0x82760ff271172d2ce6209a25e880072ffc67781a181ff536c933f6c5416e1725) | **Headline Demo 3 receipt** — opposite verdict from Demo 2, same logging contract. |
 
@@ -236,17 +236,22 @@ requirement, so the engine never needs that key).
 Negative feedback is possible and **correct** — a real paying customer can rate
 MantleProof poorly. We don't suppress.
 
-### Disputes — 7 filed, 1 RETRACTED, 2 MNT slashed publicly
+### Disputes — 7 filed, 1 RETRACTED (historical, on the previous registry)
 
 The disputer-agent (`0x7805e826…`, 5th demo wallet, fresh-generated key) filed
 7 disputes across 4 rounds of progressively-tighter counter-claims. The engine
-re-ran Tier 2 against each counter-claim and posted the verdict on-chain.
+re-ran Tier 2 against each counter-claim and posted the verdict on-chain. This
+batch ran on the **previous (staking-era) registry** `0x5CEafE0F…CA65A5` and the
+now-retired `StakingPool` — economic staking was deactivated 2026-06-10. The
+redeployed staking-free registry **keeps the dispute layer** (`submitDispute` /
+`resolveDispute` still file and resolve on-chain); it simply no longer slashes an
+audit stake on RETRACTED — that economic layer is roadmap.
 
 | Outcome | Count | What it means |
 |---|---|---|
 | DISMISSED | 6 | Counter-claim doesn't invalidate the finding. Counter-stake forfeited to registry. Original honesty label upgrades one tier engine-side. |
 | AMENDED | 0 | (Supported in contract + engine, not produced in this seed batch — 3 severity-downgrade attempts were each dismissed with specific source-line counter-evidence.) |
-| RETRACTED | 1 | Counter-claim invalidates the finding. **2 MNT audit stake transfers from pool to disputer.** |
+| RETRACTED | 1 | Counter-claim invalidates the finding. **(Historical) 2 MNT audit stake transferred from pool to disputer; on the staking-free registry an upheld dispute refunds the disputer's counter-stake, no audit-stake slash.** |
 
 **Dispute #5 RETRACTED ✓** — the counter-claim noted Demo 3's `swapTokensForExactTokens`
 finding misclassified standard exact-output AMM semantics as a bug (the function
@@ -285,26 +290,30 @@ permissionless, optional MNT counter-stake. The oracle re-runs Tier 2 against th
 counter-claim and posts DISMISSED / AMENDED / RETRACTED on chain. See
 [`docs/update.md`](docs/update.md) §2 for the full mechanism.
 
-## Skin in the game — stake and slashing
+## Skin in the game — roadmap
 
-> MantleProof is the only audit primitive on Mantle that puts money behind its
-> findings. Every Tier 2 audit stakes **2 MNT for 30 days** in `StakingPool`.
-> Upheld disputes (`RETRACTED`) transfer the stake to the disputer. If neither
-> dispute nor exploit-claim slashes the stake within the window, 99% returns to
-> the treasury and 1% retains in the pool.
+> Economic staking — putting **2 MNT for 30 days** behind every Tier 2 audit in
+> `StakingPool`, slashed to the disputer on an upheld (`RETRACTED`) dispute — was
+> **deactivated on 2026-06-10 and moved to the roadmap.** The registry was
+> redeployed staking-free (`0xcF3703BD…662aaf`): `submitAudit` is nonpayable and
+> audits anchor for gas only. Credibility today rests on the independently
+> recomputable IPFS↔on-chain `rootHash` (`integrity.match`), not on a bond.
 
-Current state (Mantle mainnet, post-T43):
-- **3 Tier 2 audits staked** (Demo 1 + Demo 2 + Demo 3, each 2 MNT)
-- **1 stake slashed** (Demo 3 finding 1 via dispute #5 RETRACTED, 2 MNT to disputer)
-- **Pool balance live**: 4 MNT (was 6, -2 from the slash)
+What still ships live: the **dispute layer** (anyone can `submitDispute`; the
+oracle re-audits and posts `DISMISSED`/`AMENDED`/`RETRACTED` on-chain), the five
+honesty labels, and the hallucination guard.
 
-Stake amount note: the original scope doc (`docs/update.md` §3.1) defaulted to
-50 MNT per stake. We ship **2 MNT** as a hackathon-window MNT-exposure cap; the
-amount lives in `MantleProofRegistry.TIER2_STAKE` as a constant (would require
-a redeploy to change). Exploit-claim slashing is **reserved post-hackathon** —
-`claimExploit` is a documented comment block in both `MantleProofRegistry.sol`
-and `StakingPool.sol` but has no body. Dispute-slashing is the only live
-slashing path today.
+Historical proof the economic path worked end-to-end: on the previous
+(staking-era) registry `0x5CEafE0F…CA65A5`, three Tier 2 audits each staked 2 MNT
+into `StakingPool` `0x2E279f4c…0ee9`, and dispute #5 RETRACTED slashed 2 MNT to
+the disputer (pool 6 → 4 MNT) — all on Mantlescan, still verifiable via
+`verify_dispute_receipt.py`. The primitive (`StakingPool.sol`) and its tests
+remain in-tree; re-deploying it is future work, not new code.
+
+Roadmap detail: the original scope doc (`docs/update.md` §3.1) defaulted to
+50 MNT per stake; the staking-era deploy used **2 MNT** as a hackathon-window
+MNT-exposure cap. Exploit-claim slashing (`claimExploit`) is a reserved comment
+block in `MantleProofRegistry.sol` / `StakingPool.sol`, also post-hackathon.
 
 ## Coverage & latency (engine validation)
 
@@ -342,13 +351,13 @@ Three ways to read an audit, all returning the same JSON + same honesty labels.
 // Solidity
 (bytes32 rootHash, uint8 severity, string memory ipfsCID,
  uint64 timestamp, address submitter, uint8 tier) =
-    IMantleProofRegistry(0x5CEafE0FD8b2A9BD2eC6aCdf3f5e024c21CA65A5)
+    IMantleProofRegistry(0xcF3703BD76C64DA8a13461e820456d0576662aaf)
         .getAudit(0x1892f77e335c133ce4a7b28555f13ba74cbb76fa);
 ```
 
 ```bash
 # cast (foundry)
-cast call 0x5CEafE0FD8b2A9BD2eC6aCdf3f5e024c21CA65A5 \
+cast call 0xcF3703BD76C64DA8a13461e820456d0576662aaf \
   "getAudit(address)((bytes32,uint8,string,uint64,address,uint8))" \
   0x1892f77e335c133ce4a7b28555f13ba74cbb76fa \
   --rpc-url https://rpc.mantle.xyz
@@ -447,12 +456,14 @@ competitor reads the Ondo and Merchant Moe docs and replicates these in a weeken
    record of Mantle. This is the Etherscan moat — data network effect, compounds
    with time, cannot be bought. **Caveat:** days of history at Demo Day, not years.
    The primitive (`MantleProofRegistry`) is shipped; the accumulation is the bet.
-2. **Skin-in-the-game track record.** 2 MNT staked per Tier 2 audit for 30 days;
-   public released-vs-slashed ratio. The staking *mechanism* is copyable — a
-   competitor writes the same contract. A clean track record on the ratio is not,
-   the way an insurer's loss history is not. **Caveat:** one slash + zero released
-   audits today (3 staked, 1 RETRACTED). The mechanism that *begins* the moat is
-   live; the moat itself accumulates from here.
+2. **Skin-in-the-game track record (roadmap).** A public released-vs-slashed ratio
+   from staking MNT behind every Tier 2 audit. The staking *mechanism* is copyable —
+   a competitor writes the same contract. A clean track record on the ratio is not,
+   the way an insurer's loss history is not. **Status:** economic staking was
+   deactivated 2026-06-10 and moved to roadmap (audits anchor for gas only today);
+   the staking-era deploy proved the path end-to-end on-chain (3 staked, 1 RETRACTED
+   slash) before retirement. The mechanism that *begins* this moat is built
+   (`StakingPool.sol`, in-tree); turning it back on is the bet.
 3. **Position in the agentic transaction path.** Once an audit oracle is wired
    into *how agents transact*, switching costs appear that have nothing to do
    with audit quality — integrated MCP tools and `getAudit` interfaces, historical
@@ -476,16 +487,20 @@ What we demonstrate at hackathon scale:
   labeled validation set).
 - Inter-agent licensing settles on chain (3 live demos, real payments).
 - The iNFT reputation compounds in the canonical Reputation Registry (T40, live).
-- Findings are disputable (T47, 7 live disputes with one publicly-slashed stake).
-- The auditor (MantleProof itself) has 2 MNT at stake on every Tier 2 audit.
-  We pay out when we're wrong.
+- Findings are disputable (T47): the dispute layer files and resolves on-chain;
+  7 historical disputes (1 RETRACTED with a publicly-slashed stake) ran on the
+  staking-era registry before economic staking moved to roadmap.
+- Audit integrity is independently recomputable — the published IPFS report's
+  keccak `rootHash` equals the on-chain anchor (`integrity.match`), so no backend
+  trust is required. (Putting an economic stake behind findings is roadmap.)
 
 What we don't claim:
 - Real revenue from CI integration or third-party auditor adoption — those are
   post-hackathon roadmap items. The dispute mechanism is in production but the
   multi-auditor marketplace is not.
 - Production-grade exploit-classifier — `claimExploit` is reserved
-  post-hackathon; only dispute-slashing ships live.
+  post-hackathon. Economic slashing is roadmap (the dispute layer resolves
+  on-chain, but no audit stake is slashed today).
 - Sub-second Tier 2 — Gemini round-trip dominates. Sub-second is a Tier 1 claim
   only.
 - Zero false positives at scale — validation set is N=14 with perfect score;

@@ -4,6 +4,16 @@ The strategic case for MantleProof: why it needs to exist, where its defensibili
 
 Sibling document to `MantleProof-Build-Plan.md`, `MantleProof-Extensions.md`, `MantleProof-Resources.md`, and `MantleProof-Design.md`. This document feeds the README thesis section and the Demo Day talking points. It is written to be read by a skeptical VC judge, and it does not flinch from the parts of MantleProof that are not defensible.
 
+> **Update 2026-06-10 — staking deactivated → roadmap.** Economic staking (the
+> "Moat 2 / skin-in-the-game" thread below — 50 MNT spec / 2 MNT shipped per Tier 2
+> audit, slashed on dispute or exploit) was removed from the live deployment; the
+> registry is now staking-free and audits anchor for gas only. The defensibility
+> argument here treats the staking *track record* as a future-accumulating moat
+> ("starts at zero"), which still reads correctly — but where this doc implies the
+> staking mechanism is live on-chain, read it as roadmap. The live accountability
+> primitives are the dispute layer, the five honesty labels, and the hallucination
+> guard / recomputable `rootHash`.
+
 ---
 
 ## 1. The honest starting point — most of MantleProof has no moat

@@ -100,7 +100,7 @@ export async function runCheck(rawAddr: string | undefined): Promise<number> {
   const tierLine =
     audit.tier === 1
       ? `  Tier 1 (free) read complete. For deep Tier 2 analysis (0.5 MNT): pay via x402 / payForAudit.`
-      : `  Tier 2 (deep) audit — staked, disputable on-chain.`;
+      : `  Tier 2 (deep) audit — disputable on-chain.`;
   console.log(c.dim(tierLine));
 
   const host = gateway ? new URL(gateway).host : "ipfs";

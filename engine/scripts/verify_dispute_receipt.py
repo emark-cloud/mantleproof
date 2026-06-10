@@ -15,15 +15,23 @@ Verifies a single disputeId against:
      (registry balance delta proxy — or, more strictly, check disputer balance
      gain; we use the registry's `disputeCount() > disputeId` as a tractable
      consistency check)
-  7. If RETRACTED + StakingPool deployed: StakingPool.stakeOf(rootHash).status
-     == SLASHED_DISPUTE
+  7. If RETRACTED + a StakingPool address is available: StakingPool.stakeOf(
+     rootHash).status == SLASHED_DISPUTE
+
   8. Audit's tier on-chain == 2 (Tier 1 audits should NEVER have disputes)
   9. Resolution tx (passed via --tx) emits DisputeResolved with matching args
+
+Economic staking was deactivated on 2026-06-10 (roadmap): the live registry was
+redeployed staking-free and carries no disputes. The seven mainnet disputes
+(incl. the #5 RETRACTED slash) live on the *previous* staking-era registry, so
+this verifier defaults `--registry` to `previousRegistry` and `--pool` to
+`retiredStakingPool` from the deployments file. Both can be overridden.
 
 Usage:
     cd engine && python scripts/verify_dispute_receipt.py \\
       --dispute-id 1 \\
       --network mantle \\
+      [--registry 0x…] [--pool 0x…] \\
       [--expect-outcome RETRACTED] [--expect-disputer 0x…] [--tx 0x…]
 """
 
@@ -124,6 +132,16 @@ def main() -> int:
     parser.add_argument("--expect-outcome", choices=("DISMISSED", "AMENDED", "RETRACTED"))
     parser.add_argument("--expect-disputer", help="0x… address that filed the dispute")
     parser.add_argument("--tx", help="resolution tx hash to verify DisputeResolved event")
+    parser.add_argument(
+        "--registry",
+        help="registry address override (default: previousRegistry — the staking-era "
+        "registry that holds the historical disputes — falling back to the live one)",
+    )
+    parser.add_argument(
+        "--pool",
+        help="retired StakingPool address override (default: retiredStakingPool from the "
+        "deployments file; staking is deactivated/roadmap so this is historical-only)",
+    )
     args = parser.parse_args()
 
     from web3 import Web3
@@ -131,8 +149,18 @@ def main() -> int:
     s = get_settings()
     rpc = s.mantle_rpc_url if args.network == "mantle" else s.mantle_sepolia_rpc_url
     dep = _deployment(args.network)
-    registry_addr = dep["contracts"]["MantleProofRegistry"]
-    pool_addr = dep["contracts"].get("StakingPool")
+    # Disputes ran on the pre-2026-06-10 (staking-era) registry; the staking-free
+    # redeploy starts empty, so default to previousRegistry where the receipts live.
+    registry_addr = (
+        args.registry
+        or dep.get("previousRegistry")
+        or dep["contracts"]["MantleProofRegistry"]
+    )
+    # StakingPool was retired to roadmap (dropped from `contracts`); its address is
+    # preserved under `retiredStakingPool` so the historical slash is still verifiable.
+    pool_addr = (
+        args.pool or dep.get("retiredStakingPool") or dep["contracts"].get("StakingPool")
+    )
 
     w3 = Web3(Web3.HTTPProvider(rpc, request_kwargs={"timeout": 30}))
     chain_id = w3.eth.chain_id
@@ -223,7 +251,16 @@ def main() -> int:
         )
     )
 
-    # 7. SLASHED_DISPUTE if RETRACTED + pool available
+    # 7. SLASHED_DISPUTE if RETRACTED + a (retired) pool address is available.
+    #    Staking is deactivated (roadmap); this checks the historical slash only.
+    if status_name == "RETRACTED" and not pool_addr:
+        checks.append(
+            (
+                "7. StakingPool slash (historical, staking now roadmap)",
+                True,
+                "skipped — no pool address (pass --pool <retiredPool> to verify the slash)",
+            )
+        )
     if status_name == "RETRACTED" and pool_addr:
         pool = w3.eth.contract(address=Web3.to_checksum_address(pool_addr), abi=POOL_ABI)
         try:

@@ -4,6 +4,16 @@ Sibling document to `MantleProof-Build-Plan.md`. Captures three decisions made a
 
 **Status:** all three decisions confirmed. Build plan to be executed with these extensions folded in.
 
+> **Update 2026-06-10 — Reputation Staking (§3) deactivated → roadmap.** The
+> economic staking layer described in §3 (2 MNT per Tier 2 audit, `StakingPool`,
+> dispute-/exploit-slashing) was removed from the live deployment. The registry
+> was redeployed staking-free at `0xcF3703BD…662aaf`: `submitAudit` is nonpayable
+> and audits anchor for gas only. The **Disputed Findings layer (§2) stays live**
+> (`submitDispute`/`resolveDispute` still file/resolve on-chain) but `resolveDispute`
+> no longer slashes an audit stake — it only refunds the disputer's optional
+> counter-stake. `StakingPool.sol` remains in-tree (undeployed) as future work;
+> §3 below is retained as the design spec for that roadmap item, not current state.
+
 ---
 
 ## 1. Path A confirmed — Mantle ships ERC-8004 registries

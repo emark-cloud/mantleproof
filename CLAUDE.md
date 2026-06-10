@@ -118,15 +118,21 @@ anchor chain. The mainnet column is a build-time, human-verified artifact (Week 
 
 Mantle issues every participating agent's ERC-8004 identity NFT automatically as an
 integrated hackathon feature. **We do NOT deploy our own Identity Registry.** We deploy
-**6** contracts (post-T43, 2026-05-24 — was 5 pre-T43) and register/call into Mantle's
-official registries:
+**5** contracts (staking-free registry redeployed 2026-06-10; the `StakingPool` from the
+2026-05-24 T43 stack was retired to roadmap) and register/call into Mantle's official
+registries:
 
-- `MantleProofRegistry.sol` — append-only audit registry **+ disputes layer (T43)**.
-  `submitAudit(target, tier, severity, rootHash, ipfsCID)` is payable; Tier 2 calls
-  MUST forward `TIER2_STAKE = 2 MNT` which is forwarded into `StakingPool.lockStake`
-  in the same tx. `submitDispute(rootHash, findingIndex, ipfsCID)` is permissionless;
-  `resolveDispute(disputeId, outcome, reAuditRootHash)` is oracle-only. Tier 1 audits
-  are NOT disputable (`Tier1NotDisputable`). `claimExploit` is RESERVED post-hackathon.
+- `MantleProofRegistry.sol` — append-only audit registry **+ disputes layer**. Live
+  mainnet `0xcF3703BD76C64DA8a13461e820456d0576662aaf` (previous, staking-era registry
+  `0x5CEafE0F…CA65A5` retained as a historical receipt).
+  `submitAudit(target, tier, severity, rootHash, ipfsCID)` is **nonpayable** for both
+  tiers — audits anchor for gas only (economic staking deactivated 2026-06-10, now
+  roadmap; there is no `TIER2_STAKE` constant and no `StakingPool.lockStake` forwarding).
+  `submitDispute(rootHash, findingIndex, ipfsCID)` is permissionless;
+  `resolveDispute(disputeId, outcome, reAuditRootHash)` is oracle-only and refunds the
+  disputer's optional counter-stake on RETRACTED/AMENDED (no audit-stake slash — that
+  economic layer is roadmap). Tier 1 audits are NOT disputable (`Tier1NotDisputable`).
+  `claimExploit` is RESERVED post-hackathon.
 - `MantleProofAgent.sol` — **thin wrapper** around Mantle's official ERC-8004 identity:
   tracks per-audit `memoryRoot` + `auditsPerformed`. Reputation lives on the **official
   Reputation Registry** (read directly — `MantleProofAgent.reputation()` / `agentURI()`
@@ -135,10 +141,12 @@ official registries:
   ERC-8004 feedback about MantleProof through the official registry's
   `giveFeedback(96, …)` — first live mainnet receipt 2026-05-23 (T40). MantleProof
   itself never signs feedback or holds a feedback-signer key.
-- `StakingPool.sol` (NEW — T43) — holds 2 MNT for each Tier 2 audit for a 30-day
-  window. `slashByDispute` (registry-only) transfers to the disputer on RETRACTED.
-  `unlock(rootHash)` is permissionless after `unlocksAt`; 99% → treasury, 1% retained.
-  `claimExploit` reserved comment block.
+- `StakingPool.sol` (**ROADMAP — not deployed**) — the economic-security layer,
+  deactivated 2026-06-10. Would hold 2 MNT for each Tier 2 audit for a 30-day window:
+  `slashByDispute` (registry-only) transfers to the disputer on RETRACTED, `unlock(rootHash)`
+  is permissionless after `unlocksAt` (99% → treasury, 1% retained), `claimExploit`
+  reserved. `StakingPool.sol` stays in-tree (with its tests) but is **not** part of the
+  live 5-contract stack; the retired deployment was `0x2E279f4c…0ee9`.
 - `MantleProofLicense.sol` — pay-per-audit / subscription, 80/20 split.
 - `TreasurySplit.sol` — 20% treasury share.
 - plus `DecisionLog.sol` (demos) and `MockUSDC.sol` (tests).

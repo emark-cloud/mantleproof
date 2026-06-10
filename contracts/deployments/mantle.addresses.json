@@ -17,6 +17,7 @@
     "DecisionLog": "0x11B395452e2bF8Ab20F21cd4deA8f9a7650CCf65"
   },
   "previousRegistry": "0x5CEafE0FD8b2A9BD2eC6aCdf3f5e024c21CA65A5",
+  "retiredStakingPool": "0x2E279f4cAE39B5d0Fa57e08D0d455Ec9f6080ee9",
   "staking": "deactivated (roadmap) — audits anchor for gas only",
   "registryRedeployedAt": "2026-06-10T00:00:00.000Z"
 }

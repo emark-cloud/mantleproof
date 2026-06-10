@@ -81,6 +81,10 @@ async function main(): Promise<void> {
   dep.contracts.MantleProofRegistry = newRegistry;
   dep.previousRegistry = oldRegistry;
   delete dep.tier2StakeWei;
+  // Retire the pool out of the live stack but keep its address recorded so the
+  // historical dispute verifier (verify_dispute_receipt.py) can still check the
+  // pre-redeploy RETRACTED slash against it.
+  if (dep.contracts.StakingPool) dep.retiredStakingPool = dep.contracts.StakingPool;
   delete dep.contracts.StakingPool; // kept in-tree, no longer part of the deployment
   dep.staking = "deactivated (roadmap) — audits anchor for gas only";
   dep.registryRedeployedAt = process.env.REDEPLOY_AT ?? dep.deployedAt;

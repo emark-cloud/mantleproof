@@ -1,7 +1,17 @@
 # T47 — Mainnet dispute receipts (Mantle chainId 5000, 2026-05-24)
 
-Seven on-chain disputes filed against the new post-T43 mainnet audit stack
-via `disputer-agent.ts dispute`. Each was resolved by `resolve_dispute_mainnet.py`
+> **Historical (staking-era).** These seven disputes were filed and resolved on
+> the **previous** registry `0x5CEafE0F…CA65A5` and the now-retired
+> `StakingPool` `0x2E279f4c…0ee9`, before economic staking was deactivated on
+> 2026-06-10. They remain valid on-chain receipts: the RETRACTED slash below
+> really moved 2 MNT. Going forward the registry was redeployed staking-free
+> (`0xcF3703BD…662aaf`) — audits anchor for gas only and `resolveDispute` no
+> longer slashes an audit stake (it only refunds the disputer's counter-stake).
+> Economic staking/slashing is now roadmap. Verify with
+> `verify_dispute_receipt.py` (defaults to the previous registry + retired pool).
+
+Seven on-chain disputes filed against the then-current post-T43 mainnet audit
+stack via `disputer-agent.ts dispute`. Each was resolved by `resolve_dispute_mainnet.py`
 (oracle-signed Tier 2 re-audit + `resolveDispute` on chain). **2 MNT moved
 publicly from `StakingPool` to the disputer** for the single RETRACTED
 outcome (#5).

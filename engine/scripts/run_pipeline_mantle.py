@@ -147,8 +147,8 @@ def main() -> int:
         return pin_json(report)
 
     def _anchor(t, sev, root_hash, cid, **kw):  # noqa: ANN001, ANN003
-        # post-T43: pipeline.run_audit forwards `tier` + `value` kwargs that
-        # anchor_audit needs to pay the 2 MNT Tier 2 stake.
+        # Staking deactivated (roadmap): submitAudit is nonpayable, so run_audit
+        # forwards only `tier` (no stake `value`) — audits anchor for gas only.
         return anchor_audit(t, sev, root_hash, cid, registry_address=registry_addr, **kw)
 
     print("\n[run] live source/bytecode/Tier-1/Gemini-Tier-2/guard/rootHash"
