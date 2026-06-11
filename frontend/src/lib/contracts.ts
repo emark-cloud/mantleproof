@@ -269,29 +269,4 @@ export const KNOWN_TARGETS: readonly { address: `0x${string}`; label: string; pr
     label: "Merchant Moe LBRouter v2.2 (Demo 3)",
     provenance: "yield-agent target — canonical mainnet protocol",
   },
-  {
-    address: "0xE6829d9a7eE3040e1276Fa75293Bde931859e8fA",
-    label: "cmETH — restaked mETH receipt (Audit 4)",
-    provenance: "live production audit — mETH Protocol's LayerZero-bridged restaking token on Mantle",
-  },
-  {
-    address: "0x5bE26527e817998A7206475496fDE1E68957c5a6",
-    label: "USDYW — Ondo wrapped RWA (Audit 5)",
-    provenance: "live production audit — Ondo's wrapped USDY on Mantle",
-  },
-  {
-    address: "0x211Cc4DD073734dA055fbF44a2b4667d5E5fE5d2",
-    label: "sUSDe — Ethena staked USDe OFT (Audit 6)",
-    provenance: "live production audit — Ethena yield-bearing stable bridged via LayerZero",
-  },
-  {
-    address: "0xB65E1C3ab3072d5fBF25A5bF625318E3035D4505",
-    label: "ChainIdReplayPermit (Bait 7)",
-    provenance: "self-deployed bait — EIP-712 domain hardcodes chainId=1; bait for check #5 (replay)",
-  },
-  {
-    address: "0xeB19da38EcdAec1aAAAdE76098c7f3cAf24Ec1F0",
-    label: "MisaccountedMethVault (Bait 8)",
-    provenance: "self-deployed bait — mETH balance-proportional accounting, no exchange-rate read; bait for check #2 (mETH math)",
-  },
 ] as const;
