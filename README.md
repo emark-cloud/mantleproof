@@ -88,8 +88,7 @@ Tier 1 + a protocol brief (`engine/mantleproof/skills/*.md`) loaded into Tier 2.
 **Findings are disputable.** Tier 2 findings can be challenged via
 `MantleProofRegistry.submitDispute(rootHash, findingIndex, counterClaimIpfs)` —
 permissionless, optional MNT counter-stake. The oracle re-runs Tier 2 against the
-counter-claim and posts DISMISSED / AMENDED / RETRACTED on chain. See
-[`docs/update.md`](docs/update.md) §2 for the full mechanism.
+counter-claim and posts DISMISSED / AMENDED / RETRACTED on chain. 
 
 
 ## The five honesty labels
