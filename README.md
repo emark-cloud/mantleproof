@@ -1,7 +1,7 @@
 # MantleProof
 
-> **MantleProof is an audit oracle that agents call before they transact — and it
-> tells them when it isn't sure.**
+> **MantleProof is an audit oracle that agents call before they interact with contracts
+> on Mantle — and it tells them when it isn't sure.**
 
 ### How it works
 
@@ -10,7 +10,7 @@
 - **What does it check?** Five Mantle-specific risk dimensions — USDY/mUSD rebase,
   mETH bridge lag, USDe/sUSDe cooldown, Merchant Moe Liquidity Book bins, EIP-712
   replay.
-- **How does it price audits?** Tier 1 free heuristic + bytecode matching; Tier 2
+- **How does perform audits?** Tier 1 free heuristic + bytecode matching; Tier 2
   paid Gemini reasoning pass. 
 - **Why trust an AI's findings?** The five honesty labels and the hallucination
   guard tell you exactly which claims are grounded — plus every audit is published
@@ -27,9 +27,7 @@ Slither, check the deployer's history, ask in a Telegram group. The agentic econ
 Mantle is explicitly building has no such time: trading agents, yield agents, and
 deployer agents make on-chain decisions in sub-second windows with no human in the
 loop. That creates a structural gap — high-frequency autonomous on-chain decisions
-with no time for human due diligence and no human present to do it. The gap is
-created by the exact trend the Turing Test Hackathon is built around, and nothing
-currently fills it.
+with no time for human due diligence and no human present to do it. 
 
 It's also a *format* gap. Slither is text. A professional audit is a PDF. A bug
 bounty is a human process. None of these is a structured, machine-parseable,
@@ -72,7 +70,27 @@ Three layers, one signed write path:
    stdio, 3 tools), REST + x402 paywall (USDC on Base settles, audit anchors on
    Mantle). All three return the same JSON with the same five honesty labels.
 3. **Three agent-to-agent demos** (`agents/`) — `deployer-agent`, `trading-agent`,
-   `yield-agent` — each with its own funded wallet (no key wears two hats).
+   `yield-agent` — each with its own funded wallet.
+
+## The five risk checks
+
+Each is a small Python module (`engine/mantleproof/checks/*.py`) running in
+Tier 1 + a protocol brief (`engine/mantleproof/skills/*.md`) loaded into Tier 2.
+
+| Check | Catches |
+|---|---|
+| `usdy_check` | USDY/mUSD rebase snapshot drift, non-RWA oracle, USDY≠mUSD 1:1, unguarded blocklist transfer |
+| `meth_check` | mETH balanceOf/totalSupply proportion (instead of exchange-rate), L1/L2 staking conflation, cmETH/mETH conflation |
+| `usde_check` | sUSDe redeem with no cooldown awareness, USDe/sUSDe 1:1 assumption, USDe collateral without oracle |
+| `dex_check` | Merchant Moe LB v2.2: missing bin-id validation, static fee assumption, V3-style `feeGrowth` on LB (wrong primitive); Uniswap V3: mint without slippage/deadline |
+| `replay_check` | EIP-712 domain separator without `block.chainid`, `chainId` omitted from `EIP712Domain` typehash, hardcoded `2300` gas |
+
+**Findings are disputable.** Tier 2 findings can be challenged via
+`MantleProofRegistry.submitDispute(rootHash, findingIndex, counterClaimIpfs)` —
+permissionless, optional MNT counter-stake. The oracle re-runs Tier 2 against the
+counter-claim and posts DISMISSED / AMENDED / RETRACTED on chain. See
+[`docs/update.md`](docs/update.md) §2 for the full mechanism.
+
 
 ## The five honesty labels
 
@@ -154,10 +172,7 @@ router.
 ### ERC-8004 reputation — first paying customer rates MantleProof
 
 After Demo 1 landed, the deployer-agent came back and left on-chain feedback
-about MantleProof through Mantle's canonical Reputation Registry. **This is the
-spec-correct direction** — MantleProof itself never signs feedback or holds a
-feedback-signer key (T37 discovered v2 `giveFeedback` has no signed-auth
-requirement, so the engine never needs that key).
+about MantleProof through Mantle's canonical Reputation Registry. 
 
 | | Detail |
 |---|---|
@@ -168,27 +183,6 @@ requirement, so the engine never needs that key).
 | Sybil gate | `isAuthorizedOrOwner(payer, 96) = false` — payer is NOT MantleProof's owner / operator / approved. Real customer, not self-promotion. |
 | Independent verify | `getSummary(96, [payer], "", "")` returns `(count=1, value=4)`. **10/10 checks pass** via `verify_reputation_receipt.py`. |
 
-Negative feedback is possible and **correct** — a real paying customer can rate
-MantleProof poorly. We don't suppress.
-
-## The five risk checks
-
-Each is a small Python module (`engine/mantleproof/checks/*.py`) running in
-Tier 1 + a protocol brief (`engine/mantleproof/skills/*.md`) loaded into Tier 2.
-
-| Check | Catches |
-|---|---|
-| `usdy_check` | USDY/mUSD rebase snapshot drift, non-RWA oracle, USDY≠mUSD 1:1, unguarded blocklist transfer |
-| `meth_check` | mETH balanceOf/totalSupply proportion (instead of exchange-rate), L1/L2 staking conflation, cmETH/mETH conflation |
-| `usde_check` | sUSDe redeem with no cooldown awareness, USDe/sUSDe 1:1 assumption, USDe collateral without oracle |
-| `dex_check` | Merchant Moe LB v2.2: missing bin-id validation, static fee assumption, V3-style `feeGrowth` on LB (wrong primitive); Uniswap V3: mint without slippage/deadline |
-| `replay_check` | EIP-712 domain separator without `block.chainid`, `chainId` omitted from `EIP712Domain` typehash, hardcoded `2300` gas |
-
-**Findings are disputable.** Tier 2 findings can be challenged via
-`MantleProofRegistry.submitDispute(rootHash, findingIndex, counterClaimIpfs)` —
-permissionless, optional MNT counter-stake. The oracle re-runs Tier 2 against the
-counter-claim and posts DISMISSED / AMENDED / RETRACTED on chain. See
-[`docs/update.md`](docs/update.md) §2 for the full mechanism.
 
 ## Status / MVP scope
 
