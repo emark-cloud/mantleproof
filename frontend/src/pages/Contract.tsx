@@ -14,8 +14,8 @@ import { useBlockNumber, usePublicClient } from "wagmi";
 import { useQuery } from "@tanstack/react-query";
 import { getAudit, type AuditResponse, type ReportSummary } from "../lib/api";
 import {
-  DECISION_LOG_ADDRESS,
-  decisionLogAbi,
+  DECISION_LOG_START_BLOCK,
+  getDecisionLogsChunked,
   MANTLE_CHAIN_ID,
 } from "../lib/contracts";
 import { StatusDot } from "../components/primitives/StatusDot";
@@ -341,13 +341,12 @@ function QueriedBySection({
     let cancelled = false;
     (async () => {
       try {
-        const logs = await client.getLogs({
-          address: DECISION_LOG_ADDRESS,
-          event: decisionLogAbi[1],
-          args: { target: target as `0x${string}` },
-          fromBlock: head > 200_000n ? head - 200_000n : 0n,
-          toBlock: head,
-        });
+        const logs = await getDecisionLogsChunked(
+          client,
+          DECISION_LOG_START_BLOCK,
+          head,
+          { target: target as `0x${string}` },
+        );
         const out: DecisionRow[] = [];
         for (const log of logs) {
           const blk = await client.getBlock({ blockNumber: log.blockNumber ?? undefined });

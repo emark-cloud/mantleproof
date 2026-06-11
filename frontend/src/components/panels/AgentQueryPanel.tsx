@@ -8,14 +8,19 @@
  *
  * Polls every 8s via wagmi. Each new row enters with `feed-row-insert` (§8).
  */
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useBlockNumber, usePublicClient } from "wagmi";
 import { Link } from "react-router-dom";
 import { StatusDot } from "../primitives/StatusDot";
 import { Address } from "../primitives/Address";
 import { Timestamp } from "../primitives/Timestamp";
 import { Tip } from "../primitives/Tip";
-import { DECISION_LOG_ADDRESS, decisionLogAbi, MANTLE_CHAIN_ID } from "../../lib/contracts";
+import {
+  DECISION_LOG_START_BLOCK,
+  GETLOGS_MAX_RANGE,
+  getDecisionLogsChunked,
+  MANTLE_CHAIN_ID,
+} from "../../lib/contracts";
 
 interface DecisionRow {
   txHash: string;
@@ -28,51 +33,69 @@ interface DecisionRow {
   reason: string;
 }
 
-const LOOKBACK_BLOCKS = 200_000n; // ~ a week at 2s blocks; cheap on Mantle archive
-
 export function AgentQueryPanel({ chainId = MANTLE_CHAIN_ID }: { chainId?: number }) {
   const client = usePublicClient({ chainId });
   const { data: head } = useBlockNumber({ chainId, watch: true, query: { refetchInterval: 8_000 } });
   const [rows, setRows] = useState<DecisionRow[]>([]);
   const [error, setError] = useState<string | null>(null);
 
+  // Decisions are immutable historical events spread across a ~180k-block window
+  // (Demo 2/3, ~3 weeks back) plus any freshly-run demo near head. We keep an
+  // accumulating map keyed by tx+logIndex so the one-time history scan and the
+  // live-tip poll merge without duplicates; block timestamps are cached too.
+  const rowsRef = useRef<Map<string, DecisionRow>>(new Map());
+  const tsRef = useRef<Map<string, number>>(new Map());
+
+  type DecisionLog = Awaited<ReturnType<typeof getDecisionLogsChunked>>[number];
+  const ingest = async (logs: DecisionLog[]) => {
+    for (const log of logs) {
+      const key = `${log.transactionHash}:${log.logIndex}`;
+      if (rowsRef.current.has(key)) continue;
+      const bn = log.blockNumber ?? 0n;
+      let ts = tsRef.current.get(bn.toString());
+      if (ts === undefined) {
+        const blk = await client!.getBlock({ blockNumber: bn });
+        ts = Number(blk.timestamp);
+        tsRef.current.set(bn.toString(), ts);
+      }
+      const args = log.args as {
+        agent?: string;
+        target?: string;
+        auditRootHash?: string;
+        action?: string;
+        reason?: string;
+      };
+      rowsRef.current.set(key, {
+        txHash: log.transactionHash ?? "",
+        blockNumber: bn,
+        timestamp: ts,
+        agent: args.agent ?? "",
+        target: args.target ?? "",
+        auditRootHash: args.auditRootHash ?? "",
+        action: args.action ?? "",
+        reason: args.reason ?? "",
+      });
+    }
+  };
+  const commit = () => {
+    const all = [...rowsRef.current.values()].sort(
+      (a, b) => Number(b.blockNumber - a.blockNumber),
+    );
+    setRows(all.slice(0, 25));
+  };
+
+  // One-time deep scan of the historical decision window (chunked under the RPC
+  // range cap). Runs once when the client is ready, NOT on every new block.
   useEffect(() => {
-    if (!client || !head) return;
-    const from = head > LOOKBACK_BLOCKS ? head - LOOKBACK_BLOCKS : 0n;
+    if (!client) return;
     let cancelled = false;
     (async () => {
       try {
-        const logs = await client.getLogs({
-          address: DECISION_LOG_ADDRESS,
-          event: decisionLogAbi[1], // Decision event
-          fromBlock: from,
-          toBlock: head,
-        });
-        // Sort newest first.
-        const sorted = [...logs].sort((a, b) => Number((b.blockNumber ?? 0n) - (a.blockNumber ?? 0n)));
-        const next: DecisionRow[] = [];
-        for (const log of sorted.slice(0, 25)) {
-          const blk = await client.getBlock({ blockNumber: log.blockNumber ?? undefined });
-          const args = log.args as {
-            agent?: string;
-            target?: string;
-            auditRootHash?: string;
-            action?: string;
-            reason?: string;
-          };
-          next.push({
-            txHash: log.transactionHash ?? "",
-            blockNumber: log.blockNumber ?? 0n,
-            timestamp: Number(blk.timestamp),
-            agent: args.agent ?? "",
-            target: args.target ?? "",
-            auditRootHash: args.auditRootHash ?? "",
-            action: args.action ?? "",
-            reason: args.reason ?? "",
-          });
-        }
+        const head = await client.getBlockNumber();
+        const logs = await getDecisionLogsChunked(client, DECISION_LOG_START_BLOCK, head);
+        await ingest(logs);
         if (!cancelled) {
-          setRows(next);
+          commit();
           setError(null);
         }
       } catch (e) {
@@ -80,6 +103,28 @@ export function AgentQueryPanel({ chainId = MANTLE_CHAIN_ID }: { chainId?: numbe
       }
     })();
     return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [client]);
+
+  // Cheap live-tip poll (one getLogs over the last window) for demos re-run now.
+  useEffect(() => {
+    if (!client || !head) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const from = head > GETLOGS_MAX_RANGE ? head - GETLOGS_MAX_RANGE : 0n;
+        const logs = await getDecisionLogsChunked(client, from, head);
+        await ingest(logs);
+        if (!cancelled) {
+          commit();
+          setError(null);
+        }
+      } catch (e) {
+        if (!cancelled) setError((e as Error).message);
+      }
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [client, head]);
 
   const counters = useMemo(() => {
@@ -112,7 +157,7 @@ export function AgentQueryPanel({ chainId = MANTLE_CHAIN_ID }: { chainId?: numbe
       <ul className="flex-1 overflow-y-auto">
         {rows.length === 0 && !error ? (
           <li className="px-3 py-4 text-[11px] text-text-muted font-mono">
-            scanning the last {LOOKBACK_BLOCKS.toString()} blocks on Mantle…
+            scanning DecisionLog on Mantle…
           </li>
         ) : (
           rows.map((r) => {

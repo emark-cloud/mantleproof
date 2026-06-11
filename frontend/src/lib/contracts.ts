@@ -11,6 +11,7 @@
  * `cli/src/config.ts` follows).
  */
 import { parseAbi } from "viem";
+import type { PublicClient } from "viem";
 
 // Staking-free registry (2026-06-10 redeploy): submitAudit is nonpayable and
 // audits anchor for gas only. The StakingPool layer was retired to roadmap.
@@ -162,6 +163,75 @@ export const decisionLogAbi = parseAbi([
   "function count() view returns (uint256)",
   "event Decision(address indexed agent, address indexed target, bytes32 indexed auditRootHash, string action, string reason)",
 ]);
+
+/**
+ * Public `rpc.mantle.xyz` rejects any `eth_getLogs` whose block range exceeds
+ * ~10k blocks ("Invalid parameters were provided to the RPC method"). Stay
+ * comfortably under the cap per request.
+ */
+export const GETLOGS_MAX_RANGE = 9_500n;
+
+/**
+ * Earliest block to scan DecisionLog from. The on-chain Demo 2/3 decisions live
+ * around blocks 95.57M–95.75M (2026-05-20…05-24); pinning a floor avoids both
+ * the per-request range cap above AND a pointless multi-million-block sweep from
+ * genesis. Env-overridable for a fresh redeploy / testnet build.
+ */
+export const DECISION_LOG_START_BLOCK = BigInt(
+  (import.meta.env.VITE_DECISION_LOG_START_BLOCK as string | undefined) ?? "95560000",
+);
+
+/** Indexed-arg filter for the Decision event (all three topics optional). */
+export type DecisionLogFilter = {
+  agent?: `0x${string}`;
+  target?: `0x${string}`;
+  auditRootHash?: `0x${string}`;
+};
+
+/**
+ * `eth_getLogs` for the Decision event over an arbitrary [fromBlock, toBlock]
+ * range, transparently split into <= GETLOGS_MAX_RANGE windows so the public
+ * Mantle RPC accepts it. Chunks run with bounded concurrency; logs are returned
+ * flattened in ascending block order. Callers still narrow `log.args` themselves.
+ */
+export async function getDecisionLogsChunked(
+  client: PublicClient,
+  fromBlock: bigint,
+  toBlock: bigint,
+  args?: DecisionLogFilter,
+) {
+  const get = (lo: bigint, hi: bigint) =>
+    client.getLogs({
+      address: DECISION_LOG_ADDRESS,
+      event: decisionLogAbi[1],
+      args,
+      fromBlock: lo,
+      toBlock: hi,
+    });
+  type Logs = Awaited<ReturnType<typeof get>>;
+
+  const ranges: Array<[bigint, bigint]> = [];
+  for (let lo = fromBlock; lo <= toBlock; lo += GETLOGS_MAX_RANGE + 1n) {
+    const hi = lo + GETLOGS_MAX_RANGE > toBlock ? toBlock : lo + GETLOGS_MAX_RANGE;
+    ranges.push([lo, hi]);
+  }
+
+  const results: Logs[] = new Array(ranges.length);
+  let cursor = 0;
+  const CONCURRENCY = 6;
+  const worker = async () => {
+    while (cursor < ranges.length) {
+      const i = cursor++;
+      const range = ranges[i];
+      if (!range) break;
+      results[i] = await get(range[0], range[1]);
+    }
+  };
+  await Promise.all(
+    Array.from({ length: Math.min(CONCURRENCY, ranges.length) }, worker),
+  );
+  return results.flat() as Logs;
+}
 
 /* ------------------------------ Severity enum ------------------------------ */
 
