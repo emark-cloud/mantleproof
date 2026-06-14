@@ -18,6 +18,7 @@ import { EngineStatusFooter } from "../components/composite/EngineStatusFooter";
 import { SeverityBadge } from "../components/primitives/SeverityBadge";
 import { Address } from "../components/primitives/Address";
 import { StatusDot } from "../components/primitives/StatusDot";
+import { Logomark } from "../components/primitives/Logomark";
 import { Tip } from "../components/primitives/Tip";
 import {
   AGENT_ADDRESS,
@@ -74,7 +75,8 @@ export default function Landing() {
 function NavBar() {
   return (
     <nav className="border-b border-border-strong bg-panel px-6 py-3 flex items-center gap-6">
-      <Link to="/" className="font-mono text-sm font-semibold text-accent tracking-wider">
+      <Link to="/" className="flex items-center gap-2 font-mono text-sm font-semibold text-accent tracking-wider">
+        <Logomark size={22} />
         MANTLEPROOF
       </Link>
       <span className="font-mono text-[10px] text-text-muted uppercase tracking-wider hidden sm:inline">

@@ -1,0 +1,11 @@
+<svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Dark canvas tile so the accent shield reads on light browser tabs -->
+  <rect width="32" height="32" fill="#0A0A0B"/>
+  <!-- Outer hexagonal shield -->
+  <path d="M16 2L28 8V20C28 25.5 22.5 29.5 16 30C9.5 29.5 4 25.5 4 20V8L16 2Z" fill="none" stroke="#00FFA3" stroke-width="1.6"/>
+  <!-- Inner shield — audit mark -->
+  <path d="M16 7L23 10.5V18C23 21.5 19.8 24.2 16 24.5C12.2 24.2 9 21.5 9 18V10.5L16 7Z" fill="#00FFA31A" stroke="#00FFA3" stroke-width="1.1"/>
+  <!-- Oracle pulse dot -->
+  <circle cx="16" cy="17" r="2.5" fill="#00FFA3"/>
+  <line x1="16" y1="12" x2="16" y2="14.5" stroke="#00FFA3" stroke-width="1.6" stroke-linecap="round"/>
+</svg>

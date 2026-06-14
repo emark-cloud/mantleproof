@@ -11,6 +11,7 @@ import { EngineStatusFooter } from "../components/composite/EngineStatusFooter";
 import { DeployFeedPanel } from "../components/panels/DeployFeedPanel";
 import { PriorityCachePanel } from "../components/panels/PriorityCachePanel";
 import { AgentQueryPanel } from "../components/panels/AgentQueryPanel";
+import { Logomark } from "../components/primitives/Logomark";
 
 export default function Dashboard() {
   return (
@@ -32,7 +33,8 @@ export default function Dashboard() {
 function NavBar() {
   return (
     <nav className="border-b border-border-strong bg-panel px-4 py-2 flex items-center gap-4">
-      <Link to="/" className="font-mono text-sm font-semibold text-accent tracking-wider">
+      <Link to="/" className="flex items-center gap-2 font-mono text-sm font-semibold text-accent tracking-wider">
+        <Logomark size={20} />
         MANTLEPROOF
       </Link>
       <span className="font-mono text-[10px] text-text-muted uppercase tracking-wider">
