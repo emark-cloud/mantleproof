@@ -50,9 +50,10 @@ export function formatAuditResult(resp: AuditResponse): ToolResult {
     // Honest 404 — actionable so the agent knows what to do next.
     const text = [
       `no on-chain audit for ${resp.target} on chainId ${resp.chain_id}.`,
-      "use the `requestAudit` tool to pay 0.50 USDC on Base and trigger a Tier-2",
-      "audit; the result anchors on Mantle (eip155:5000) and the response carries",
-      "both txHashes.",
+      "use the `payAndAudit` tool to commission a fresh Tier-2 audit — it pays",
+      "0.50 USDC on Base with the agent's own wallet, anchors on Mantle",
+      "(eip155:5000), and returns both txHashes. (`requestAudit` surfaces the 402",
+      "requirements only, for an external x402 wallet.)",
     ].join(" ");
     return {
       content: [

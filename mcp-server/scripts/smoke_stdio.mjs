@@ -102,7 +102,10 @@ async function main() {
   const tools = await send("tools/list", {});
   const names = (tools.result?.tools ?? []).map((t) => t.name).sort();
   console.log(`[tools] ${names.join(", ")}`);
-  if (JSON.stringify(names) !== JSON.stringify(["auditContract", "getAudit", "requestAudit"])) {
+  if (
+    JSON.stringify(names) !==
+    JSON.stringify(["auditContract", "getAudit", "payAndAudit", "requestAudit"])
+  ) {
     throw new Error(`unexpected tool list: ${names.join(",")}`);
   }
 
@@ -151,9 +154,23 @@ async function main() {
     throw new Error("requestAudit should short-circuit to cache when target already audited");
   }
 
+  // payAndAudit on an already-audited target must short-circuit to the cache
+  // (free, no payment dance, no key needed). The funded paid path is exercised
+  // separately — it moves real USDC, so it's not part of this smoke.
+  console.log(`\n=== payAndAudit(Demo 1 vault) (expect cache hit, no payment) ===`);
+  const r5 = await send("tools/call", {
+    name: "payAndAudit",
+    arguments: { address: TARGETS[0], tier: 2 },
+  });
+  const t5 = r5.result?.content?.find((b) => b.type === "text")?.text ?? "";
+  console.log(t5.split("\n").slice(0, 2).join("\n"));
+  if (!t5.includes("cached audit found")) {
+    throw new Error("payAndAudit should short-circuit to cache when target already audited");
+  }
+
   child.kill();
   console.log(
-    "\n[smoke] OK — 3 tools advertised, getAudit live, requestAudit returns 402 requirements (no fabricated tx), cache short-circuit works",
+    "\n[smoke] OK — 4 tools advertised, getAudit live, requestAudit returns 402 requirements (no fabricated tx), payAndAudit + requestAudit cache short-circuit works",
   );
 }
 

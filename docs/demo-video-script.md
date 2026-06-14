@@ -158,12 +158,14 @@ the tool — do NOT call it manually:
 
 **VO:**
 > "Doorway two — and this is the one that matters. Drop MantleProof into any MCP-aware
-> agent — Claude Code, Cursor, your own — with one config block. Now the agent has three
-> new tools: `getAudit`, `auditContract`, `requestAudit`. Watch — I just *ask* it to check
+> agent — Claude Code, Cursor, your own — with one config block. Now the agent has four
+> new tools: `getAudit`, `auditContract`, `requestAudit`, and `payAndAudit` — three to
+> read an existing audit, one to *buy a fresh one*. Watch — I just *ask* it to check
 > a contract before a swap. It decides on its own to call `getAudit`, gets HIGH severity
 > back with the integrity match, and **refuses — in plain language, before signing
 > anything.** That's the whole pitch: your agent calls the oracle first, automatically.
-> You didn't write that logic. The tool did."
+> You didn't write that logic. The tool did. (And when there's *no* audit yet, it can
+> commission one itself — doorway four.)"
 
 > Lead with a HIGH-severity target so the refusal is dramatic. Keep `integrity.match:
 > true` visible — that's the "it can't be faked" tell.
@@ -191,40 +193,56 @@ cast call 0xcF3703BD76C64DA8a13461e820456d0576662aaf \
 > on-chain truth the CLI and the MCP tool both resolve to.** Another contract can call
 > this in the same transaction it's about to make."
 
-### [3:15–4:05] — Doorway 4: generate a *new* audit (x402, pay-per-audit)
+### [3:15–4:05] — Doorway 4: the agent commissions a *new* audit (Claude Code + MCP, pays its own way)
 
-**SCREEN:** Terminal. Show the two-step x402 flow against `/x402/audit/{address}` — first
-the 402, then the paid response. Use an x402-aware client.
-
-```
-POST /x402/audit/0x5d3a1Ff2b6BAb83b63cd9AD0787074081a52ef34   → 402
-  accepts: 0.50 USDC on base (eip155:8453) → payTo 0x2a30…605B6A
-```
+**SCREEN:** Same live Claude Code session as Doorway 2 — but now point it at a contract
+that has **never been audited**, and tell it to get one if it's missing. Let Claude
+decide to pay. Do NOT hand-invoke the tool. This is the agentic-economy money shot: the
+agent buys its own audit.
 
 ```
-# client signs EIP-3009, retries with X-PAYMENT header …
-POST /x402/audit/0x5d3a1Ff2b6BAb83b63cd9AD0787074081a52ef34   → 200
+> I'm considering integrating 0x5d3a1Ff2b6BAb83b63cd9AD0787074081a52ef34 —
+  it's brand new. If there's no audit on it yet, get one before I commit.
 
-=== AUDIT GENERATED ===
-  severity: HIGH   tier: 2
-  hallucination_guard: "Hallucination guard fired: 2 masked"
+● mantleproof - getAudit (MCP)
+  ⎿ no audit anchored for this target yet
 
-=== x402 RECEIPTS (cross-chain) ===
-  payment  0x98c5137d…00cd1  → basescan.org    (0.50 USDC on Base)
-  anchor   0xbffe7ca5…930ff  → mantlescan.xyz  (Mantle)
+● mantleproof - payAndAudit (MCP)
+  ⎿ 402 → 0.50 USDC on base (eip155:8453) → payTo 0x2a30…605B6A
+     === FRESH AUDIT GENERATED — agent paid for it ===
+       paid from your saved MantleProof audit wallet  0x7C3a…9b2F  (2.50 USDC on Base)
+     ● HIGH  0x5d3a…ef34  tier=2  findings=2
+       rootHash 0x121ba360…a6d3bc · ipfs://bafkrei…
+       hallucination guard fired: 2 masked
+     === x402 RECEIPTS (cross-chain) ===
+       payment 0x98c5137d…00cd1 → basescan.org    (0.50 USDC on Base)
+       anchor  0xbffe7ca5…930ff → mantlescan.xyz  (Mantle)
+
+  No audit existed, so I commissioned a fresh Tier-2 one and paid for it
+  myself — 0.50 USDC from my own wallet on Base. It came back HIGH severity:
+  hidden mint() plus a pause() honeypot vector. The report is anchored on
+  Mantle and the guard masked 2 unverifiable claims. Both receipts are
+  on-chain. I'd hold off integrating until those HIGH findings are resolved.
 ```
 
 **VO:**
-> "And doorway four — generating a *fresh* audit on demand. A non-agent caller, or any
-> wallet, hits the paid endpoint. First it gets a 402: fifty cents of USDC, on Base.
-> The client signs, pays, and the engine runs the full pipeline live — Tier 1, Tier 2,
-> the guard — pins it to IPFS, and anchors it on Mantle. You get **both** transaction
-> hashes back: the payment on Base, the audit anchored on Mantle. Cross-chain, fully
-> receipted. And the guard fired here — two claims masked — and it told you. **Pay on
-> Base, get proof on Mantle.**"
+> "And doorway four — this is where it gets real. Same agent, but now I point it at a
+> contract *nobody's audited yet*, and tell it: if there's no audit, get one. It checks
+> `getAudit`, finds nothing — so it calls `payAndAudit`. Watch what it does: it pays from
+> its **own** wallet — one it created on first use and you funded once — gets a 402 for
+> fifty cents of USDC on Base, signs the payment, and
+> the engine runs the full pipeline live — Tier 1, Tier 2, the guard — pins to IPFS and
+> anchors on Mantle. **The agent paid for its own audit.** You get **both** transaction
+> hashes back — payment on Base, proof on Mantle — and the guard fired: two claims
+> masked, and it said so. An autonomous agent that *buys the truth before it acts.*
+> **Pay on Base, get proof on Mantle.**"
 
-> If you must cut for time, this is the section to trim — but keep the "Hallucination
-> guard fired" line; it closes the credibility loop the architecture beat opened.
+> Honesty note for the build: `payAndAudit` generates a fresh *payer* wallet — the
+> agent's own money, pre-funded with USDC on Base off-camera — which is NOT MantleProof's
+> oracle-signer key. The tx hashes are real settlements, never fabricated (the
+> hallucination-label invariant survives). If you must cut for time, this is the section
+> to trim — but keep the "hallucination guard fired" line; it closes the credibility loop
+> the architecture beat opened.
 
 ---
 
@@ -254,22 +272,42 @@ MantleProof — the on-chain audit oracle for Mantle's agentic economy
 - **The walkthrough is the deliverable now.** Hook + "what it is" are slides — keep them
   tight and get to the terminal. The video earns trust by being *runnable*, not narrated.
 - **De-risk the live runs.** Mainnet/RPC and the paid x402 leg can 503 or lag. Record
-  each doorway *in advance*, keep the winning take, narrate over it. The Claude Code
-  tool-call and the x402 paid run especially — rehearse until clean, then use the good take.
-- **Let Claude Code decide.** For doorway 2, do not hand-invoke the MCP tool. The whole
-  point is that the agent *chooses* to call `getAudit` from a natural prompt — that
-  autonomy is the wow. If it doesn't call it on the first try, strengthen the prompt
-  ("check it's safe before I do anything") rather than calling the tool yourself.
+  each doorway *in advance*, keep the winning take, narrate over it. Both Claude Code
+  doorways especially — the read (doorway 2) and the `payAndAudit` pay-and-anchor run
+  (doorway 4) — rehearse until clean, then use the good take. The `payAndAudit` leg
+  routes through the CDP facilitator + ProtonVPN hop and can take a minute; record it,
+  don't make the viewer wait.
+- **Let Claude Code decide.** For doorways 2 *and* 4, do not hand-invoke the MCP tools.
+  The whole point is that the agent *chooses* to call `getAudit` — and, when there's no
+  audit, *chooses* to call `payAndAudit` and pay — from a natural prompt. That autonomy
+  is the wow. If it doesn't call the tool on the first try, strengthen the prompt
+  ("check it's safe before I do anything" / "if there's no audit yet, get one") rather
+  than calling the tool yourself.
+- **`payAndAudit` setup (implemented — `mcp-server/src/tools/payAndAudit.ts`).** No key
+  is passed. On first use the tool auto-creates a *reusable* wallet at
+  `~/.mantleproof/wallet.json`; before recording, run it once and fund that wallet with a
+  few USDC on Base off-camera, so the take shows a clean paid run (the tool reads the live
+  balance and prints it). Two ways to shoot it: (a) **clean** — pre-funded reusable
+  wallet, single tool call → success (the block above); or (b) **full seamless UX** — let
+  it print the "I created a reusable wallet … fund it once" prompt, send USDC on camera,
+  then ask again → success. The payer wallet is the *agent's* money, strictly separate
+  from the oracle-signer key; every tx hash returned is a real settlement, never
+  fabricated (CLAUDE.md honesty invariant). `BASE_RPC_URL` overrides the default Base RPC;
+  `MANTLEPROOF_PAYER_KEY` can override the saved wallet with your own key.
 - **Keep real strings on screen.** `7/7 checks passed`, `integrity.match: true`,
   `Hallucination guard fired: N masked`, the twin tx hashes — your console output is more
   convincing than any graphic. Don't paraphrase it into slides.
 - **Real demo targets** (all anchored on mainnet): `0x8f6679eb031799fc9c5e149dfb75b4543808912f`
-  (BackdooredMemeToken, HIGH — use for CLI + Claude Code), `0x1892f77e335c133ce4a7b28555f13ba74cbb76fa`
+  (BackdooredMemeToken, HIGH — use for CLI + Claude Code read), `0x1892f77e335c133ce4a7b28555f13ba74cbb76fa`
   (BuggyYieldVault, HIGH), `0x013e138EF6008ae5FDFDE29700e3f2Bc61d21E3a` (LBRouter, MEDIUM).
-  Registry: `0xcF3703BD76C64DA8a13461e820456d0576662aaf`.
-- **Pacing budget:** Architecture 55s · CLI 35s · Claude Code 70s · on-chain 35s · x402
-  50s · CTA 25s. The Claude Code doorway is the longest on purpose — "set up your agent"
-  is the developer story judges remember.
+  Registry: `0xcF3703BD76C64DA8a13461e820456d0576662aaf`. **Doorway 4 needs an
+  *un-audited* target** (e.g. `0x5d3a1Ff2b6BAb83b63cd9AD0787074081a52ef34`) so
+  `payAndAudit` actually *generates* a fresh audit instead of returning a cached one —
+  pick a target with no existing anchor and don't pre-run it.
+- **Pacing budget:** Architecture 55s · CLI 35s · Claude Code read 70s · on-chain 35s ·
+  agent pay-and-audit 50s · CTA 25s. The two Claude Code doorways carry the video —
+  "set up your agent" and "your agent buys its own audit" are the developer stories
+  judges remember.
 - **No emoji / no light mode / no spinners** in any frame of the product UI — your own
   design rules; judges will be in the UI.
 </content>

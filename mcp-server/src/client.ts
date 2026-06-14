@@ -190,6 +190,75 @@ export async function startX402Audit(address: string): Promise<X402InitResult> {
   return { ok: false, error: `engine ${res.status}`, status: res.status, body };
 }
 
+/** Cross-chain envelope from a *paid* POST /x402/audit/{address} (HTTP 200). */
+export interface X402PaidEnvelope {
+  audited: boolean;
+  target: string;
+  audit: AuditReport & {
+    root_hash?: string;
+    ipfs_uri?: string;
+    chain_id?: number;
+    anchor_tx?: string;
+    severity?: string;
+  };
+  x402: {
+    payment_chain: string;
+    payment_chain_id: number;
+    payment_tx: string | null;
+    anchor_chain: string;
+    anchor_chain_id: number | null;
+    anchor_tx: string | null;
+    amount_base_units: string;
+    asset: string;
+    payer: string | null;
+    settle_error: string | null;
+  };
+}
+
+export type X402PaidResult =
+  | { ok: true; status: 200; body: X402PaidEnvelope }
+  | { ok: false; error: string; status?: number; body?: unknown };
+
+/**
+ * Second leg of the dance: POST /x402/audit/{address} WITH a signed X-PAYMENT
+ * header. The engine verifies with the facilitator, runs the audit pipeline,
+ * anchors on Mantle, settles USDC on Base, and returns the cross-chain
+ * envelope. Never throws — the tool wants a structured answer in every branch.
+ */
+export async function postX402WithPayment(
+  address: string,
+  xPayment: string,
+): Promise<X402PaidResult> {
+  let res: Response;
+  try {
+    res = await fetch(`${apiBase()}/x402/audit/${address}`, {
+      method: "POST",
+      headers: { "X-PAYMENT": xPayment },
+    });
+  } catch (e) {
+    return { ok: false, error: `engine unreachable: ${(e as Error).message}` };
+  }
+  let body: unknown = undefined;
+  try {
+    body = await res.json();
+  } catch {
+    /* ignore — non-JSON error body */
+  }
+  if (res.status === 200) {
+    return { ok: true, status: 200, body: body as X402PaidEnvelope };
+  }
+  const detail =
+    body && typeof body === "object" && "detail" in body
+      ? JSON.stringify((body as { detail: unknown }).detail)
+      : "";
+  return {
+    ok: false,
+    error: `engine ${res.status}${detail ? `: ${detail.slice(0, 300)}` : ""}`,
+    status: res.status,
+    body,
+  };
+}
+
 export async function fetchHealth(): Promise<HealthResult> {
   try {
     const res = await fetch(`${apiBase()}/api/health`);
