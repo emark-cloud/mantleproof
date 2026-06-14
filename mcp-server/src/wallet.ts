@@ -148,7 +148,12 @@ export async function usdcBalance(
   owner: `0x${string}`,
 ): Promise<bigint | null> {
   try {
-    const client = createPublicClient({ chain: base, transport: http(BASE_RPC) });
+    const client = createPublicClient({
+      chain: base,
+      // Bound the read so a flaky Base RPC fails fast (caller treats null as
+      // "unknown" and proceeds — settle is the source of truth).
+      transport: http(BASE_RPC, { timeout: 10_000, retryCount: 1 }),
+    });
     return (await client.readContract({
       address: asset,
       abi: ERC20_BALANCE_ABI,

@@ -1,6 +1,6 @@
 {
   "name": "mantleproof-mcp",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "MCP server: query the MantleProof on-chain audit oracle (Mantle) from any MCP-aware agent (Claude Desktop, Cursor, etc.)",
   "keywords": ["mcp", "mantle", "audit", "oracle", "web3", "erc-8004"],
   "homepage": "https://github.com/emark-cloud/mantleproof#readme",

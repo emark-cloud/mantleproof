@@ -103,6 +103,29 @@ function apiBase(): string {
   return process.env.MANTLEPROOF_API_BASE ?? DEFAULT_BASE;
 }
 
+// Bare fetch() has no overall timeout (Node/undici defaults to ~5 min), so a
+// slow or cold-starting engine would hang the MCP tool call — and the agent
+// waiting on it — for minutes. Bound every request. Reads/inits are quick; the
+// PAID x402 leg runs the full Tier-2 pipeline (LLM reasoning + IPFS pin +
+// on-chain anchor + Base settle), so it gets a much larger budget. Both are
+// overridable via env.
+const READ_TIMEOUT_MS = Number(process.env.MANTLEPROOF_HTTP_TIMEOUT_MS) || 30_000;
+const PAID_TIMEOUT_MS = Number(process.env.MANTLEPROOF_PAID_TIMEOUT_MS) || 180_000;
+
+/** AbortSignal.timeout, guarded for runtimes that predate it (Node < 17.3). */
+function timeoutSignal(ms: number): AbortSignal | undefined {
+  return typeof AbortSignal !== "undefined" && "timeout" in AbortSignal
+    ? AbortSignal.timeout(ms)
+    : undefined;
+}
+
+/** Turn a fetch rejection into an honest, caller-readable reason. */
+function netError(e: unknown, ms: number): string {
+  const err = e as Error;
+  if (err?.name === "TimeoutError") return `engine timed out after ${Math.round(ms / 1000)}s`;
+  return `engine unreachable: ${err?.message ?? String(e)}`;
+}
+
 /**
  * GET /api/audit/{address}. Never throws — the MCP tool wants a structured
  * answer in every branch (200 ok, 404 not-audited, network failure).
@@ -110,9 +133,11 @@ function apiBase(): string {
 export async function fetchAudit(address: string): Promise<AuditResponse> {
   let res: Response;
   try {
-    res = await fetch(`${apiBase()}/api/audit/${address}`);
+    res = await fetch(`${apiBase()}/api/audit/${address}`, {
+      signal: timeoutSignal(READ_TIMEOUT_MS),
+    });
   } catch (e) {
-    return { ok: false, error: `engine unreachable: ${(e as Error).message}` };
+    return { ok: false, error: netError(e, READ_TIMEOUT_MS) };
   }
 
   if (res.status === 200) {
@@ -171,9 +196,12 @@ export type X402InitResult =
 export async function startX402Audit(address: string): Promise<X402InitResult> {
   let res: Response;
   try {
-    res = await fetch(`${apiBase()}/x402/audit/${address}`, { method: "POST" });
+    res = await fetch(`${apiBase()}/x402/audit/${address}`, {
+      method: "POST",
+      signal: timeoutSignal(READ_TIMEOUT_MS),
+    });
   } catch (e) {
-    return { ok: false, error: `engine unreachable: ${(e as Error).message}` };
+    return { ok: false, error: netError(e, READ_TIMEOUT_MS) };
   }
   if (res.status === 402) {
     return { ok: true, status: 402, body: (await res.json()) as X402Body };
@@ -234,9 +262,10 @@ export async function postX402WithPayment(
     res = await fetch(`${apiBase()}/x402/audit/${address}`, {
       method: "POST",
       headers: { "X-PAYMENT": xPayment },
+      signal: timeoutSignal(PAID_TIMEOUT_MS),
     });
   } catch (e) {
-    return { ok: false, error: `engine unreachable: ${(e as Error).message}` };
+    return { ok: false, error: netError(e, PAID_TIMEOUT_MS) };
   }
   let body: unknown = undefined;
   try {
@@ -261,11 +290,13 @@ export async function postX402WithPayment(
 
 export async function fetchHealth(): Promise<HealthResult> {
   try {
-    const res = await fetch(`${apiBase()}/api/health`);
+    const res = await fetch(`${apiBase()}/api/health`, {
+      signal: timeoutSignal(READ_TIMEOUT_MS),
+    });
     if (!res.ok) return { ok: false, error: `engine ${res.status}`, status: res.status };
     const body = (await res.json()) as HealthResponse;
     return { ok: true, ...body };
   } catch (e) {
-    return { ok: false, error: `engine unreachable: ${(e as Error).message}` };
+    return { ok: false, error: netError(e, READ_TIMEOUT_MS) };
   }
 }
