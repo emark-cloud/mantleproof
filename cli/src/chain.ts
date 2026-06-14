@@ -7,6 +7,7 @@ import {
   BaseError,
   ContractFunctionRevertedError,
   createPublicClient,
+  fallback,
   http,
   parseAbi,
   type Address,
@@ -14,17 +15,22 @@ import {
   type PublicClient,
 } from "viem";
 import { mantle } from "viem/chains";
-import { ADDR, RPC_URL } from "./config.js";
+import { ADDR, RPC_URLS } from "./config.js";
 
 export function makeClient(): PublicClient {
-  // One bounded retry layer lives here (viem's transport handles network-level
-  // retries); `withRetry` adds at most one more logical retry. Keep both small —
-  // stacking deep retries against a slow public RPC is what made `verify` appear
-  // to hang for minutes. A short per-request timeout plus the wall-clock deadline
-  // in runVerify is the real safety net.
+  // Fail over across the ordered RPC list (config.RPC_URLS): if the first
+  // endpoint is slow or dead, viem's `fallback` moves to the next one inside a
+  // single read. Per-endpoint retryCount is 0 so a stalling endpoint fails over
+  // fast (bounded by the 8s timeout) rather than burning retries on it; the
+  // `withRetry` wrapper adds one more logical retry across the whole chain, and
+  // runVerify's wall-clock deadline is the final backstop. Stacking deep retries
+  // against a single slow RPC is what made `verify` appear to hang for minutes.
   return createPublicClient({
     chain: mantle,
-    transport: http(RPC_URL, { retryCount: 2, retryDelay: 300, timeout: 8_000 }),
+    transport: fallback(
+      RPC_URLS.map((url) => http(url, { retryCount: 0, timeout: 8_000 })),
+      { retryCount: 0 },
+    ),
   });
 }
 

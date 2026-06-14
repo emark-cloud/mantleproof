@@ -28,9 +28,11 @@ Connects to Mantle mainnet and runs seven real reads (no hardcoded results):
 A bonus, soft check (`Tier 2 engine reachable`) runs only when `ENGINE_URL` is
 set; it never counts toward the on-chain pass total.
 
-The reads are bounded by a wall-clock budget (~45s). If the default public RPC is
-slow or unreachable, `verify` fails fast with a clear message rather than hanging
-— point it at a faster endpoint with `MANTLE_RPC_URL` and re-run:
+The reads fail over across a built-in list of public RPCs (drpc → publicnode →
+public-rpc → mantle.xyz) and are bounded by a wall-clock budget (~45s), so a
+single slow or dead endpoint no longer stalls a run. If every endpoint is
+unreachable, `verify` fails fast with a clear message rather than hanging — pin a
+specific RPC with `MANTLE_RPC_URL` and re-run:
 
 ```bash
 MANTLE_RPC_URL=https://mantle.drpc.org npx mantleproof verify
@@ -48,7 +50,7 @@ pointed to, never invoked — `check` never spends.
 
 | Var | Default | Purpose |
 |---|---|---|
-| `MANTLE_RPC_URL` | `https://rpc.mantle.xyz` | RPC endpoint |
+| `MANTLE_RPC_URL` | _(built-in fallback list)_ | use a single RPC instead of the built-in failover list (drpc → publicnode → public-rpc → mantle.xyz) |
 | `ENGINE_URL` | _(unset)_ | optional engine base URL for the Tier-2-reachable check |
 | `NO_COLOR` | _(unset)_ | disable ANSI colors |
 

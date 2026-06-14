@@ -25,7 +25,7 @@ ${c.bold("Examples")}
   npx mantleproof check 0x1892f77e335c133ce4a7b28555f13ba74cbb76fa
 
 ${c.bold("Environment")}
-  MANTLE_RPC_URL   override the default https://rpc.mantle.xyz
+  MANTLE_RPC_URL   use a single RPC instead of the built-in fallback list
   ENGINE_URL       optional engine base URL for the Tier-2-reachable check
   NO_COLOR         disable ANSI colors
 `);

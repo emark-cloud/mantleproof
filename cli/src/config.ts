@@ -12,8 +12,25 @@
 import type { Address, Hex } from "viem";
 
 export const CHAIN_ID = 5000 as const;
-export const RPC_URL = process.env.MANTLE_RPC_URL || "https://rpc.mantle.xyz";
 export const EXPLORER = "https://mantlescan.xyz";
+
+/**
+ * Ordered public Mantle mainnet RPCs. The CLI tries them in order and fails over
+ * automatically (viem `fallback`), so one slow/dead endpoint no longer stalls a
+ * run. `MANTLE_RPC_URL` overrides the whole list with a single endpoint.
+ *
+ * Probed 2026-06-14: the official `rpc.mantle.xyz` was degraded (timeouts / key
+ * wall), so it sits LAST as a recover-if-healthy backstop; drpc + publicnode are
+ * the working primaries. Keep this list ordered fastest-first.
+ */
+export const RPC_URLS: readonly string[] = process.env.MANTLE_RPC_URL
+  ? [process.env.MANTLE_RPC_URL]
+  : [
+      "https://mantle.drpc.org",
+      "https://mantle-rpc.publicnode.com",
+      "https://mantle.public-rpc.com",
+      "https://rpc.mantle.xyz",
+    ];
 
 /** MantleProof's own ERC-8004 agent identity tokenId (assigned on registration). */
 export const AGENT_TOKEN_ID = 96n;
