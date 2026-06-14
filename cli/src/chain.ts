@@ -17,9 +17,14 @@ import { mantle } from "viem/chains";
 import { ADDR, RPC_URL } from "./config.js";
 
 export function makeClient(): PublicClient {
+  // One bounded retry layer lives here (viem's transport handles network-level
+  // retries); `withRetry` adds at most one more logical retry. Keep both small —
+  // stacking deep retries against a slow public RPC is what made `verify` appear
+  // to hang for minutes. A short per-request timeout plus the wall-clock deadline
+  // in runVerify is the real safety net.
   return createPublicClient({
     chain: mantle,
-    transport: http(RPC_URL, { retryCount: 5, retryDelay: 400, timeout: 20_000 }),
+    transport: http(RPC_URL, { retryCount: 2, retryDelay: 300, timeout: 8_000 }),
   });
 }
 
@@ -45,7 +50,7 @@ function isDeterministicRevert(e: unknown): boolean {
 }
 
 /** Retry transient (network/RPC) failures; never retry a deterministic revert. */
-async function withRetry<T>(fn: () => Promise<T>, tries = 4, delayMs = 400): Promise<T> {
+async function withRetry<T>(fn: () => Promise<T>, tries = 2, delayMs = 300): Promise<T> {
   let last: unknown;
   for (let i = 0; i < tries; i++) {
     try {

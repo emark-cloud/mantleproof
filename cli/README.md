@@ -18,14 +18,23 @@ Connects to Mantle mainnet and runs seven real reads (no hardcoded results):
 
 1. Registry deployed + `oracleSigner` matches the expected immutable signer.
 2. MantleProof registered in Mantle's ERC-8004 Identity Registry (tokenId #96).
-3. `StakingPool` holds live Tier 2 stake (pool balance).
+3. Demo audits anchored on the staking-free registry (gas-only anchors).
 4. Most-recent audit anchored on-chain (rootHash + age).
 5. `getAudit()` returns a structured finding (severity + tier).
-6. A dispute was resolved on-chain (RETRACTED → stake slashed).
+6. The disputes layer was exercised on mainnet (a dispute resolved RETRACTED;
+   economic slashing is now roadmap).
 7. A paying customer left ERC-8004 reputation about MantleProof.
 
 A bonus, soft check (`Tier 2 engine reachable`) runs only when `ENGINE_URL` is
 set; it never counts toward the on-chain pass total.
+
+The reads are bounded by a wall-clock budget (~45s). If the default public RPC is
+slow or unreachable, `verify` fails fast with a clear message rather than hanging
+— point it at a faster endpoint with `MANTLE_RPC_URL` and re-run:
+
+```bash
+MANTLE_RPC_URL=https://mantle.drpc.org npx mantleproof verify
+```
 
 ## `mantleproof check <address>`
 
