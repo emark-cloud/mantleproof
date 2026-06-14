@@ -247,11 +247,13 @@ export const SEVERITY_BY_UINT: Record<number, "info" | "low" | "medium" | "high"
 /* ------------------------- Known audited targets ------------------------- */
 
 /**
- * The three audits anchored by the demo flows on Mantle mainnet. Until the
- * cache-warmer (T29) lands and an index of all anchored audits exists, the
- * dashboard's "priority cache" panel reads from this hand-curated list — every
- * row here has a verifiable on-chain rootHash (see TODO.md Decisions log
- * 2026-05-20 T28). Honest UI: we don't pretend the cache has 200 entries.
+ * The three audits anchored by the demo flows on Mantle mainnet. The
+ * dashboard's PriorityCachePanel now reads the full anchored-audit index from
+ * the T29 cache-warmer (`/api/cache`) and unions THIS curated set in — so the
+ * demo three always show (with their friendly label/provenance) even before
+ * the walker indexes them, and every other anchored audit shows alongside.
+ * Every row here has a verifiable on-chain rootHash (see TODO.md Decisions log
+ * 2026-05-20 T28).
  */
 export const KNOWN_TARGETS: readonly { address: `0x${string}`; label: string; provenance: string }[] = [
   {

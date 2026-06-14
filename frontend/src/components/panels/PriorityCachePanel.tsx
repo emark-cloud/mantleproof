@@ -1,22 +1,36 @@
 /**
  * PriorityCachePanel — docs/design.md §6.1 (middle column, headline panel).
  *
- * Renders the three mainnet demo audits (`KNOWN_TARGETS`) read via
- * `/api/audit/{addr}` — the receipts the demo video walks through. These are the
- * only audits re-anchored to the live registry, so they are the only ones shown.
- * The T29 cache-warmer feed (`/api/cache`) is intentionally NOT surfaced here:
- * we show only the curated, re-anchored demo set.
+ * Renders EVERY audit anchored to the live registry, newest first, read from
+ * the T29 cache-warmer index (`/api/cache`) — the on-chain `AuditSubmitted`
+ * stream the walker keeps indexed. The curated demo three (`KNOWN_TARGETS`)
+ * are unioned in (so they always show, even if the walker hasn't indexed them
+ * yet) and their friendly label/provenance is overlaid on the feed row. Each
+ * visible row is then enriched via `/api/audit/{addr}` for tier + finding count
+ * + integrity. The cache row supplies severity/name/timestamp so rows render
+ * immediately, before the per-audit fetch lands.
  */
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { useQueries } from "@tanstack/react-query";
+import { useQueries, useQuery } from "@tanstack/react-query";
 import { StatusDot } from "../primitives/StatusDot";
 import { Address } from "../primitives/Address";
 import { SeverityBadge } from "../primitives/SeverityBadge";
 import { Timestamp } from "../primitives/Timestamp";
 import { Tip } from "../primitives/Tip";
 import { KNOWN_TARGETS, MANTLE_CHAIN_ID } from "../../lib/contracts";
-import { getAudit, type AuditResponse } from "../../lib/api";
+import { getAudit, getCacheFeed, type AuditResponse, type CacheItem } from "../../lib/api";
+
+/** Curated demo targets keyed by lowercased address for overlay lookup. */
+const CURATED = new Map(KNOWN_TARGETS.map((t) => [t.address.toLowerCase(), t]));
+
+/** One target to render: address + display metadata + optional cache-feed row. */
+type PanelTarget = {
+  address: `0x${string}`;
+  label: string;
+  provenance: string;
+  cache?: CacheItem;
+};
 
 /** Case-insensitive substring match across address + name. Empty query matches all. */
 function matches(q: string, address: string, name?: string | null, label?: string): boolean {
@@ -30,9 +44,40 @@ function matches(q: string, address: string, name?: string | null, label?: strin
 }
 
 export function PriorityCachePanel({ chainId = MANTLE_CHAIN_ID }: { chainId?: number }) {
-  // Curated demo targets, read live from /api/audit/{addr}.
+  // Primary source: the on-chain anchored-audit index (T29 cache-warmer).
+  const cacheQ = useQuery({
+    queryKey: ["cache-feed"],
+    queryFn: () => getCacheFeed(50),
+    staleTime: 30_000,
+    retry: 1,
+  });
+
+  // Merge feed ∪ curated. Feed rows come first (already newest-first from the
+  // engine); curated targets not yet indexed are appended so they never vanish.
+  const targets = useMemo<PanelTarget[]>(() => {
+    const seen = new Set<string>();
+    const out: PanelTarget[] = [];
+    for (const it of cacheQ.data?.items ?? []) {
+      const key = it.target.toLowerCase();
+      if (seen.has(key)) continue;
+      seen.add(key);
+      const cur = CURATED.get(key);
+      out.push({
+        address: it.target as `0x${string}`,
+        label: cur?.label ?? it.contract_name ?? "unverified contract",
+        provenance: cur?.provenance ?? `anchored on Mantle mainnet · block ${it.block_number}`,
+        cache: it,
+      });
+    }
+    for (const t of KNOWN_TARGETS) {
+      if (!seen.has(t.address.toLowerCase())) out.push({ ...t });
+    }
+    return out;
+  }, [cacheQ.data]);
+
+  // Enrich each target with the full audit envelope (tier, finding count, integrity).
   const queries = useQueries({
-    queries: KNOWN_TARGETS.map((t) => ({
+    queries: targets.map((t) => ({
       queryKey: ["audit", t.address],
       queryFn: () => getAudit(t.address),
       staleTime: 30_000,
@@ -40,8 +85,8 @@ export function PriorityCachePanel({ chainId = MANTLE_CHAIN_ID }: { chainId?: nu
     })),
   });
 
-  const curatedRows = useMemo(() => {
-    return KNOWN_TARGETS.map((t, i) => {
+  const rows = useMemo(() => {
+    return targets.map((t, i) => {
       const q = queries[i];
       return {
         target: t,
@@ -50,26 +95,26 @@ export function PriorityCachePanel({ chainId = MANTLE_CHAIN_ID }: { chainId?: nu
         error: q?.error,
       };
     });
-  }, [queries]);
+  }, [targets, queries]);
 
   const [query, setQuery] = useState("");
 
   // Sort by on-chain anchor timestamp, newest first.
   //   - loaded + audited → anchor.timestamp
-  //   - still loading    → +Infinity (pin to top so loading state is visible;
-  //                         resolves into real position once the query lands)
+  //   - cache row only   → cache.timestamp (renders correctly before enrich lands)
+  //   - still loading    → +Infinity (pin to top so loading state is visible)
   //   - not audited      → 0 (sink to bottom; honest)
   const sorted = useMemo(() => {
-    const withTs = curatedRows.map((entry) => {
+    const withTs = rows.map((entry) => {
       let sortTs = 0;
-      if (entry.isLoading) sortTs = Number.POSITIVE_INFINITY;
-      else if (entry.data?.audited && entry.data.anchor)
-        sortTs = entry.data.anchor.timestamp;
+      if (entry.data?.audited && entry.data.anchor) sortTs = entry.data.anchor.timestamp;
+      else if (entry.target.cache) sortTs = entry.target.cache.timestamp;
+      else if (entry.isLoading) sortTs = Number.POSITIVE_INFINITY;
       return { entry, sortTs };
     });
     withTs.sort((a, b) => b.sortTs - a.sortTs);
     return withTs.map((r) => r.entry);
-  }, [curatedRows]);
+  }, [rows]);
 
   const filtered = useMemo(
     () =>
@@ -77,14 +122,17 @@ export function PriorityCachePanel({ chainId = MANTLE_CHAIN_ID }: { chainId?: nu
         const name =
           (entry.data?.audited && entry.data.report
             ? (entry.data.report.contract_name as string | undefined)
-            : undefined) ?? entry.target.label;
+            : undefined) ??
+          entry.target.cache?.contract_name ??
+          entry.target.label;
         return matches(query, entry.target.address, name, entry.target.label);
       }),
     [sorted, query],
   );
 
-  const totalAudited = curatedRows.filter((r) => r.data?.audited).length;
-  const totalShown = curatedRows.length;
+  // "audited" = has a cache row (anchored on-chain) or a resolved audited envelope.
+  const totalAudited = rows.filter((r) => r.data?.audited || r.target.cache).length;
+  const totalShown = rows.length;
   const shownAfterFilter = filtered.length;
 
   return (
@@ -112,6 +160,11 @@ export function PriorityCachePanel({ chainId = MANTLE_CHAIN_ID }: { chainId?: nu
       </div>
 
       <ul className="flex-1 overflow-y-auto">
+        {cacheQ.isLoading && totalShown === 0 && (
+          <li className="px-3 py-4 font-mono text-[11px] text-text-muted">
+            reading anchored-audit index…
+          </li>
+        )}
         {query && shownAfterFilter === 0 && (
           <li className="px-3 py-4 font-mono text-[11px] text-text-muted">
             no audited contracts match <span className="text-text-secondary">{query}</span>
@@ -119,13 +172,19 @@ export function PriorityCachePanel({ chainId = MANTLE_CHAIN_ID }: { chainId?: nu
         )}
         {filtered.map((entry) => {
           const { target, data, isLoading, error } = entry;
+          const cache = target.cache;
           const isAudited = data?.audited === true;
           const anchor = isAudited && data ? data.anchor : null;
           const report = isAudited && data ? data.report : null;
-          const severity = anchor?.severity ?? "info";
+          // Prefer the enriched envelope; fall back to the cache-feed row so a
+          // freshly-indexed audit renders fully before /api/audit resolves.
+          const severity = anchor?.severity ?? cache?.severity ?? "info";
+          const anchorTs = anchor?.timestamp ?? cache?.timestamp ?? null;
+          const auditCount = anchor?.audit_count ?? cache?.audit_count ?? null;
           const findingCount = Array.isArray(report?.findings)
             ? (report!.findings as unknown[]).length
-            : 0;
+            : undefined;
+          const onChain = isAudited || Boolean(cache);
           return (
             <li key={target.address}>
               <Link
@@ -134,13 +193,13 @@ export function PriorityCachePanel({ chainId = MANTLE_CHAIN_ID }: { chainId?: nu
               >
                 <div className="flex items-center gap-2">
                   <StatusDot
-                    status={isLoading ? "running" : isAudited ? "complete" : "skipped"}
+                    status={onChain ? "complete" : isLoading ? "running" : "skipped"}
                   />
                   <Address value={target.address} chainId={chainId} withScanLink />
                   <span className="ml-auto">
-                    {anchor && (
+                    {anchorTs !== null && (
                       <Timestamp
-                        epochSeconds={anchor.timestamp}
+                        epochSeconds={anchorTs}
                         className="text-text-muted text-[11px]"
                       />
                     )}
@@ -150,13 +209,17 @@ export function PriorityCachePanel({ chainId = MANTLE_CHAIN_ID }: { chainId?: nu
                   <span className="text-text-primary">{target.label}</span>
                 </div>
                 <div className="mt-1.5 flex items-center gap-2 text-[11px]">
-                  {isAudited ? (
+                  {onChain ? (
                     <>
                       <SeverityBadge severity={severity} count={findingCount} />
-                      <Tip text="Tier 1 = fast pattern-matching pass. Tier 2 = deeper LLM-reasoning pass.">
-                        <span className="text-text-muted">tier {report?.tier ?? "?"}</span>
-                      </Tip>
-                      <span className="text-text-muted">· {anchor!.audit_count} audits</span>
+                      {report?.tier && (
+                        <Tip text="Tier 1 = fast pattern-matching pass. Tier 2 = deeper LLM-reasoning pass.">
+                          <span className="text-text-muted">tier {report.tier}</span>
+                        </Tip>
+                      )}
+                      {auditCount !== null && (
+                        <span className="text-text-muted">· {auditCount} audits</span>
+                      )}
                     </>
                   ) : isLoading ? (
                     <span className="text-text-muted">reading on-chain…</span>
@@ -176,8 +239,9 @@ export function PriorityCachePanel({ chainId = MANTLE_CHAIN_ID }: { chainId?: nu
       </ul>
 
       <footer className="px-3 py-2 row-divider text-[10px] text-text-muted">
-        The three agent-to-agent demo audits, anchored on Mantle mainnet. Newest
-        anchor first.
+        Every audit anchored to the MantleProof registry on Mantle mainnet,
+        newest anchor first. The three agent-to-agent demo audits are pinned in
+        by name.
       </footer>
     </section>
   );
