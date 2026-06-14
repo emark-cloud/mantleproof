@@ -7,7 +7,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential libpq-dev && rm -rf /var/lib/apt/lists/*
 
 COPY pyproject.toml requirements.txt ./
-RUN pip install --no-cache-dir -e .
+# Install the [cdp] extra: production runs x402_facilitator=cdp, which lazily
+# imports cdp-sdk. Without it the CDP facilitator raises 502 on /verify.
+RUN pip install --no-cache-dir -e '.[cdp]'
 
 COPY . .
 
